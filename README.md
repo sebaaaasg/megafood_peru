@@ -1,77 +1,85 @@
-🎯 Objetivo del proyecto
-Sistema de gestión agroindustrial con autenticación segura y panel de administración visual.
+# 🍽️ MEGA FOOD - Sistema de Gestión Agroindustrial
 
-✨ Características implementadas
-1. Autenticación y Seguridad
-✅ Login con Supabase (email/contraseña)
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Next.js](https://img.shields.io/badge/Next.js-16-black)
+![Supabase](https://img.shields.io/badge/Supabase-Auth-green)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
 
-✅ Middleware para proteger rutas
+## 📖 Descripción
 
-✅ Sesiones persistentes con cookies
+**MEGA FOOD** es un sistema de gestión agroindustrial diseñado para optimizar el flujo de trabajo en cocinas industriales y restaurantes. La plataforma permite administrar desde el inventario de insumos hasta la programación de menús, pasando por la gestión de personal y requerimientos de cocina.
 
-✅ Redirección automática a login si no hay sesión
+> **"De la lista de insumos al plato en la mesa. Todo tu flujo de cocina, en un solo lugar."**
 
-✅ Cierre de sesión funcional
+---
 
-2. Interfaz de Usuario
-✅ Diseño "MegaFood" con paleta corporativa
+## 🚀 Demo
 
-✅ Colores: Verde lima (#8CC63F) y Naranja (#F37F21)
+🔗 **URL del Proyecto:** [https://tu-dominio.com](https://tu-dominio.com)
 
-✅ Header con textura estilo tabla de cortar
+### Credenciales de prueba
+| Usuario | Contraseña | Rol |
+|---------|-----------|-----|
+| `admin@sistema.com` | `12345` | Administrador |
 
-✅ Menú de estaciones operativas (01-06)
+---
 
-✅ Tarjetas con efecto hover y perforaciones estilo ticket de cocina
+## ✨ Características Principales
 
-✅ Responsive en mobile, tablet y desktop
+### 🔐 Autenticación y Seguridad
+- **Login seguro** con Supabase Auth
+- **Protección de rutas** mediante middleware
+- **Sesiones persistentes** con cookies HTTP-only
+- **Redirección automática** a login si no hay sesión
+- **Cierre de sesión** con limpieza de cookies
+- **Múltiples sesiones simultáneas** permitidas
 
-📁 proyecto/
-├── 📁 app/
-│   ├── 📁 dashboard/
-│   │   └── page.tsx          # Panel principal
-│   ├── 📁 login/
-│   │   └── page.tsx          # Página de autenticación
-│   └── layout.tsx             # Layout global
-├── 📁 components/
-│   ├── MainMenu.tsx           # Menú principal con autenticación
-│   ├── LogoutButton.tsx       # Botón de cierre de sesión
-│   └── StationCard.tsx        # Tarjetas de estaciones
-├── 📁 lib/
-│   └── 📁 supabase/
-│       ├── client.ts          # Cliente de navegador
-│       └── server.ts          # Cliente de servidor
-├── middleware.ts              # Protección de rutas
-├── .env.local                 # Variables de entorno
-└── package.json               # Dependencias
+### 🎨 Interfaz de Usuario
+- **Diseño "MegaFood"** con identidad visual única
+- **Paleta corporativa exclusiva:**
+  - 🟢 Verde lima: `#8CC63F` (destacados)
+  - 🟠 Naranja: `#F37F21` (acentos y CTAs)
+  - ⚫ Carbón: `#2B2B2B` (textos)
+- **Header con textura** estilo tabla de cortar
+- **Tarjetas tipo "comanda de cocina"** con perforaciones
+- **Efectos hover** y transiciones suaves
+- **Diseño completamente responsivo**
 
-4. Tecnologías Utilizadas
-Next.js 16 (Turbopack)
+### 🏗️ Estructura del Sistema
+El sistema está organizado en **6 estaciones operativas** que cubren todo el flujo de trabajo:
 
-Supabase (Autenticación)
+| Estación | Código | Función |
+|----------|--------|---------|
+| 👥 Personal | 01 | Roles y accesos por local |
+| 📦 Insumos | 02 | Catálogo e inventario |
+| 🍳 Recetas | 03 | Componentes de cada plato |
+| 📅 Menús | 04 | Programación por semana |
+| 🛒 Cocina | 05 | Requerimiento diario |
+| 📋 Compras | 06 | Órdenes a proveedores |
 
-React (Client/Server Components)
+---
 
-Tailwind CSS
+## 🛠️ Tecnologías
 
-Lucide React (Iconos)
+### Frontend
+- **[Next.js 16](https://nextjs.org/)** - Framework React con Server Components
+- **[React 18](https://react.dev/)** - Biblioteca de UI
+- **[TypeScript](https://www.typescriptlang.org/)** - Tipado estático
+- **[Tailwind CSS](https://tailwindcss.com/)** - Estilizado utilitario
+- **[Lucide React](https://lucide.dev/)** - Iconos modernos y consistentes
 
-TypeScript
+### Backend & Autenticación
+- **[Supabase](https://supabase.com/)** - Backend como servicio
+  - Autenticación con email/contraseña
+  - Gestión de sesiones
+  - Row Level Security (RLS)
+  - PostgreSQL database
 
-5. Funcionalidades Específicas
-✅ Usuario demo: admin@sistema.com / 12345
+### Infraestructura
+- **[Vercel](https://vercel.com/)** - Hosting y despliegue
+- **[Git](https://git-scm.com/)** - Control de versiones
 
-✅ Navegación entre estaciones del dashboard
+---
 
-✅ Nombres de usuario extraídos automáticamente del email
-
-✅ Fecha actual formateada en español
-
-✅ Múltiples sesiones simultáneas permitidas
-
-✅ Estilo visual consistente en toda la aplicación
-
-Comandos de desarrollo:
-npm run dev     # Iniciar en desarrollo
-npm run build   # Construir para producción
-npm start       # Iniciar en producción
+## 📁 Estructura del Proyecto
