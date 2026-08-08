@@ -80,6 +80,93 @@ El sistema está organizado en **6 estaciones operativas** que cubren todo el fl
 - **[Vercel](https://vercel.com/)** - Hosting y despliegue
 - **[Git](https://git-scm.com/)** - Control de versiones
 
----
 
-## 📁 Estructura del Proyecto
+
+### Avance v1.1
+🚀 Nuevos Módulos Implementados
+1. Módulo de Insumos (/dashboard/insumos)
+✅ Vista completa de catálogo de insumos con diseño MegaFood
+
+✅ CRUD completo (Crear, Leer, Actualizar, Eliminar)
+
+✅ Filtros por categoría con colores distintivos (Abarrotes, Frutas/Verduras, Cárnicos, Químicos, Descartables)
+
+✅ Búsqueda en tiempo real por nombre
+
+✅ Importación masiva desde Excel (.xlsx) con:
+
+Detección de duplicados
+
+Normalización automática de unidades (KG → kg, L → lt, etc.)
+
+Conversión automática de unidades (ml ↔ L, g ↔ kg)
+
+Vista previa antes de importar
+
+Manejo de errores y feedback al usuario
+
+✅ Campo de precio con formato en Soles peruanos (S/.)
+
+✅ Botones de Editar/Eliminar con efecto hover (solo administradores)
+
+2. Módulo de Platos (/dashboard/platos)
+✅ Estructura de base de datos completa (sedes, platos, recetas)
+
+✅ Gestión de platos por categoría (ENTRADA, CÁRNICO, GUARNICIÓN, POSTRE, BEBIBLE, SALSA)
+
+✅ Recetas por sede con gramajes específicos
+
+✅ Subcategorías para ENTRADAS (FRIO/CALIENTE)
+
+✅ CRUD completo de platos y sus recetas
+
+✅ Importación masiva desde Excel con:
+
+Soporte para múltiples sedes (Green, Danper, Sol de Laredo)
+
+Normalización de categorías y unidades
+
+Conversión automática de unidades
+
+Detección de duplicados
+
+Reutilización de platos existentes entre sedes
+
+Vista previa antes de importar
+
+🔧 Mejoras Técnicas
+Base de Datos
+✅ Tabla sedes: nombre únicamente (campo obligatorio)
+
+✅ Tabla platos: catálogo base con categorías
+
+✅ Tabla recetas: relación plato × sede × insumo con cantidades
+
+✅ Relaciones con claves foráneas y cascade delete
+
+✅ Índices para optimización de consultas
+
+✅ Políticas RLS (Row Level Security) implementadas
+
+Seguridad
+✅ Migración de getSession() a getUser() para autenticación segura
+
+✅ Middleware actualizado para verificar tokens auténticos
+
+✅ Corrección en DashboardLayout con autenticación segura
+
+Experiencia de Usuario
+✅ Diseño consistente con la identidad MegaFood
+
+✅ Paleta de colores corporativa (#8CC63F, #F37F21, #2B2B2B)
+
+✅ Filtros con colores por categoría
+
+✅ Feedback visual en todas las acciones (loading, éxito, error)
+
+✅ Modales para edición e importación
+
+📦 Dependencias Actualizadas
+✅ @sheetjs/xlsx (reemplazo seguro de xlsx) para importación de Excel
+
+✅ Corrección de vulnerabilidad (ReDoS) en la librería de Excel

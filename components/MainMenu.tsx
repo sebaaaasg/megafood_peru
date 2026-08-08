@@ -63,12 +63,12 @@ const stations: StationType[] = [
     tone: "orange",
   },
   {
-    id: "componentes",
+    id: "platos",
     n: "03",
-    title: "Recetas",
+    title: "Platos",
     description: "Componentes de cada plato",
     icon: UtensilsCrossed,
-    href: "/dashboard/componentes",
+    href: "/dashboard/platos",
     tone: "green",
   },
   {
