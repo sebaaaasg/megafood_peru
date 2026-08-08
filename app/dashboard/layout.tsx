@@ -2,7 +2,8 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { LogOut, Sprout } from 'lucide-react'
+import Image from 'next/image'
+import { LogOut } from 'lucide-react'
 import { createClient } from '@/lib/supabase/server'
 
 export default async function DashboardLayout({
@@ -30,8 +31,16 @@ export default async function DashboardLayout({
       <header className="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-2 group focus:outline-none focus:ring-2 focus:ring-[#8CC63F] rounded-lg p-1">
-            <div className="bg-[#8CC63F]/10 p-2 rounded-lg text-[#8CC63F] group-hover:bg-[#8CC63F]/20 transition-colors">
-              <Sprout className="w-6 h-6" />
+            {/* 🔥 IMAGEN PERSONALIZADA */}
+            <div className="relative w-10 h-10 flex items-center justify-center">
+              <Image
+                src="/megafood.png"
+                alt="MegaFood Logo"
+                width={40}
+                height={40}
+                className="object-contain"
+                priority
+              />
             </div>
             <span className="font-bold text-lg text-slate-800 tracking-tight">
               Megafood <span className="text-[#8CC63F]">Perú</span>

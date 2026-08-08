@@ -125,18 +125,17 @@ function StationCard({ station }: { station: StationType }) {
   return (
     <a
       href={station.href}
-      className="group relative flex flex-col justify-between overflow-hidden bg-white transition-all duration-200"
-      style={{
-        borderLeft: `1.5px solid ${isHovered ? t.hoverBorder : "#E7E7E2"}`,
-        borderRight: `1.5px solid ${isHovered ? t.hoverBorder : "#E7E7E2"}`,
-        borderBottom: `1.5px solid ${isHovered ? t.hoverBorder : "#E7E7E2"}`,
-        borderTop: `5px solid ${t.ticket}`,
-        borderRadius: "4px",
-        padding: "1.75rem 1.5rem 1.5rem",
-        minHeight: "190px",
-        transform: isHovered ? "translateY(-3px)" : "translateY(0)",
-        boxShadow: isHovered ? "0 10px 24px -12px rgba(43,43,43,0.22)" : "none",
-      }}
+  className="group relative flex flex-col justify-between overflow-hidden bg-white transition-all duration-200 p-4 sm:p-6"
+  style={{
+    borderLeft: `1.5px solid ${isHovered ? t.hoverBorder : "#E7E7E2"}`,
+    borderRight: `1.5px solid ${isHovered ? t.hoverBorder : "#E7E7E2"}`,
+    borderBottom: `1.5px solid ${isHovered ? t.hoverBorder : "#E7E7E2"}`,
+    borderTop: `5px solid ${t.ticket}`,
+    borderRadius: "4px",
+    minHeight: "150px",
+    transform: isHovered ? "translateY(-3px)" : "translateY(0)",
+    boxShadow: isHovered ? "0 10px 24px -12px rgba(43,43,43,0.22)" : "none",
+  }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -400,7 +399,7 @@ export default function MainMenu() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-5">
           {stations.map((s) => (
             <StationCard key={s.id} station={s} />
           ))}
