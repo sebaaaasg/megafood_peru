@@ -95,7 +95,7 @@ const stations: StationType[] = [
     title: "Compras",
     description: "Órdenes a proveedores",
     icon: ClipboardList,
-    href: "/dashboard/compra",
+    href: "/dashboard/compras",
     tone: "orange",
   },
 ] as const;

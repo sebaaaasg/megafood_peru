@@ -17,7 +17,8 @@ import {
   Beef,
   FlaskConical,
   Grid3x3,
-  Pencil
+  Pencil,
+  DollarSign
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Insumo } from '@/lib/supabase/insumos'
@@ -32,7 +33,7 @@ interface InsumosClientProps {
   initialCategories: Category[]
 }
 
-// Configuración visual por categoría: ícono + color base (mismo lenguaje que la pestaña de Platos)
+// Configuración visual por categoría
 const CATEGORY_STYLES: Record<string, { icon: any; light: string; text: string; border: string }> = {
   'Abarrotes': { icon: Package, light: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-100' },
   'Frutas y Verduras': { icon: Apple, light: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-100' },
@@ -42,6 +43,16 @@ const CATEGORY_STYLES: Record<string, { icon: any; light: string; text: string; 
 }
 
 const DEFAULT_STYLE = { icon: Package, light: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200' }
+
+// Formatear precio en Soles Peruanos
+const formatPrice = (precio: number) => {
+  return new Intl.NumberFormat('es-PE', {
+    style: 'currency',
+    currency: 'PEN',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(precio)
+}
 
 export default function InsumosClient({ initialInsumos, initialCategories }: InsumosClientProps) {
   const router = useRouter()
@@ -59,7 +70,8 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
   const [formData, setFormData] = useState({
     nombre: '',
     unidad: '',
-    categoria: 'Abarrotes'
+    categoria: 'Abarrotes',
+    precio: ''  // 🔥 NUEVO: campo precio
   })
 
   useEffect(() => {
@@ -95,7 +107,12 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
   }, [insumos, selectedCategory, searchTerm])
 
   const resetForm = () => {
-    setFormData({ nombre: '', unidad: '', categoria: selectedCategory !== 'Todas' ? selectedCategory : 'Abarrotes' })
+    setFormData({ 
+      nombre: '', 
+      unidad: '', 
+      categoria: selectedCategory !== 'Todas' ? selectedCategory : 'Abarrotes',
+      precio: ''
+    })
     setEditingInsumo(null)
     setShowForm(false)
   }
@@ -109,13 +126,16 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('No autenticado')
 
+      const precioNum = parseFloat(formData.precio) || 0
+
       if (editingInsumo) {
         const { data, error } = await supabase
           .from('insumos')
           .update({
             nombre: formData.nombre.trim().toUpperCase(),
             unidad: formData.unidad,
-            categoria: formData.categoria
+            categoria: formData.categoria,
+            precio: precioNum  // 🔥 Incluir precio en actualización
           })
           .eq('id', editingInsumo.id)
           .select()
@@ -131,6 +151,7 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
             nombre: formData.nombre.trim().toUpperCase(),
             unidad: formData.unidad,
             categoria: formData.categoria,
+            precio: precioNum,  // 🔥 Incluir precio en creación
             created_by: user.id
           })
           .select()
@@ -189,7 +210,8 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
     setFormData({
       nombre: insumo.nombre,
       unidad: insumo.unidad,
-      categoria: insumo.categoria
+      categoria: insumo.categoria,
+      precio: insumo.precio?.toString() || ''  // 🔥 Cargar precio existente
     })
     setEditingInsumo(insumo)
     setShowForm(true)
@@ -214,53 +236,53 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto px-6 md:px-8 py-8">
-        {/* Barra superior: logo + acciones */}
-        <div className="flex items-center justify-between mb-10 flex-wrap gap-3">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8">
+        {/* Barra superior */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-8 sm:mb-10">
           <div className="text-xl font-black tracking-tight">
             <span className="text-slate-900">MEGA</span>
             <span className="text-orange-500">FOOD</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {isAdmin && (
-              <button className="flex items-center gap-2 px-4 py-2 bg-white border border-emerald-200 text-emerald-700 rounded-full text-sm font-semibold hover:bg-emerald-50 transition shadow-sm">
-                <Upload size={16} />
-                Importar Excel
+              <button className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white border border-emerald-200 text-emerald-700 rounded-full text-xs sm:text-sm font-semibold hover:bg-emerald-50 transition shadow-sm">
+                <Upload size={14} className="sm:w-4 sm:h-4" />
+                <span className="hidden xs:inline">Importar Excel</span>
               </button>
             )}
             <Link
               href="/dashboard"
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-full text-sm font-semibold hover:bg-slate-50 transition shadow-sm"
+              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white border border-slate-200 text-slate-600 rounded-full text-xs sm:text-sm font-semibold hover:bg-slate-50 transition shadow-sm"
             >
-              <ArrowLeft size={16} />
-              Panel
+              <ArrowLeft size={14} className="sm:w-4 sm:h-4" />
+              <span className="hidden xs:inline">Panel</span>
             </Link>
           </div>
         </div>
 
         {/* Título */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-black tracking-tight text-slate-900">
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900">
             Inventario de <span className="text-orange-500">insumos</span>
           </h1>
-          <p className="mt-2 text-slate-500">
+          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-slate-500">
             Selecciona una categoría para gestionar sus insumos.
           </p>
         </div>
 
         {/* Pestañas de categoría */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-8">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-3 mb-6 sm:mb-8">
           <button
             onClick={() => setSelectedCategory('Todas')}
-            className={`rounded-2xl px-4 py-4 text-center transition border ${
+            className={`rounded-xl sm:rounded-2xl px-3 sm:px-4 py-3 sm:py-4 text-center transition border ${
               selectedCategory === 'Todas'
                 ? 'bg-emerald-800 border-emerald-800 text-white shadow-md'
                 : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
             }`}
           >
-            <Grid3x3 className="mx-auto mb-1.5" size={20} />
-            <div className="text-xs font-bold tracking-wide uppercase">Todas</div>
-            <div className={`text-xs mt-0.5 ${selectedCategory === 'Todas' ? 'text-emerald-100' : 'text-slate-400'}`}>
+            <Grid3x3 className="mx-auto mb-1" size={18} />
+            <div className="text-[10px] sm:text-xs font-bold tracking-wide uppercase">Todas</div>
+            <div className={`text-[10px] sm:text-xs mt-0.5 ${selectedCategory === 'Todas' ? 'text-emerald-100' : 'text-slate-400'}`}>
               {totalInsumos} insumos
             </div>
           </button>
@@ -273,15 +295,15 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
               <button
                 key={cat.name}
                 onClick={() => setSelectedCategory(cat.name)}
-                className={`rounded-2xl px-4 py-4 text-center transition border ${
+                className={`rounded-xl sm:rounded-2xl px-3 sm:px-4 py-3 sm:py-4 text-center transition border ${
                   isActive
                     ? 'bg-emerald-800 border-emerald-800 text-white shadow-md'
                     : `${style.light} ${style.border} ${style.text} hover:brightness-95`
                 }`}
               >
-                <Icon className="mx-auto mb-1.5" size={20} />
-                <div className="text-xs font-bold tracking-wide uppercase">{cat.name}</div>
-                <div className={`text-xs mt-0.5 ${isActive ? 'text-emerald-100' : 'opacity-70'}`}>
+                <Icon className="mx-auto mb-1" size={18} />
+                <div className="text-[10px] sm:text-xs font-bold tracking-wide uppercase">{cat.name}</div>
+                <div className={`text-[10px] sm:text-xs mt-0.5 ${isActive ? 'text-emerald-100' : 'opacity-70'}`}>
                   {cat.count} insumos
                 </div>
               </button>
@@ -289,62 +311,64 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
           })}
         </div>
 
-        {/* Formulario de nuevo/editar insumo */}
+        {/* Formulario */}
         {isAdmin && (
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-white shadow-sm mb-8">
-            <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
-              <div className="flex items-center gap-2.5">
-                <Pencil size={18} className="text-slate-400" />
-                <h2 className="text-lg font-bold text-slate-900">
+          <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white shadow-sm mb-6 sm:mb-8">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-4 sm:mb-5">
+              <div className="flex items-center gap-2">
+                <Pencil size={18} className="text-slate-400 hidden sm:inline" />
+                <h2 className="text-base sm:text-lg font-bold text-slate-900">
                   {editingInsumo ? 'Editar insumo' : 'Nuevo insumo'}
                 </h2>
-                <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs font-semibold">
-                  {formData.categoria}
-                </span>
+                {formData.categoria && (
+                  <span className="px-2 py-0.5 sm:py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] sm:text-xs font-semibold">
+                    {formData.categoria}
+                  </span>
+                )}
               </div>
               {!showForm && (
                 <button
                   onClick={() => setShowForm(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-emerald-800 text-white rounded-full text-sm font-semibold hover:bg-emerald-900 transition"
+                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-emerald-800 text-white rounded-full text-xs sm:text-sm font-semibold hover:bg-emerald-900 transition"
                 >
-                  <Plus size={16} />
+                  <Plus size={14} className="sm:w-4 sm:h-4" />
                   Nuevo insumo
                 </button>
               )}
               {showForm && (
                 <button onClick={resetForm} className="text-slate-400 hover:text-slate-600">
-                  <X size={20} />
+                  <X size={18} className="sm:w-5 sm:h-5" />
                 </button>
               )}
             </div>
 
             {showForm && (
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
                 <div>
-                  <label className="block text-xs font-bold tracking-wide uppercase text-slate-500 mb-2">
+                  <label className="block text-[10px] sm:text-xs font-bold tracking-wide uppercase text-slate-500 mb-1 sm:mb-2">
                     Nombre del insumo
                   </label>
                   <input
                     type="text"
                     value={formData.nombre}
                     onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm sm:text-base"
                     placeholder="Ej: PECHUGA DE POLLO"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold tracking-wide uppercase text-slate-500 mb-2">
+                  <label className="block text-[10px] sm:text-xs font-bold tracking-wide uppercase text-slate-500 mb-1 sm:mb-2">
                     Categoría
                   </label>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
                     {Object.keys(CATEGORY_STYLES).map((cat) => (
                       <button
                         key={cat}
                         type="button"
                         onClick={() => setFormData({ ...formData, categoria: cat })}
-                        className={`px-4 py-2 rounded-full text-sm font-medium border transition ${
+                        className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-[11px] sm:text-sm font-medium border transition ${
                           formData.categoria === cat
                             ? 'bg-emerald-800 border-emerald-800 text-white'
                             : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
@@ -356,90 +380,113 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
                   </div>
                 </div>
 
-                <div className="flex items-end gap-3">
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                   <div className="flex-1">
-                    <label className="block text-xs font-bold tracking-wide uppercase text-slate-500 mb-2">
+                    <label className="block text-[10px] sm:text-xs font-bold tracking-wide uppercase text-slate-500 mb-1 sm:mb-2">
                       Unidad
                     </label>
                     <input
                       type="text"
                       value={formData.unidad}
                       onChange={(e) => setFormData({ ...formData, unidad: e.target.value })}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm sm:text-base"
                       placeholder="kg, l, gln..."
                       required
                     />
                   </div>
-                  <button
-                    type="submit"
-                    className="px-6 py-3 bg-emerald-800 text-white rounded-xl font-semibold hover:bg-emerald-900 transition whitespace-nowrap"
-                  >
-                    {editingInsumo ? 'Actualizar insumo' : 'Crear insumo'}
-                  </button>
+                  <div className="flex-1">
+                    <label className="block text-[10px] sm:text-xs font-bold tracking-wide uppercase text-slate-500 mb-1 sm:mb-2">
+                      <DollarSign className="inline w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+                      Precio (S/.)
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.precio}
+                      onChange={(e) => setFormData({ ...formData, precio: e.target.value })}
+                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm sm:text-base"
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
+                    />
+                  </div>
                 </div>
+
+                <button
+                  type="submit"
+                  className="w-full sm:w-auto px-6 py-2.5 sm:py-3 bg-emerald-800 text-white rounded-xl font-semibold hover:bg-emerald-900 transition"
+                >
+                  {editingInsumo ? 'Actualizar insumo' : 'Crear insumo'}
+                </button>
               </form>
             )}
           </div>
         )}
 
         {/* Búsqueda */}
-        <div className="flex justify-end mb-4">
-          <div className="relative w-full md:w-64">
+        <div className="flex justify-end mb-3 sm:mb-4">
+          <div className="relative w-full sm:w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-2.5 border border-slate-200 rounded-full bg-white/80 focus:ring-2 focus:ring-emerald-500 focus:border-transparent w-full"
+              className="w-full pl-9 pr-4 py-2 sm:py-2.5 border border-slate-200 rounded-full bg-white/80 focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
               placeholder="Buscar insumo..."
             />
           </div>
         </div>
 
         {/* Encabezado de lista */}
-        <div className="mb-4">
-          <p className="text-xs font-bold tracking-wide uppercase text-slate-500">
+        <div className="mb-3 sm:mb-4">
+          <p className="text-[10px] sm:text-xs font-bold tracking-wide uppercase text-slate-500">
             {selectedCategory === 'Todas' ? 'Todos los insumos' : selectedCategory} — {filteredInsumos.length} {filteredInsumos.length === 1 ? 'insumo' : 'insumos'}
           </p>
         </div>
 
         {/* Grid de insumos */}
         {filteredInsumos.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
             {filteredInsumos.map((insumo) => {
               const style = getCategoryStyle(insumo.categoria)
               return (
                 <div
                   key={insumo.id}
-                  className="bg-white/90 rounded-2xl border border-white p-5 hover:shadow-md transition-shadow group shadow-sm"
+                  className="bg-white/90 rounded-xl sm:rounded-2xl border border-white p-4 sm:p-5 hover:shadow-md transition-shadow shadow-sm"
                 >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <h3 className="font-bold text-slate-900 text-lg leading-tight">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-slate-900 text-base sm:text-lg leading-tight break-words">
                         {insumo.nombre}
                       </h3>
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${style.light} ${style.text} ${style.border}`}>
+                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1.5 sm:mt-2">
+                        <span className={`px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium border ${style.light} ${style.text} ${style.border}`}>
                           {insumo.categoria}
                         </span>
-                        <span className="text-sm text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">
+                        <span className="text-xs sm:text-sm text-slate-500 bg-slate-100 px-2 sm:px-2.5 py-0.5 rounded-full">
                           {insumo.unidad}
                         </span>
+                        {insumo.precio !== undefined && insumo.precio > 0 && (
+                          <span className="text-xs sm:text-sm font-semibold text-orange-600 bg-orange-50 px-2 sm:px-2.5 py-0.5 rounded-full">
+                            {formatPrice(insumo.precio)}
+                          </span>
+                        )}
                       </div>
                     </div>
                     {isAdmin && (
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1 flex-shrink-0">
                         <button
                           onClick={() => handleEdit(insumo)}
-                          className="p-1.5 text-slate-400 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition"
+                          className="p-1.5 sm:p-2 text-slate-400 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition"
+                          aria-label="Editar insumo"
                         >
-                          <Edit size={16} />
+                          <Edit size={14} className="sm:w-4 sm:h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(insumo.id)}
-                          className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition"
+                          className="p-1.5 sm:p-2 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition"
+                          aria-label="Eliminar insumo"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={14} className="sm:w-4 sm:h-4" />
                         </button>
                       </div>
                     )}
@@ -449,15 +496,15 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
             })}
           </div>
         ) : (
-          <div className="text-center py-14 bg-white/70 border border-white rounded-2xl">
-            <Package className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">
+          <div className="text-center py-10 sm:py-14 bg-white/70 border border-white rounded-xl sm:rounded-2xl">
+            <Package className="w-10 h-10 sm:w-12 sm:h-12 text-slate-300 mx-auto mb-2 sm:mb-3" />
+            <p className="text-sm sm:text-base text-slate-500 font-medium">
               {searchTerm ? 'No se encontraron insumos con ese nombre' : 'Sin insumos en esta categoría'}
             </p>
             {isAdmin && !searchTerm && !showForm && (
               <button
                 onClick={() => setShowForm(true)}
-                className="mt-3 text-emerald-700 font-medium hover:underline"
+                className="mt-2 sm:mt-3 text-emerald-700 font-medium hover:underline text-sm sm:text-base"
               >
                 + Agregar primer insumo
               </button>
@@ -466,11 +513,11 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
         )}
 
         {/* Footer */}
-        <div className="mt-10 pt-4 border-t border-slate-200/60 flex items-center justify-between flex-wrap gap-2">
-          <p className="text-xs text-slate-400">© 2026 MegaFood · Inventario de insumos</p>
+        <div className="mt-8 sm:mt-10 pt-3 sm:pt-4 border-t border-slate-200/60 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <p className="text-[10px] sm:text-xs text-slate-400">© 2026 MegaFood · Inventario de insumos</p>
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block" />
-            <span className="text-xs text-slate-400 font-semibold">v1.0</span>
+            <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-emerald-600 inline-block" />
+            <span className="text-[10px] sm:text-xs text-slate-400 font-semibold">v1.0</span>
           </div>
         </div>
       </div>
