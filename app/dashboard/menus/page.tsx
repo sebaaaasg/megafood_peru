@@ -9,7 +9,7 @@ import { ArrowLeft, Upload, Calendar, Edit, Eye, ClipboardList } from 'lucide-re
 const MODULES = [
   { 
     id: 1, 
-    href: "/dashboard/programacion/importar", 
+    href: "/dashboard/menus/importar", 
     variant: "green", 
     title: "Importar Excel",
     description: "Carga los archivos de Gerencia para automatizar el calendario.",
@@ -17,7 +17,7 @@ const MODULES = [
   },
   { 
     id: 2, 
-    href: "/dashboard/programacion/manual", 
+    href: "/dashboard/menus/manual", 
     variant: "blue", 
     title: "Programar Manual",
     description: "Diseña el calendario semana a semana con total control.",
@@ -25,7 +25,7 @@ const MODULES = [
   },
   { 
     id: 3, 
-    href: "/dashboard/programacion/editar", 
+    href: "/dashboard/menus/editar", 
     variant: "orange", 
     title: "Editar Programación",
     description: "Modifica, actualiza o elimina platos programados existentes.",
@@ -33,7 +33,7 @@ const MODULES = [
   },
   { 
     id: 4, 
-    href: "/dashboard/programacion/visualizacion", 
+    href: "/dashboard/menus/visualizacion", 
     variant: "green", 
     title: "Visualizar Planificación",
     description: "Consulta el calendario completo de menús por sede y fecha.",
