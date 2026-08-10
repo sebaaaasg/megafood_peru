@@ -18,7 +18,8 @@ import {
   CupSoda,
   Droplets,
   MapPin,
-  ChevronDown
+  ChevronDown,
+  Search
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Plato, Insumo, Sede, Categoria, RecetaLinea } from '@/lib/supabase/platos'
@@ -112,6 +113,9 @@ export default function PlatosClient({
   const [catActiva, setCatActiva] = useState<CategoriaKey>("ENTRADA")
   const [sedeActiva, setSedeActiva] = useState<string>("")
   const [loading, setLoading] = useState(false)
+  
+  // 🔍 Buscador
+  const [searchTerm, setSearchTerm] = useState("")
 
   // Estado del formulario
   const [nombre, setNombre] = useState("")
@@ -522,7 +526,15 @@ export default function PlatosClient({
   }
 
   const catActual = CATS.find(c => c.key === catActiva)!
-  const platosDeCat = platos.filter(p => p.categoria === catActiva)
+  
+  // 🔍 Filtrar platos por categoría activa y búsqueda
+  const platosDeCat = platos.filter(p => {
+    const matchCategoria = p.categoria === catActiva
+    const matchSearch = searchTerm.trim() === "" || 
+      p.nombre.toLowerCase().includes(searchTerm.toLowerCase().trim())
+    return matchCategoria && matchSearch
+  })
+  
   const sedeActualNombre = sedes.find(s => s.id === sedeActiva)?.nombre || ""
   const hayPendientes = platosImport.some((p: any) => Object.values(p.decisiones).some((d: any) => d === "pendiente"))
   const totalNoEncontrados = platosImport.reduce((acc: number, p: any) => acc + Object.keys(p.decisiones).length, 0)
@@ -539,7 +551,7 @@ export default function PlatosClient({
         </div>
       )}
 
-      {/* Header */}
+      {/* Header responsive */}
       <header className="relative overflow-hidden" style={{ background: '#2B2B2B' }}>
         <div className="absolute inset-0 opacity-[0.06]" style={{
           backgroundImage: "repeating-linear-gradient(135deg, #FFFFFF 0px, #FFFFFF 1px, transparent 1px, transparent 14px)"
@@ -547,44 +559,51 @@ export default function PlatosClient({
         <div className="absolute left-0 top-0 bottom-0" style={{ width: '6px', background: '#F37F21' }} aria-hidden="true" />
         <div className="absolute left-[6px] top-0 bottom-0" style={{ width: '6px', background: '#8CC63F' }} aria-hidden="true" />
 
-        <div className="relative max-w-7xl mx-auto px-8 py-10">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <span className="uppercase font-mono text-xs" style={{ fontWeight: 700, letterSpacing: '0.18em', color: '#8CC63F' }}>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
+          {/* Contenedor flexible - columna en móvil, fila en desktop */}
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
+            
+            {/* Lado izquierdo - Texto */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 mb-1 sm:mb-2">
+                <span className="uppercase font-mono text-[10px] sm:text-xs" style={{ fontWeight: 700, letterSpacing: '0.18em', color: '#8CC63F' }}>
                   Módulo de gestión
                 </span>
               </div>
-              <h1 className="text-3xl font-black tracking-tight">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight leading-tight">
                 <span style={{ color: '#FFFFFF' }}>Catálogo de</span>
+                <br className="sm:hidden" />
                 <span style={{ color: '#F37F21' }}> Platos</span>
               </h1>
-              <p className="mt-2" style={{ color: '#C9C9C3', fontSize: '1rem' }}>
+              <p className="mt-1 sm:mt-2 text-sm sm:text-base" style={{ color: '#C9C9C3' }}>
                 Gestiona tus platos y sus recetas por sede.
               </p>
             </div>
-            <div className="flex gap-3">
+
+            {/* Lado derecho - Botones apilados en móvil */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
               <button
                 onClick={() => setModalImport(true)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#F37F21]/10 text-[#F37F21] rounded-lg font-semibold hover:bg-[#F37F21]/20 transition"
+                className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 bg-[#F37F21]/10 text-[#F37F21] rounded-lg font-semibold hover:bg-[#F37F21]/20 transition text-sm sm:text-base w-full sm:w-auto"
               >
                 <FileSpreadsheet size={18} />
                 Importar Excel
               </button>
               <Link
                 href="/dashboard"
-                className="flex items-center gap-2 px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition"
+                className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition text-sm sm:text-base w-full sm:w-auto"
               >
                 <ArrowLeft size={18} />
                 Panel
               </Link>
             </div>
+
           </div>
         </div>
       </header>
 
       {/* Contenido */}
-      <main className="max-w-7xl mx-auto px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
         {/* Selector de sede */}
         <div className="mb-7 rounded-2xl border border-[#E7E7E2] bg-white shadow-[0_2px_12px_rgba(43,43,43,0.04)] overflow-hidden">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4">
@@ -621,7 +640,7 @@ export default function PlatosClient({
               return (
                 <button
                   key={cat.key}
-                  onClick={() => { setCatActiva(cat.key); setSubcategoria(""); setLineas([{ ...EMPTY_LINEA }]) }}
+                  onClick={() => { setCatActiva(cat.key); setSubcategoria(""); setLineas([{ ...EMPTY_LINEA }]); setSearchTerm("") }}
                   className={`group relative flex h-[116px] w-[154px] flex-shrink-0 flex-col items-center justify-center gap-1.5 rounded-2xl border-2 px-2 transition-all duration-200 ${isActive ? 'shadow-[0_5px_16px_rgba(43,43,43,0.14)] -translate-y-0.5' : 'hover:-translate-y-0.5 hover:shadow-sm'}`}
                   style={{ background: isActive ? cat.color : cat.bg, color: isActive ? '#FFFFFF' : cat.color, borderColor: isActive ? '#FFFFFF' : `${cat.color}30`, boxShadow: isActive ? `0 5px 16px ${cat.color}22` : undefined }}
                 >
@@ -632,6 +651,33 @@ export default function PlatosClient({
               )
             })}
           </div>
+        </div>
+
+        {/* 🔍 Buscador de platos */}
+        <div className="mb-6">
+          <div className="relative max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar plato por nombre..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-10 py-2.5 border border-[#E7E7E2] rounded-lg focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent bg-white text-sm"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+          {searchTerm && (
+            <p className="mt-2 text-sm text-[#6B6B65]">
+              {platosDeCat.length} resultado{platosDeCat.length !== 1 ? 's' : ''} encontrado{platosDeCat.length !== 1 ? 's' : ''}
+            </p>
+          )}
         </div>
 
         {/* Formulario nuevo plato */}
@@ -694,11 +740,11 @@ export default function PlatosClient({
                 {lineas.map((linea, i) => {
                   const insumoSel = insumos.find(ins => ins.id === linea.insumo_id)
                   return (
-                    <div key={i} className="flex gap-2 items-center">
+                    <div key={i} className="flex gap-2 items-center flex-wrap sm:flex-nowrap">
                       <select
                         value={linea.insumo_id}
                         onChange={e => setLinea(i, "insumo_id", e.target.value)}
-                        className="flex-1 rounded-lg border border-[#E7E7E2] px-3 py-2 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F]"
+                        className="flex-1 min-w-[120px] rounded-lg border border-[#E7E7E2] px-3 py-2 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F]"
                       >
                         <option value="">— Seleccionar insumo —</option>
                         {insumos.map(ins => (
@@ -764,9 +810,15 @@ export default function PlatosClient({
 
         {platosDeCat.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[#DCDCD5] bg-[#FAFAF7] py-12 text-center">
-            <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl border border-[#E7E7E2] bg-white text-[#9A9A93]"><Plus size={19} /></div>
-            <p className="text-sm font-bold text-[#5F5F59]">Sin platos en esta categoría</p>
-            <p className="mt-1 text-xs text-[#9A9A93]">Crea el primero usando el formulario superior.</p>
+            <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl border border-[#E7E7E2] bg-white text-[#9A9A93]">
+              {searchTerm ? <Search size={19} /> : <Plus size={19} />}
+            </div>
+            <p className="text-sm font-bold text-[#5F5F59]">
+              {searchTerm ? "No se encontraron platos con ese nombre" : "Sin platos en esta categoría"}
+            </p>
+            <p className="mt-1 text-xs text-[#9A9A93]">
+              {searchTerm ? "Prueba con otro término de búsqueda" : "Crea el primero usando el formulario superior."}
+            </p>
           </div>
         ) : (
           platosDeCat.map(plato => {
@@ -774,7 +826,7 @@ export default function PlatosClient({
             return (
               <div
                 key={plato.id}
-                className="group mb-3 flex items-start justify-between gap-4 rounded-2xl border border-[#E7E7E2] bg-white px-5 py-4 shadow-[0_2px_10px_rgba(43,43,43,0.035)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#DCDCD5] hover:shadow-[0_7px_18px_rgba(43,43,43,0.07)]"
+                className="group mb-3 flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 rounded-2xl border border-[#E7E7E2] bg-white px-4 sm:px-5 py-4 shadow-[0_2px_10px_rgba(43,43,43,0.035)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#DCDCD5] hover:shadow-[0_7px_18px_rgba(43,43,43,0.07)]"
               >
                 <div className="flex-1 min-w-0">
                   <div className="mb-1 flex items-center gap-2 flex-wrap">
@@ -795,7 +847,7 @@ export default function PlatosClient({
                   </p>
                 </div>
                 {isAdmin && (
-                  <div className="flex gap-1.5 flex-shrink-0">
+                  <div className="flex gap-1.5 flex-shrink-0 self-end sm:self-auto">
                     <button
                       onClick={() => abrirModalEdicion(plato)}
                       className="flex items-center gap-1 text-xs font-bold rounded-lg px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
@@ -1042,11 +1094,11 @@ export default function PlatosClient({
                 {lineasEdit.map((linea, i) => {
                   const insumoSel = insumos.find(ins => ins.id === linea.insumo_id)
                   return (
-                    <div key={i} className="flex gap-2 items-center">
+                    <div key={i} className="flex gap-2 items-center flex-wrap sm:flex-nowrap">
                       <select
                         value={linea.insumo_id}
                         onChange={e => setLineaEdit(i, "insumo_id", e.target.value)}
-                        className="flex-1 rounded-lg border border-[#E7E7E2] px-3 py-2 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F]"
+                        className="flex-1 min-w-[120px] rounded-lg border border-[#E7E7E2] px-3 py-2 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F]"
                       >
                         <option value="">— Seleccionar insumo —</option>
                         {insumos.map(ins => (
@@ -1112,7 +1164,7 @@ export default function PlatosClient({
 
       {/* Footer */}
       <footer style={{ borderTop: '1.5px solid #EFEFE9' }} className="mt-8">
-        <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between flex-wrap gap-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between flex-wrap gap-2">
           <p style={{ fontSize: '0.8rem', color: '#9A9A93' }}>
             © 2026 MegaFood · Catálogo de platos
           </p>

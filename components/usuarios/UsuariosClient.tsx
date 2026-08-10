@@ -258,54 +258,68 @@ export default function UsuariosClient({
         <div className="absolute left-0 top-0 bottom-0" style={{ width: '6px', background: '#F37F21' }} aria-hidden="true" />
         <div className="absolute left-[6px] top-0 bottom-0" style={{ width: '6px', background: '#8CC63F' }} aria-hidden="true" />
 
-        <div className="relative max-w-7xl mx-auto px-8 py-10">
-          <div className="flex items-start justify-between">
-            <div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 sm:py-10">
+          <div className="flex flex-col md:flex-row md:items-center gap-7 md:gap-8">
+            {/* Información del módulo */}
+            <div className="min-w-0 md:flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <span
-                  className="uppercase font-mono text-xs"
+                  className="uppercase font-mono text-[11px] sm:text-xs"
                   style={{ fontWeight: 700, letterSpacing: '0.18em', color: '#8CC63F' }}
                 >
                   Módulo de gestión
                 </span>
               </div>
-              <h1 className="text-3xl font-black tracking-tight">
+
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight leading-tight">
                 <span style={{ color: '#FFFFFF' }}>Gestión de</span>
                 <span style={{ color: '#F37F21' }}> Usuarios</span>
               </h1>
-              <p className="mt-2" style={{ color: '#C9C9C3', fontSize: '1rem' }}>
+
+              <p
+                className="mt-2 max-w-xl"
+                style={{ color: '#C9C9C3', fontSize: '1rem' }}
+              >
                 Administra los usuarios del sistema y sus roles/permisos
               </p>
             </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowSedeModal(true)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#F37F21]/10 text-[#F37F21] rounded-lg font-semibold hover:bg-[#F37F21]/20 transition border border-[#F37F21]/20"
-              >
-                <Building size={18} />
-                Sedes
-              </button>
-              <button
-                onClick={() => setShowForm(!showForm)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#8CC63F] text-[#1F3A0A] rounded-lg font-semibold hover:bg-[#7AB835] transition"
-              >
-                <Plus size={18} />
-                Nuevo usuario
-              </button>
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-2 px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition"
-              >
-                <ArrowLeft size={18} />
-                Panel
-              </Link>
+
+            {/* Acciones: 2 columnas en pantallas pequeñas, 3 en escritorio */}
+            <div className="w-full md:flex-1 min-w-0">
+              <div className="grid grid-cols-2 xl:grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowSedeModal(true)}
+                  className="min-w-0 min-h-[52px] flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 bg-[#F37F21]/10 text-[#F37F21] rounded-lg font-semibold hover:bg-[#F37F21]/20 transition border border-[#F37F21]/20"
+                >
+                  <Building size={18} className="shrink-0" />
+                  <span className="truncate">Sedes</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowForm(!showForm)}
+                  className="min-w-0 min-h-[52px] flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 bg-[#8CC63F] text-[#1F3A0A] rounded-lg font-semibold hover:bg-[#7AB835] transition"
+                >
+                  <Plus size={18} className="shrink-0" />
+                  <span className="truncate">Nuevo usuario</span>
+                </button>
+
+                <Link
+                  href="/dashboard"
+                  className="min-w-0 min-h-[52px] flex items-center justify-center gap-2 px-3 sm:px-4 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition"
+                >
+                  <ArrowLeft size={18} className="shrink-0" />
+                  <span className="truncate">Panel</span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
       {/* Contenido principal */}
-      <main className="max-w-7xl mx-auto px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 min-w-0">
         {/* Formulario de usuario */}
         {showForm && (
           <div className="mb-8 bg-white rounded-lg p-6 border border-[#E7E7E2] border-t-4 border-t-[#8CC63F] shadow-sm">
@@ -385,18 +399,18 @@ export default function UsuariosClient({
                   </select>
                 </div>
               )}
-              <div className="md:col-span-2 flex justify-end gap-3">
+              <div className="md:col-span-2 flex flex-col-reverse sm:flex-row justify-end gap-3">
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="px-6 py-2.5 border border-[#E7E7E2] text-[#6B6B65] rounded-lg font-medium hover:bg-gray-50 transition"
+                  className="w-full sm:w-auto px-6 py-2.5 border border-[#E7E7E2] text-[#6B6B65] rounded-lg font-medium hover:bg-gray-50 transition"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-6 py-2.5 bg-[#F37F21] text-white rounded-lg font-semibold hover:bg-[#C4600F] transition disabled:opacity-50"
+                  className="w-full sm:w-auto px-6 py-2.5 bg-[#F37F21] text-white rounded-lg font-semibold hover:bg-[#C4600F] transition disabled:opacity-50"
                 >
                   {editingUser ? 'Actualizar' : 'Crear usuario'}
                 </button>
@@ -531,23 +545,26 @@ export default function UsuariosClient({
 
       {/* Modal para gestionar sedes */}
 {showSedeModal && (
-  <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-    <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-3 sm:p-4 z-50">
+    <div className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto p-4 sm:p-6 shadow-xl">
 
       {/* Encabezado */}
-      <div className="flex items-center justify-between mb-5">
-        <h3 className="text-xl font-bold text-[#2B2B2B] flex items-center gap-2">
-          <Building className="w-5 h-5 text-[#8CC63F]" />
-          Sedes
+      <div className="flex items-center justify-between gap-3 mb-5 min-w-0">
+        <h3 className="text-lg sm:text-xl font-bold text-[#2B2B2B] flex items-center gap-2 min-w-0">
+          <Building className="w-5 h-5 text-[#8CC63F] shrink-0" />
+          <span className="truncate">Sedes</span>
         </h3>
 
         <button
+          type="button"
           onClick={resetSedeForm}
-          className="text-gray-400 hover:text-gray-600"
+          className="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition"
+          aria-label="Cerrar"
         >
-          <X size={24} />
+          <X size={22} />
         </button>
       </div>
+
 
       {/* Sedes existentes */}
       <div className="mb-6">
@@ -560,7 +577,7 @@ export default function UsuariosClient({
             {sedes.map((sede) => (
               <div
                 key={sede.id}
-                className="flex items-center justify-between px-4 py-3 border-b last:border-b-0 border-[#F5F5F0] hover:bg-[#F5FBF0] transition"
+                className="flex items-center justify-between gap-3 px-4 py-3 border-b last:border-b-0 border-[#F5F5F0] hover:bg-[#F5FBF0] transition"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-[#8CC63F]/10 flex items-center justify-center">
@@ -606,11 +623,11 @@ export default function UsuariosClient({
             />
           </div>
 
-          <div className="flex gap-3">
+          <div className="grid grid-cols-2 gap-3 w-full">
             <button
               type="button"
               onClick={resetSedeForm}
-              className="flex-1 py-2.5 rounded-lg border border-[#E7E7E2] text-[#6B6B65] font-medium hover:bg-gray-50 transition"
+              className="w-full min-w-0 py-2.5 rounded-lg border border-[#E7E7E2] text-[#6B6B65] font-medium hover:bg-gray-50 transition"
             >
               Cancelar
             </button>
@@ -618,7 +635,7 @@ export default function UsuariosClient({
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 py-2.5 rounded-lg bg-[#8CC63F] text-[#1F3A0A] font-bold hover:bg-[#7AB835] transition disabled:opacity-50"
+              className="w-full min-w-0 py-2.5 rounded-lg bg-[#8CC63F] text-[#1F3A0A] font-bold hover:bg-[#7AB835] transition disabled:opacity-50"
             >
               {loading ? 'Creando...' : 'Crear sede'}
             </button>
@@ -632,7 +649,7 @@ export default function UsuariosClient({
 
       {/* Footer */}
       <footer style={{ borderTop: '1.5px solid #EFEFE9' }} className="mt-8">
-        <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between flex-wrap gap-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between flex-wrap gap-2">
           <p style={{ fontSize: '0.8rem', color: '#9A9A93' }}>© 2026 MegaFood · Gestión de usuarios</p>
           <div className="flex items-center gap-2">
             <span

@@ -325,8 +325,7 @@ export default function MainMenu() {
                 className="mt-4 max-w-xl"
                 style={{ color: "#C9C9C3", fontSize: "1.05rem", lineHeight: 1.5 }}
               >
-                De la lista de insumos al plato en la mesa. Todo tu flujo de
-                cocina, en un solo lugar.
+                
               </p>
 
               <div className="mt-4 flex items-center gap-3">

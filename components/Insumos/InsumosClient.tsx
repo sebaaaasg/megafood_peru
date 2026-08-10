@@ -475,69 +475,76 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
         </div>
       )}
 
-      {/* Header estilo MegaFood */}
-      <header className="relative overflow-hidden" style={{ background: '#2B2B2B' }}>
-        <div
-          className="absolute inset-0 opacity-[0.06]"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(135deg, #FFFFFF 0px, #FFFFFF 1px, transparent 1px, transparent 14px)",
-          }}
-          aria-hidden="true"
-        />
-        <div
-          className="absolute left-0 top-0 bottom-0"
-          style={{ width: '6px', background: '#F37F21' }}
-          aria-hidden="true"
-        />
-        <div
-          className="absolute left-[6px] top-0 bottom-0"
-          style={{ width: '6px', background: '#8CC63F' }}
-          aria-hidden="true"
-        />
+     {/* Header estilo MegaFood - VERSIÓN RESPONSIVE */}
+<header className="relative overflow-hidden" style={{ background: '#2B2B2B' }}>
+  <div
+    className="absolute inset-0 opacity-[0.06]"
+    style={{
+      backgroundImage:
+        "repeating-linear-gradient(135deg, #FFFFFF 0px, #FFFFFF 1px, transparent 1px, transparent 14px)",
+    }}
+    aria-hidden="true"
+  />
+  <div
+    className="absolute left-0 top-0 bottom-0"
+    style={{ width: '6px', background: '#F37F21' }}
+    aria-hidden="true"
+  />
+  <div
+    className="absolute left-[6px] top-0 bottom-0"
+    style={{ width: '6px', background: '#8CC63F' }}
+    aria-hidden="true"
+  />
 
-        <div className="relative max-w-7xl mx-auto px-8 py-10">
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <span
-                  className="uppercase font-mono text-xs"
-                  style={{
-                    fontWeight: 700,
-                    letterSpacing: '0.18em',
-                    color: '#8CC63F',
-                  }}
-                >
-                  Módulo de gestión
-                </span>
-              </div>
-              <h1 className="text-3xl font-black tracking-tight">
-                <span style={{ color: '#FFFFFF' }}>Inventario de</span>
-                <span style={{ color: '#F37F21' }}> Insumos</span>
-              </h1>
-              <p className="mt-2" style={{ color: '#C9C9C3', fontSize: '1rem' }}>
-                Registra, edita e importa los ingredientes por categoría.
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowForm(!showForm)}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#8CC63F] text-[#1F3A0A] rounded-lg font-semibold hover:bg-[#7AB835] transition"
-              >
-                <Plus size={18} />
-                Nuevo insumo
-              </button>
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-2 px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition"
-              >
-                <ArrowLeft size={18} />
-                Panel
-              </Link>
-            </div>
-          </div>
+  <div className="relative max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
+    {/* Contenedor flexible con dirección column en móvil */}
+    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
+      
+      {/* Lado izquierdo - Texto */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-3 mb-1 sm:mb-2">
+          <span
+            className="uppercase font-mono text-[10px] sm:text-xs"
+            style={{
+              fontWeight: 700,
+              letterSpacing: '0.18em',
+              color: '#8CC63F',
+            }}
+          >
+            Módulo de gestión
+          </span>
         </div>
-      </header>
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight leading-tight">
+          <span style={{ color: '#FFFFFF' }}>Inventario de</span>
+          <br className="sm:hidden" />
+          <span style={{ color: '#F37F21' }}> Insumos</span>
+        </h1>
+        <p className="mt-1 sm:mt-2 text-sm sm:text-base" style={{ color: '#C9C9C3' }}>
+          Registra, edita e importa los ingredientes por categoría.
+        </p>
+      </div>
+
+      {/* Lado derecho - Botones (apilados en móvil) */}
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+        <button
+          onClick={() => setShowForm(!showForm)}
+          className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 bg-[#8CC63F] text-[#1F3A0A] rounded-lg font-semibold hover:bg-[#7AB835] transition text-sm sm:text-base w-full sm:w-auto"
+        >
+          <Plus size={18} />
+          Nuevo insumo
+        </button>
+        <Link
+          href="/dashboard"
+          className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition text-sm sm:text-base w-full sm:w-auto"
+        >
+          <ArrowLeft size={18} />
+          Panel
+        </Link>
+      </div>
+
+    </div>
+  </div>
+</header>
 
       {/* Contenido principal */}
       <main className="max-w-7xl mx-auto px-8 py-8">
@@ -627,6 +634,8 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
           </div>
         )}
 
+
+        
         {/* Importar Excel */}
         <div className="mb-8 bg-white rounded-lg p-6 border border-[#E7E7E2] border-t-4 border-t-[#F37F21] shadow-sm">
           <div className="flex items-center gap-4">
@@ -803,6 +812,28 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
   </div>
 </div>
 
+
+{/* Buscador */}
+<div className="mb-8">
+  <div className="relative max-w-md">
+    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+    <input
+      type="text"
+      placeholder="Buscar insumo por nombre..."
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+      className="w-full pl-10 pr-4 py-2.5 border border-[#E7E7E2] rounded-lg focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent bg-white"
+    />
+    {searchTerm && (
+      <button
+        onClick={() => setSearchTerm('')}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+      >
+        <X size={16} />
+      </button>
+    )}
+  </div>
+</div>
 
 
 

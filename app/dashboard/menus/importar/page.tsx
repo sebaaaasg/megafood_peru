@@ -11,7 +11,8 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle,
-  X
+  X,
+  FileSpreadsheet
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import * as XLSX from 'xlsx'
@@ -32,15 +33,16 @@ export default function ImportarProgramacion() {
   const [platosProgramados, setPlatosProgramados] = useState<any[]>([])
   const [cargando, setCargando] = useState(false)
   const [platosFaltantes, setPlatosFaltantes] = useState<any[]>([])
-  const [sedeDetectada, setSedeDetectada] = useState("")
+  const [sedeSeleccionada, setSedeSeleccionada] = useState("")
+  const [sedes, setSedes] = useState<any[]>([])
   const [mostrandoModalFaltantes, setMostrandoModalFaltantes] = useState(false)
-  const [mostrandoModalSede, setMostrandoModalSede] = useState(false)
   const [puedeImportar, setPuedeImportar] = useState(false)
-  const [rolUsuario, setRolUsuario] = useState("")
+  const [rolUsuario, setRolUsuario] = useState("") // ✅ Estado agregado
   const [fileName, setFileName] = useState("")
   const [importando, setImportando] = useState(false)
+  const [cargandoSedes, setCargandoSedes] = useState(true)
 
-  // Verificar permisos
+  // Verificar permisos y cargar sedes
   useEffect(() => {
     const verificarPermisos = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -53,9 +55,23 @@ export default function ImportarProgramacion() {
         .single()
 
       if (perfil) {
-        setRolUsuario(perfil.role)
+        setRolUsuario(perfil.role) // ✅ Asignar el rol
         setPuedeImportar(perfil.role === "admin" || perfil.role === "gerencia")
       }
+
+      // Cargar sedes
+      const { data: sedesData } = await supabase
+        .from("sedes")
+        .select("id, nombre")
+        .order("nombre")
+      
+      if (sedesData) {
+        setSedes(sedesData)
+        if (sedesData.length > 0) {
+          setSedeSeleccionada(sedesData[0].id)
+        }
+      }
+      setCargandoSedes(false)
     }
     verificarPermisos()
   }, [supabase])
@@ -84,6 +100,11 @@ export default function ImportarProgramacion() {
       return
     }
 
+    if (!sedeSeleccionada) {
+      alert("⚠️ Primero selecciona una sede antes de importar.")
+      return
+    }
+
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -98,22 +119,7 @@ export default function ImportarProgramacion() {
         const hoja = workbook.Sheets[workbook.SheetNames[0]]
         const matriz = XLSX.utils.sheet_to_json(hoja, { header: 1 }) as any[][]
 
-        // Detectar sede
-        let textoSede = ""
-        for (let r = 0; r < Math.min(matriz.length, 10); r++) {
-          const fila = matriz[r]
-          if (!fila) continue
-          for (let c = 0; c < Math.min(fila.length, 5); c++) {
-            const valorCelda = fila[c]?.toString().toUpperCase() || ""
-            if (valorCelda.includes("PROGRAMACION DE MENUS")) {
-              textoSede = valorCelda.replace(/.*PROGRAMACION DE MENUS\s*[-\s]*/i, "").trim()
-              break
-            }
-          }
-          if (textoSede) break
-        }
-        setSedeDetectada(textoSede.trim())
-
+        // Ya no detectamos sede del Excel, usamos la seleccionada
         const categorias = CATEGORIAS_ORDEN
         const mapaDias = new Map()
         let tipoActual = "estandar"
@@ -176,25 +182,15 @@ export default function ImportarProgramacion() {
   // Guardar en BD
   const guardarProgramacion = async () => {
     if (platosProgramados.length === 0) return
-    if (!sedeDetectada) {
-      alert("No se detectó ninguna sede en el Excel.")
+    if (!sedeSeleccionada) {
+      alert("Selecciona una sede.")
       return
     }
 
     setCargando(true)
     try {
-      const { data: sedesData } = await supabase
-        .from("sedes")
-        .select("id")
-        .ilike("nombre", sedeDetectada)
-
-      if (!sedesData || sedesData.length === 0) {
-        setMostrandoModalSede(true)
-        setCargando(false)
-        return
-      }
-
-      const sedeId = sedesData[0].id
+      const sedeId = sedeSeleccionada
+      
       const platosExcelMap = new Map()
       platosProgramados.forEach(dia => {
         dia.platos.forEach((p: any) => {
@@ -223,7 +219,7 @@ export default function ImportarProgramacion() {
         return
       }
 
-      // 🔥 Insertar en la tabla correcta (planificacion_detalles)
+      // Insertar en planificacion_detalles
       const registrosAInsertar = platosProgramados.flatMap(dia =>
         dia.platos.map((p: any) => ({
           fecha_texto: dia.fecha,
@@ -237,9 +233,9 @@ export default function ImportarProgramacion() {
       const { error } = await supabase.from("planificacion_detalles").insert(registrosAInsertar)
       if (error) throw error
 
-      alert(`✅ Programación para ${sedeDetectada} guardada con éxito!`)
+      const nombreSede = sedes.find(s => s.id === sedeId)?.nombre || "Sede"
+      alert(`✅ Programación para ${nombreSede} guardada con éxito!`)
       setPlatosProgramados([])
-      setSedeDetectada("")
       setFileName("")
       router.refresh()
     } catch (error: any) {
@@ -255,19 +251,6 @@ export default function ImportarProgramacion() {
       await supabase.from("platos").insert(platosFaltantes.map(p => ({ nombre: p.nombre, categoria: p.categoria })))
       alert("Platos registrados. Continuando...")
       setMostrandoModalFaltantes(false)
-      guardarProgramacion()
-    } catch (error: any) {
-      alert("Error: " + error.message)
-      setCargando(false)
-    }
-  }
-
-  const registrarSede = async () => {
-    setCargando(true)
-    try {
-      await supabase.from("sedes").insert([{ nombre: sedeDetectada }])
-      alert(`Sede "${sedeDetectada}" registrada.`)
-      setMostrandoModalSede(false)
       guardarProgramacion()
     } catch (error: any) {
       alert("Error: " + error.message)
@@ -328,12 +311,12 @@ export default function ImportarProgramacion() {
           aria-hidden="true"
         />
 
-        <div className="relative max-w-7xl mx-auto px-8 py-10">
-          <div className="flex items-start justify-between">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-3 mb-1 sm:mb-2">
                 <span
-                  className="uppercase font-mono text-xs"
+                  className="uppercase font-mono text-[10px] sm:text-xs"
                   style={{
                     fontWeight: 700,
                     letterSpacing: '0.18em',
@@ -343,18 +326,18 @@ export default function ImportarProgramacion() {
                   Módulo de gestión
                 </span>
               </div>
-              <h1 className="text-3xl font-black tracking-tight">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight leading-tight">
                 <span style={{ color: '#FFFFFF' }}>Importar</span>
                 <span style={{ color: '#F37F21' }}> Programación</span>
               </h1>
-              <p className="mt-2" style={{ color: '#C9C9C3', fontSize: '1rem' }}>
+              <p className="mt-1 sm:mt-2 text-sm sm:text-base" style={{ color: '#C9C9C3' }}>
                 Carga el archivo Excel de Gerencia para sincronizar el calendario.
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
               <Link
-                href="/dashboard/programacion"
-                className="flex items-center gap-2 px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition"
+                href="/dashboard/menus"
+                className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition text-sm sm:text-base w-full sm:w-auto"
               >
                 <ArrowLeft size={18} />
                 Volver
@@ -365,10 +348,47 @@ export default function ImportarProgramacion() {
       </header>
 
       {/* Contenido principal */}
-      <main className="max-w-4xl mx-auto px-8 py-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
+        {/* Selector de sede */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-[#2B2B2B] mb-1">
+            <Building className="inline w-4 h-4 mr-2 text-[#8CC63F]" />
+            Seleccionar sede
+          </label>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <select
+              value={sedeSeleccionada}
+              onChange={(e) => setSedeSeleccionada(e.target.value)}
+              className="w-full sm:flex-1 sm:max-w-md rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
+              disabled={cargandoSedes}
+            >
+              {cargandoSedes ? (
+                <option value="">Cargando sedes...</option>
+              ) : sedes.length === 0 ? (
+                <option value="">No hay sedes disponibles</option>
+              ) : (
+                sedes.map(s => (
+                  <option key={s.id} value={s.id}>{s.nombre}</option>
+                ))
+              )}
+            </select>
+            {sedeSeleccionada && (
+              <span className="text-xs text-[#8CC63F] bg-[#8CC63F]/10 px-3 py-1.5 rounded-full font-medium whitespace-nowrap">
+                ✅ Sede seleccionada
+              </span>
+            )}
+          </div>
+          {!sedeSeleccionada && sedes.length > 0 && (
+            <p className="text-xs text-[#F37F21] mt-1 flex items-center gap-1">
+              <AlertCircle size={12} />
+              Selecciona una sede para importar
+            </p>
+          )}
+        </div>
+
         {/* Estado del rol */}
         {rolUsuario && (
-          <div className="mb-4 flex items-center gap-2 text-sm">
+          <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
             <span className="text-[#6B6B65]">Rol:</span>
             <span className="font-bold text-[#2B2B2B] capitalize">{rolUsuario}</span>
             {puedeImportar ? (
@@ -381,19 +401,23 @@ export default function ImportarProgramacion() {
 
         {/* Área de importación */}
         <div className={`
-          rounded-lg border-2 border-dashed p-10 text-center transition-all
-          ${puedeImportar 
+          rounded-lg border-2 border-dashed p-8 sm:p-10 text-center transition-all
+          ${puedeImportar && sedeSeleccionada
             ? 'border-[#8CC63F]/50 bg-[#F5FBF0] hover:bg-[#EAF5DE]' 
             : 'border-gray-300 bg-gray-50 opacity-60'}
         `}>
-          <Upload className={`w-12 h-12 mx-auto mb-3 ${puedeImportar ? 'text-[#8CC63F]' : 'text-gray-400'}`} />
+          <FileSpreadsheet className={`w-12 h-12 mx-auto mb-3 ${puedeImportar && sedeSeleccionada ? 'text-[#8CC63F]' : 'text-gray-400'}`} />
           <h3 className="font-bold text-[#2B2B2B]">
-            {puedeImportar ? "Selecciona el archivo" : "Acceso restringido"}
+            {!puedeImportar ? "Acceso restringido" : 
+             !sedeSeleccionada ? "Selecciona una sede primero" : 
+             "Selecciona el archivo Excel"}
           </h3>
           <p className="text-sm text-[#6B6B65] mt-1">
-            {puedeImportar ? "Formato Excel (.xlsx, .xls)" : "Solo Gerencia o Administrador"}
+            {!puedeImportar ? "Solo Gerencia o Administrador" :
+             !sedeSeleccionada ? "Elige una sede para continuar" :
+             "Formato Excel (.xlsx, .xls) - La sede se toma de la selección actual"}
           </p>
-          {puedeImportar && (
+          {puedeImportar && sedeSeleccionada && (
             <div className="mt-4">
               <label className="cursor-pointer">
                 <span className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#8CC63F] text-[#1F3A0A] rounded-lg font-semibold hover:bg-[#7AB835] transition">
@@ -423,13 +447,15 @@ export default function ImportarProgramacion() {
           )}
         </div>
 
-        {/* Sede detectada */}
-        {sedeDetectada && (
-          <div className="mt-4 p-4 rounded-lg bg-[#8CC63F]/10 border border-[#8CC63F]/20 flex items-center gap-3">
-            <Building className="w-5 h-5 text-[#8CC63F]" />
+        {/* Info de sede para importación */}
+        {sedeSeleccionada && platosProgramados.length === 0 && (
+          <div className="mt-4 p-4 rounded-lg bg-blue-50 border border-blue-200 flex items-center gap-3">
+            <Building className="w-5 h-5 text-blue-600" />
             <div>
-              <p className="text-xs font-bold text-[#8CC63F] uppercase">Sede detectada</p>
-              <p className="text-sm font-bold text-[#2B2B2B]">{sedeDetectada}</p>
+              <p className="text-xs font-bold text-blue-600 uppercase">Importando para</p>
+              <p className="text-sm font-bold text-[#2B2B2B]">
+                {sedes.find(s => s.id === sedeSeleccionada)?.nombre}
+              </p>
             </div>
           </div>
         )}
@@ -488,78 +514,40 @@ export default function ImportarProgramacion() {
                           ))}
                         </tr>
 
-
-
-
-
                         {/* Filas de categorías */}
-{CATEGORIAS_ORDEN
-  .filter(cat => tablaMenu.lookup[tipo]?.[cat])
-  .map((cat, ci) => (
-    <tr
-      key={cat}
-      className={ci % 2 === 0 ? 'bg-white' : 'bg-[#F7F7F3]'}
-    >
-      <td
-        className="sticky left-0 z-10 px-3 py-2 font-semibold
-                   text-[#2B2B2B] bg-[#E5E5DC]
-                   border-r-2 border-[#C9C9C0]
-                   whitespace-nowrap"
-      >
-        {cat}
-      </td>
-
-      {tablaMenu.dias.map((fecha, di) => (
-        <td
-          key={di}
-          className="px-3 py-2 text-[#2B2B2B]
-                     border-l border-[#E7E7E2]
-                     whitespace-nowrap"
-        >
-          {tablaMenu.lookup[tipo][cat][fecha] || (
-            <span className="text-[#B0B0A8]">—</span>
-          )}
-        </td>
-      ))}
-    </tr>
-  ))}
-
-
-
-
+                        {CATEGORIAS_ORDEN
+                          .filter(cat => tablaMenu.lookup[tipo]?.[cat])
+                          .map((cat, ci) => (
+                            <tr
+                              key={cat}
+                              className={ci % 2 === 0 ? 'bg-white' : 'bg-[#F7F7F3]'}
+                            >
+                              <td
+                                className="sticky left-0 z-10 px-3 py-2 font-semibold
+                                           text-[#2B2B2B] bg-[#E5E5DC]
+                                           border-r-2 border-[#C9C9C0]
+                                           whitespace-nowrap"
+                              >
+                                {cat}
+                              </td>
+                              {tablaMenu.dias.map((fecha, di) => (
+                                <td
+                                  key={di}
+                                  className="px-3 py-2 text-[#2B2B2B]
+                                             border-l border-[#E7E7E2]
+                                             whitespace-nowrap"
+                                >
+                                  {tablaMenu.lookup[tipo][cat][fecha] || (
+                                    <span className="text-[#B0B0A8]">—</span>
+                                  )}
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
                       </Fragment>
                     ))}
                   </tbody>
                 </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Modal sede nueva */}
-        {mostrandoModalSede && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
-              <div className="flex items-center gap-2 mb-4">
-                <AlertCircle className="w-6 h-6 text-[#F37F21]" />
-                <h3 className="text-lg font-bold text-[#2B2B2B]">Sede nueva</h3>
-              </div>
-              <p className="text-sm text-[#6B6B65] mb-4">
-                "{sedeDetectada}" no existe en el sistema. ¿Deseas registrarla?
-              </p>
-              <div className="flex gap-3">
-                <button 
-                  onClick={() => setMostrandoModalSede(false)} 
-                  className="flex-1 py-2.5 rounded-lg border border-[#E7E7E2] text-[#6B6B65] font-medium hover:bg-gray-50 transition"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  onClick={registrarSede} 
-                  className="flex-1 py-2.5 rounded-lg bg-[#F37F21] text-white font-medium hover:bg-[#C4600F] transition"
-                >
-                  Registrar sede
-                </button>
               </div>
             </div>
           </div>
@@ -605,7 +593,7 @@ export default function ImportarProgramacion() {
 
       {/* Footer */}
       <footer style={{ borderTop: '1.5px solid #EFEFE9' }} className="mt-8">
-        <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between flex-wrap gap-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p style={{ fontSize: '0.8rem', color: '#9A9A93' }}>
             © 2026 MegaFood · Importar programación
           </p>

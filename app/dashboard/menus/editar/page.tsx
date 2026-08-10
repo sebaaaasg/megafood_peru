@@ -334,7 +334,7 @@ export default function EditarProgramacion() {
             </div>
             <div className="flex gap-3">
               <Link
-                href="/dashboard/programacion"
+                href="/dashboard/menus"
                 className="flex items-center gap-2 px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition"
               >
                 <ArrowLeft size={18} />
@@ -564,7 +564,7 @@ export default function EditarProgramacion() {
             <Calendar className="w-12 h-12 text-[#9A9A93] mx-auto mb-3" />
             <p className="text-[#6B6B65]">No hay programación para esta fecha</p>
             <Link 
-              href="/dashboard/programacion/manual"
+              href="/dashboard/menus/manual"
               className="inline-block mt-3 text-[#8CC63F] font-medium hover:underline"
             >
               + Programar manualmente

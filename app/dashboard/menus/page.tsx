@@ -196,12 +196,7 @@ export default function ProgramacionPage() {
           ))}
         </div>
 
-        {/* Footer informativo */}
-        <div className="mt-8 sm:mt-12 pt-4 border-t border-[#E7E7E2]">
-          <p className="text-center text-xs text-[#9A9A93]">
-            Gestión de menús corporativos · {new Date().getFullYear()}
-          </p>
-        </div>
+        
       </main>
 
       {/* Footer */}

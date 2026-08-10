@@ -18,7 +18,8 @@ import {
   UtensilsCrossed
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
+import { saveAs } from 'file-saver'
 import CalendarioProgramacion from '@/components/CalendarioProgramacion'
 
 interface Sede {
@@ -116,6 +117,10 @@ export default function RequerimientoCocina() {
   const [calculando, setCalculando] = useState(false)
   const [recetas, setRecetas] = useState<Receta[]>([])
   const [insumos, setInsumos] = useState<Insumo[]>([])
+  
+  // Estados para los botones de exportación
+  const [exportando, setExportando] = useState(false)
+  const [exportandoSolo, setExportandoSolo] = useState(false)
 
   useEffect(() => {
     cargarDatosIniciales()
@@ -238,82 +243,233 @@ export default function RequerimientoCocina() {
     }
   }
 
-  const exportarAExcel = () => {
+const exportarAExcel = async () => {
     if (programacion.length === 0) {
       alert("No hay programación para exportar")
       return
     }
 
-    const sedeInfo = sedes.find(s => s.id === sedeSeleccionada)
-    
-    const datosReporte = programacion.flatMap(item => {
-      const insumosPlato = recetas.filter(r => r.plato_id === item.plato_id)
+    setExportando(true)
+    try {
+      const sedeInfo = sedes.find(s => s.id === sedeSeleccionada)
       
-      return insumosPlato.map(receta => {
-        const insumo = insumos.find(i => i.id === receta.insumo_id)
-        const cantidadTotal = receta.cantidad * cantidadPersonas
-        const { cantidad: cF, unidad: uF } = formatearCantidad(cantidadTotal, insumo?.unidad || 'unid')
+      // 1. Crear el libro de Excel
+      const wb = new ExcelJS.Workbook()
+      wb.creator = 'MegaFood'
+      wb.created = new Date()
+
+      // Paleta de colores
+      const COLOR_OSCURO = 'FF2B2B2B'
+      const COLOR_NARANJA = 'FFF37F21'
+      const COLOR_VERDE = 'FF8CC63F'
+      const COLOR_FONDO_GRIS = 'FFF5F5F0'
+
+      // ==========================================
+      // HOJA 1: RESUMEN
+      // ==========================================
+      const wsResumen = wb.addWorksheet('Resumen')
+      
+      wsResumen.mergeCells('A1:B2')
+      const cellTitleRes = wsResumen.getCell('A1')
+      cellTitleRes.value = 'RESUMEN GENERAL'
+      cellTitleRes.font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FFFFFFFF' } }
+      cellTitleRes.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_VERDE } }
+      cellTitleRes.alignment = { vertical: 'middle', horizontal: 'center' }
+
+      wsResumen.addRow([])
+
+      const resumenDatos: any[][] = [
+        ['Sede Asignada', sedeInfo?.nombre || 'No especificada'],
+        ['Fecha de Programación', fechaSeleccionada],
+        ['N° de Personas (Comensales)', cantidadPersonas]
+      ]
+
+      resumenDatos.forEach(dato => {
+        const row = wsResumen.addRow(dato)
+        row.getCell(1).font = { bold: true, color: { argb: COLOR_OSCURO } }
+        row.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_FONDO_GRIS } }
         
-        return {
-          'Plato': item.plato_nombre,
-          'Categoría': item.categoria,
-          'Insumo': insumo?.nombre || 'Desconocido',
-          'Cantidad': redondearCantidad(cF),
-          'Unidad': uF,
+        if (typeof dato[1] === 'number') {
+           row.getCell(2).font = { bold: true, color: { argb: COLOR_NARANJA } }
         }
       })
-    })
 
-    const wb = XLSX.utils.book_new()
-    
-    const wsInsumos = XLSX.utils.json_to_sheet(datosReporte)
-    wsInsumos['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 30 }, { wch: 15 }, { wch: 10 }]
-    
-    const resumenGeneral = [
-      { 'Concepto': 'Sede', 'Valor': sedeInfo?.nombre || 'No especificada' },
-      { 'Concepto': 'Fecha', 'Valor': fechaSeleccionada },
-      { 'Concepto': 'N° Personas', 'Valor': cantidadPersonas }
-    ]
-    
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(resumenGeneral), 'Resumen')
-    XLSX.utils.book_append_sheet(wb, wsInsumos, 'Detalle por Plato')
-    
-    XLSX.writeFile(wb, `reporte_completo_${sedeInfo?.nombre}_${fechaSeleccionada}.xlsx`)
+      wsResumen.columns = [{ width: 35 }, { width: 30 }]
+
+      // ==========================================
+      // HOJA 2: DETALLE POR PLATO
+      // ==========================================
+      const wsDetalle = wb.addWorksheet('Detalle por Plato')
+      
+      wsDetalle.mergeCells('A1:E2')
+      const cellTitleDet = wsDetalle.getCell('A1')
+      cellTitleDet.value = `REPORTE DETALLADO - ${sedeInfo?.nombre?.toUpperCase() || 'SEDE'}`
+      cellTitleDet.font = { name: 'Arial', size: 16, bold: true, color: { argb: 'FFFFFFFF' } }
+      cellTitleDet.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_OSCURO } }
+      cellTitleDet.alignment = { vertical: 'middle', horizontal: 'center' }
+
+      wsDetalle.addRow([]) // Espacio vacío
+
+      const headers = ['Plato', 'Categoría', 'Insumo', 'Cantidad', 'Unidad']
+      const rowHeader = wsDetalle.addRow(headers)
+      rowHeader.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_NARANJA } }
+        cell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } }
+        cell.alignment = { vertical: 'middle', horizontal: 'center' }
+        cell.border = {
+          top: { style: 'thin' }, left: { style: 'thin' },
+          bottom: { style: 'thin' }, right: { style: 'thin' }
+        }
+      })
+
+      // Lógica de colores alternados por plato
+      programacion.forEach((item, index) => {
+        const insumosPlato = recetas.filter(r => r.plato_id === item.plato_id)
+        
+        // Alternamos entre Blanco y Verde Pastel suave
+        const colorFondoPlato = index % 2 === 0 ? 'FFFFFFFF' : 'FFF5FBF0'
+        
+        insumosPlato.forEach(receta => {
+          const insumo = insumos.find(i => i.id === receta.insumo_id)
+          const cantidadTotal = receta.cantidad * cantidadPersonas
+          const { cantidad: cF, unidad: uF } = formatearCantidad(cantidadTotal, insumo?.unidad || 'unid')
+          const cantidadFinal = redondearCantidad(cF)
+          
+          const rowData: any[] = [
+            item.plato_nombre,
+            item.categoria,
+            insumo?.nombre || 'Desconocido',
+            cantidadFinal,
+            uF
+          ]
+          
+          const row = wsDetalle.addRow(rowData)
+          
+          row.eachCell((cell, colNumber) => {
+            cell.font = { name: 'Arial', size: 10 }
+            
+            // Pintamos el fondo según el color asignado al plato
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colorFondoPlato } }
+            
+            cell.border = {
+              top: { style: 'hair', color: { argb: 'FFDDDDDD' } },
+              bottom: { style: 'hair', color: { argb: 'FFDDDDDD' } },
+              left: { style: 'hair', color: { argb: 'FFDDDDDD' } },
+              right: { style: 'hair', color: { argb: 'FFDDDDDD' } }
+            }
+            cell.alignment = { vertical: 'middle', horizontal: colNumber >= 4 ? 'center' : 'left' }
+            
+            if (colNumber === 4) {
+              cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: COLOR_NARANJA } }
+            }
+          })
+        })
+      })
+
+      wsDetalle.columns = [
+        { width: 35 }, // Plato
+        { width: 20 }, // Categoría
+        { width: 35 }, // Insumo
+        { width: 15 }, // Cantidad
+        { width: 15 }  // Unidad
+      ]
+
+      // Generar archivo
+      const buffer = await wb.xlsx.writeBuffer()
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      saveAs(blob, `reporte_completo_cocina_${sedeInfo?.nombre}_${fechaSeleccionada}.xlsx`)
+    } catch (error) {
+      console.error("Error al exportar completo:", error)
+      alert("Error al exportar el archivo")
+    } finally {
+      setExportando(false)
+    }
   }
-
-  const exportarSoloInsumos = () => {
+const exportarSoloInsumos = async () => {
     if (programacion.length === 0) {
       alert("No hay programación para exportar")
       return
     }
 
-    const datosInsumos = programacion.flatMap(item => {
-      const insumosPlato = recetas.filter(r => r.plato_id === item.plato_id)
-      
-      return insumosPlato.map(receta => {
-        const insumo = insumos.find(i => i.id === receta.insumo_id)
-        const { cantidad: cF, unidad: uF } = formatearCantidad(
-          receta.cantidad * cantidadPersonas, 
-          insumo?.unidad || 'unid'
-        )
-        
-        return {
-          'Plato': item.plato_nombre,
-          'Insumo': insumo?.nombre || 'Desconocido',
-          'Cantidad': redondearCantidad(cF),
-          'Unidad': uF,
-        }
-      })
-    })
+    setExportandoSolo(true)
+    try {
+      const sedeInfo = sedes.find(s => s.id === sedeSeleccionada)
+      const wb = new ExcelJS.Workbook()
+      const ws = wb.addWorksheet('Insumos por Plato')
 
-    const wb = XLSX.utils.book_new()
-    const ws = XLSX.utils.json_to_sheet(datosInsumos)
-    ws['!cols'] = [{ wch: 30 }, { wch: 30 }, { wch: 15 }, { wch: 10 }]
-    
-    XLSX.utils.book_append_sheet(wb, ws, 'Insumos por Plato')
-    
-    const sedeInfo = sedes.find(s => s.id === sedeSeleccionada)
-    XLSX.writeFile(wb, `insumos_desglosados_${sedeInfo?.nombre || 'sede'}_${fechaSeleccionada}.xlsx`)
+      // Colores
+      const COLOR_OSCURO = 'FF2B2B2B'
+      const COLOR_VERDE = 'FF8CC63F'
+
+      ws.mergeCells('A1:D2')
+      const cellTitle = ws.getCell('A1')
+      cellTitle.value = `INSUMOS REQUERIDOS - ${fechaSeleccionada}`
+      cellTitle.font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FFFFFFFF' } }
+      cellTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_OSCURO } }
+      cellTitle.alignment = { vertical: 'middle', horizontal: 'center' }
+
+      ws.addRow([])
+
+      const headers = ['Plato', 'Insumo', 'Cantidad', 'Unidad']
+      const rowHeader = ws.addRow(headers)
+      rowHeader.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_VERDE } }
+        cell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } }
+        cell.alignment = { vertical: 'middle', horizontal: 'center' }
+      })
+
+      // Lógica de colores alternados por plato
+      programacion.forEach((item, index) => {
+        const insumosPlato = recetas.filter(r => r.plato_id === item.plato_id)
+        
+        // Alternamos entre Blanco y Verde Pastel suave
+        const colorFondoPlato = index % 2 === 0 ? 'FFE9F6DE' : 'FFCAEAB0'
+        
+        insumosPlato.forEach(receta => {
+          const insumo = insumos.find(i => i.id === receta.insumo_id)
+          const { cantidad: cF, unidad: uF } = formatearCantidad(
+            receta.cantidad * cantidadPersonas, 
+            insumo?.unidad || 'unid'
+          )
+          
+          const rowData: any[] = [
+            item.plato_nombre,
+            insumo?.nombre || 'Desconocido',
+            redondearCantidad(cF),
+            uF
+          ]
+
+          const row = ws.addRow(rowData)
+          row.eachCell((cell, colNumber) => {
+            cell.font = { name: 'Arial', size: 10 }
+            
+            // Pintamos el fondo según el color asignado al plato
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colorFondoPlato } }
+            
+            cell.alignment = { vertical: 'middle', horizontal: colNumber >= 3 ? 'center' : 'left' }
+            cell.border = {
+              bottom: { style: 'hair', color: { argb: 'FFEEEEEE' } },
+              top: { style: 'hair', color: { argb: 'FFEEEEEE' } },
+              left: { style: 'hair', color: { argb: 'FFEEEEEE' } },
+              right: { style: 'hair', color: { argb: 'FFEEEEEE' } }
+            }
+          })
+        })
+      })
+
+      ws.columns = [
+        { width: 35 }, { width: 35 }, { width: 15 }, { width: 15 }
+      ]
+
+      const buffer = await wb.xlsx.writeBuffer()
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      saveAs(blob, `insumos_desglosados_${sedeInfo?.nombre || 'sede'}_${fechaSeleccionada}.xlsx`)
+    } catch (error) {
+      console.error("Error al exportar insumos:", error)
+      alert("Error al exportar los insumos")
+    } finally {
+      setExportandoSolo(false)
+    }
   }
 
   const programacionPorTipo = programacion.reduce((acc, item) => {
@@ -605,17 +761,19 @@ export default function RequerimientoCocina() {
             </button>
             <button
               onClick={exportarSoloInsumos}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#3B82F6] text-white font-medium hover:bg-[#2563EB] transition"
+              disabled={exportandoSolo}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#3B82F6] text-white font-medium hover:bg-[#2563EB] transition disabled:opacity-50"
             >
-              <FileSpreadsheet className="w-4 h-4" />
-              Exportar solo insumos
+              {exportandoSolo ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
+              {exportandoSolo ? "Exportando..." : "Exportar solo insumos"}
             </button>
             <button
               onClick={exportarAExcel}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#8CC63F] text-[#1F3A0A] font-medium hover:bg-[#7AB835] transition"
+              disabled={exportando}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#8CC63F] text-[#1F3A0A] font-medium hover:bg-[#7AB835] transition disabled:opacity-50"
             >
-              <Download className="w-4 h-4" />
-              Exportar reporte completo
+              {exportando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              {exportando ? "Exportando..." : "Exportar reporte completo"}
             </button>
           </div>
         )}

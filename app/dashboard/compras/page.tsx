@@ -22,7 +22,9 @@ import {
   Check
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import * as XLSX from 'xlsx'
+// Eliminar: import * as XLSX from 'xlsx'
+import ExcelJS from 'exceljs'
+import { saveAs } from 'file-saver'
 
 interface Sede {
   id: string
@@ -92,21 +94,121 @@ const redondearCantidad = (cantidad: number): number => {
   return Number(cantidad.toFixed(1))
 }
 
+// ─── Detectar si la unidad es contable ───
+const esUnidadContable = (unidad: string): boolean => {
+  const unidadesContables = ['UN', 'UNIDAD', 'UNIDADES', 'SACO', 'SACOS', 'TARRO', 'TARROS',
+    'BOLSA', 'BOLSAS', 'PAR', 'PARES', 'CAJA', 'CAJAS', 'LATA', 'LATAS',
+    'SOBRE', 'SOBRES', 'PAQUETE', 'PAQUETES', 'ROLLO', 'ROLLOS']
+  return unidadesContables.includes(unidad.toUpperCase().trim())
+}
+
+// ─── Formatear cantidad según unidad ───
+const formatearCantidadConUnidad = (cantidad: number, unidad: string): { cantidad: number | string; unidad: string; display: string } => {
+  const unidadUpper = unidad.toUpperCase().trim()
+  const esContable = esUnidadContable(unidad)
+
+  if (esContable) {
+    const cantidadRedondeada = Math.round(cantidad)
+    return {
+      cantidad: cantidadRedondeada,
+      unidad: unidad,
+      display: `${cantidadRedondeada} ${unidad}`
+    }
+  }
+
+  const formateado = formatearCantidad(cantidad, unidad)
+  const redondeada = redondearCantidad(formateado.cantidad)
+  return {
+    cantidad: redondeada,
+    unidad: formateado.unidad,
+    display: `${redondeada} ${formateado.unidad}`
+  }
+}
+
 const formatearMoneda = (valor: number) => {
-  return new Intl.NumberFormat('es-PE', { 
-    style: 'currency', 
+  return new Intl.NumberFormat('es-PE', {
+    style: 'currency',
     currency: 'PEN',
     minimumFractionDigits: 2
   }).format(valor)
 }
 
+const formatearFechaParaBD = (fecha: Date): string => {
+  const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
+  const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+  return `${dias[fecha.getDay()]}, ${fecha.getDate()} de ${meses[fecha.getMonth()]} de ${fecha.getFullYear()}`
+}
+
+const compararFechas = (fechaStr: string, fechaInicio: string, fechaFin: string): boolean => {
+  const regex = /(\d+) de (\w+) de (\d+)/
+  const match = fechaStr.match(regex)
+  if (!match) return false
+
+  const dia = parseInt(match[1])
+  const mesTexto = match[2].toLowerCase()
+  const año = parseInt(match[3])
+
+  const meses: Record<string, number> = {
+    'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3,
+    'mayo': 4, 'junio': 5, 'julio': 6, 'agosto': 7,
+    'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
+  }
+  const mesNum = meses[mesTexto]
+  if (mesNum === undefined) return false
+
+  const fechaActual = new Date(año, mesNum, dia)
+
+  const matchInicio = fechaInicio.match(regex)
+  if (!matchInicio) return false
+  const diaInicio = parseInt(matchInicio[1])
+  const mesInicio = meses[matchInicio[2].toLowerCase()]
+  const añoInicio = parseInt(matchInicio[3])
+  const fechaInicioDate = new Date(añoInicio, mesInicio, diaInicio)
+
+  const matchFin = fechaFin.match(regex)
+  if (!matchFin) return false
+  const diaFin = parseInt(matchFin[1])
+  const mesFin = meses[matchFin[2].toLowerCase()]
+  const añoFin = parseInt(matchFin[3])
+  const fechaFinDate = new Date(añoFin, mesFin, diaFin)
+
+  return fechaActual >= fechaInicioDate && fechaActual <= fechaFinDate
+}
+
+// ─── FUNCIÓN PARA COMPARAR FECHAS CRONOLÓGICAMENTE ───
+const compararFechasCronologico = (fechaA: string, fechaB: string): number => {
+  const regex = /(\d+) de (\w+) de (\d+)/
+  const matchA = fechaA.match(regex)
+  const matchB = fechaB.match(regex)
+  
+  if (!matchA || !matchB) return 0
+  
+  const meses: Record<string, number> = {
+    'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3,
+    'mayo': 4, 'junio': 5, 'julio': 6, 'agosto': 7,
+    'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
+  }
+  
+  const diaA = parseInt(matchA[1])
+  const mesA = meses[matchA[2].toLowerCase()]
+  const añoA = parseInt(matchA[3])
+  const fechaADate = new Date(añoA, mesA, diaA)
+  
+  const diaB = parseInt(matchB[1])
+  const mesB = meses[matchB[2].toLowerCase()]
+  const añoB = parseInt(matchB[3])
+  const fechaBDate = new Date(añoB, mesB, diaB)
+  
+  return fechaADate.getTime() - fechaBDate.getTime()
+}
+
 // ─── Componente DateRangeSelector ──────────────────
-const DateRangeSelector = ({ 
-  sedeId, 
+const DateRangeSelector = ({
+  sedeId,
   onRangeChange,
   fechaInicio,
   fechaFin
-}: { 
+}: {
   sedeId: string
   onRangeChange: (inicio: string, fin: string) => void
   fechaInicio: string
@@ -134,9 +236,7 @@ const DateRangeSelector = ({
   }, [sedeId])
 
   const convertirISOaBD = (fecha: Date): string => {
-    const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
-    const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
-    return `${dias[fecha.getDay()]}, ${fecha.getDate()} de ${meses[fecha.getMonth()]} de ${fecha.getFullYear()}`
+    return formatearFechaParaBD(fecha)
   }
 
   const obtenerDias = (mes: Date) => {
@@ -146,7 +246,7 @@ const DateRangeSelector = ({
     const ultimoDia = new Date(año, mesNum + 1, 0)
     const diaInicio = primerDia.getDay()
     const dias: (Date | null)[] = []
-    
+
     for (let i = 0; i < diaInicio; i++) dias.push(null)
     for (let i = 1; i <= ultimoDia.getDate(); i++) dias.push(new Date(año, mesNum, i))
     return dias
@@ -154,12 +254,12 @@ const DateRangeSelector = ({
 
   const diasSemana = ['D', 'L', 'M', 'X', 'J', 'V', 'S']
 
-  const CalendarioMini = ({ 
-    mes, 
-    setMes, 
+  const CalendarioMini = ({
+    mes,
+    setMes,
     onSelect,
     seleccionada
-  }: { 
+  }: {
     mes: Date
     setMes: (date: Date) => void
     onSelect: (fecha: string) => void
@@ -172,7 +272,7 @@ const DateRangeSelector = ({
     return (
       <div className="w-full">
         <div className="flex items-center justify-between px-2 py-2 border-b border-[#E7E7E2]">
-          <button 
+          <button
             onClick={() => setMes(new Date(mes.getFullYear(), mes.getMonth() - 1, 1))}
             className="p-1 text-[#6B6B65] hover:text-[#2B2B2B] transition"
           >
@@ -181,7 +281,7 @@ const DateRangeSelector = ({
           <span className="text-sm font-medium text-[#2B2B2B] capitalize">
             {nombreMes} {año}
           </span>
-          <button 
+          <button
             onClick={() => setMes(new Date(mes.getFullYear(), mes.getMonth() + 1, 1))}
             className="p-1 text-[#6B6B65] hover:text-[#2B2B2B] transition"
           >
@@ -199,7 +299,7 @@ const DateRangeSelector = ({
             const esValida = fecha !== null
             const tieneProg = esValida && fechasProgramadas.has(convertirISOaBD(fecha))
             const esSeleccionada = esValida && seleccionada === convertirISOaBD(fecha)
-            
+
             return (
               <button
                 key={idx}
@@ -240,8 +340,8 @@ const DateRangeSelector = ({
             }}
             className={`
               w-full rounded-lg border px-4 py-2.5 text-sm text-left transition-all
-              ${fechaInicio 
-                ? 'border-[#8CC63F] bg-[#F5FBF0] text-[#2B2B2B]' 
+              ${fechaInicio
+                ? 'border-[#8CC63F] bg-[#F5FBF0] text-[#2B2B2B]'
                 : 'border-[#E7E7E2] bg-white text-[#6B6B65] hover:border-[#8CC63F]/50'
               }
             `}
@@ -284,8 +384,8 @@ const DateRangeSelector = ({
             }}
             className={`
               w-full rounded-lg border px-4 py-2.5 text-sm text-left transition-all
-              ${fechaFin 
-                ? 'border-[#8CC63F] bg-[#F5FBF0] text-[#2B2B2B]' 
+              ${fechaFin
+                ? 'border-[#8CC63F] bg-[#F5FBF0] text-[#2B2B2B]'
                 : 'border-[#E7E7E2] bg-white text-[#6B6B65] hover:border-[#8CC63F]/50'
               }
             `}
@@ -298,9 +398,31 @@ const DateRangeSelector = ({
                 mes={mesActualFin}
                 setMes={setMesActualFin}
                 onSelect={(fecha) => {
-                  if (fechaInicio && fecha < fechaInicio) {
-                    alert("La fecha de fin debe ser posterior a la fecha de inicio")
-                    return
+                  if (fechaInicio) {
+                    const regex = /(\d+) de (\w+) de (\d+)/
+                    const matchInicio = fechaInicio.match(regex)
+                    const matchFin = fecha.match(regex)
+                    if (matchInicio && matchFin) {
+                      const meses: Record<string, number> = {
+                        'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3,
+                        'mayo': 4, 'junio': 5, 'julio': 6, 'agosto': 7,
+                        'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
+                      }
+                      const diaInicio = parseInt(matchInicio[1])
+                      const mesInicio = meses[matchInicio[2].toLowerCase()]
+                      const añoInicio = parseInt(matchInicio[3])
+                      const fechaInicioDate = new Date(añoInicio, mesInicio, diaInicio)
+
+                      const diaFin = parseInt(matchFin[1])
+                      const mesFin = meses[matchFin[2].toLowerCase()]
+                      const añoFin = parseInt(matchFin[3])
+                      const fechaFinDate = new Date(añoFin, mesFin, diaFin)
+
+                      if (fechaFinDate < fechaInicioDate) {
+                        alert("La fecha de fin debe ser posterior a la fecha de inicio")
+                        return
+                      }
+                    }
                   }
                   onRangeChange(fechaInicio, fecha)
                   setMostrarCalendarioFin(false)
@@ -327,7 +449,7 @@ const DateRangeSelector = ({
 export default function ModuloCompras() {
   const router = useRouter()
   const supabase = createClient()
-  
+
   const [rol, setRol] = useState<RolUsuario>("compras")
   const [verificandoAcceso, setVerificandoAcceso] = useState(true)
   const [sedes, setSedes] = useState<Sede[]>([])
@@ -337,30 +459,35 @@ export default function ModuloCompras() {
   const [programacion, setProgramacion] = useState<ProgramacionItem[]>([])
   const [cargando, setCargando] = useState(false)
   const [cantidadPersonas, setCantidadPersonas] = useState<number>(100)
+
+  const [usarMismaCantidad, setUsarMismaCantidad] = useState<boolean>(true)
+  const [comensalesPorFecha, setComensalesPorFecha] = useState<Record<string, number>>({})
+
   const [insumosRequeridos, setInsumosRequeridos] = useState<InsumoRequerido[]>([])
   const [calculando, setCalculando] = useState(false)
   const [recetas, setRecetas] = useState<Receta[]>([])
   const [insumos, setInsumos] = useState<any[]>([])
   const [exportando, setExportando] = useState(false)
+  const [todasFechasProgramadas, setTodasFechasProgramadas] = useState<string[]>([])
 
   const cargarDatosIniciales = async () => {
     setCargando(true)
-    
+
     try {
       const [{ data: sedesData }, { data: recetasData }] = await Promise.all([
         supabase.from("sedes").select("id, nombre").order("nombre"),
         supabase.from("recetas").select("*"),
       ])
-      
+
       if (sedesData) setSedes(sedesData)
       if (recetasData) setRecetas(recetasData)
-      
+
       const { data, error } = await supabase
         .from("insumos")
         .select("id, nombre, unidad, precio")
-      
+
       if (!error && data) {
-        const insumosValidos = data.filter(item => 
+        const insumosValidos = data.filter(item =>
           item && typeof item === 'object' && 'id' in item && 'nombre' in item
         )
         setInsumos(insumosValidos)
@@ -375,7 +502,7 @@ export default function ModuloCompras() {
   useEffect(() => {
     const verificarAcceso = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      
+
       if (!user) {
         router.push("/login")
         return
@@ -397,7 +524,7 @@ export default function ModuloCompras() {
         router.push("/dashboard")
         return
       }
-      
+
       setVerificandoAcceso(false)
       cargarDatosIniciales()
     }
@@ -412,15 +539,34 @@ export default function ModuloCompras() {
     }
 
     setCargando(true)
-    
+
     try {
+      const { data: todasFechas } = await supabase
+        .from("planificacion_detalles")
+        .select("fecha_texto")
+        .eq("sede_id", sedeSeleccionada)
+        .order("fecha_texto")
+
+      const fechasUnicas = todasFechas ? [...new Set(todasFechas.map(f => f.fecha_texto))] : []
+
+      const fechasEnRango = fechasUnicas.filter(fecha =>
+        compararFechas(fecha, fechaInicio, fechaFin)
+      )
+
+      if (fechasEnRango.length === 0) {
+        setProgramacion([])
+        setInsumosRequeridos([])
+        setComensalesPorFecha({})
+        alert("No hay programación en el rango de fechas seleccionado")
+        setCargando(false)
+        return
+      }
+
       const { data, error } = await supabase
         .from("planificacion_detalles")
         .select("id, fecha_texto, tipo, categoria, plato_id")
         .eq("sede_id", sedeSeleccionada)
-        .gte("fecha_texto", fechaInicio)
-        .lte("fecha_texto", fechaFin)
-        .order("fecha_texto")
+        .in("fecha_texto", fechasEnRango)
 
       if (error) throw error
 
@@ -439,12 +585,24 @@ export default function ModuloCompras() {
           plato_nombre: mapaPlatos.get(p.plato_id) || "Desconocido"
         }))
 
-        setProgramacion(programacionConNombre)
+        // ─── ORDENAR POR FECHA CRONOLÓGICA ───
+        const programacionOrdenada = programacionConNombre.sort((a, b) => {
+          return compararFechasCronologico(a.fecha_texto, b.fecha_texto)
+        })
+
+        setProgramacion(programacionOrdenada)
         setInsumosRequeridos([])
+
+        const fechasUnicasProgramadas = [...new Set(programacionOrdenada.map(p => p.fecha_texto))]
+        const inicial: Record<string, number> = {}
+        fechasUnicasProgramadas.forEach(fecha => {
+          inicial[fecha] = cantidadPersonas
+        })
+        setComensalesPorFecha(inicial)
       } else {
         setProgramacion([])
         setInsumosRequeridos([])
-        alert("No hay programación en el rango de fechas seleccionado")
+        setComensalesPorFecha({})
       }
     } catch (error: any) {
       console.error("Error cargando programación:", error)
@@ -454,30 +612,50 @@ export default function ModuloCompras() {
     }
   }
 
+  const actualizarComensalesFecha = (fecha: string, valor: number) => {
+    setComensalesPorFecha(prev => ({ ...prev, [fecha]: valor }))
+    setInsumosRequeridos([])
+  }
+
   const calcularRequerimientoRango = async () => {
     if (programacion.length === 0) {
       alert("Primero cargue una programación válida")
       return
     }
-    
-    if (cantidadPersonas <= 0) {
-      alert("Ingrese un número válido de personas")
-      return
+
+    if (usarMismaCantidad) {
+      if (cantidadPersonas <= 0) {
+        alert("Ingrese un número válido de personas")
+        return
+      }
+    } else {
+      const fechasProgramacion = [...new Set(programacion.map(p => p.fecha_texto))]
+      const fechaInvalida = fechasProgramacion.find(
+        fecha => !comensalesPorFecha[fecha] || comensalesPorFecha[fecha] <= 0
+      )
+      if (fechaInvalida) {
+        alert(`Ingrese un número válido de comensales para: ${fechaInvalida}`)
+        return
+      }
     }
 
     setCalculando(true)
     const mapaInsumos = new Map<string, InsumoRequerido>()
-    
+
     try {
       for (const item of programacion) {
+        const personasDia = usarMismaCantidad
+          ? cantidadPersonas
+          : (comensalesPorFecha[item.fecha_texto] ?? cantidadPersonas)
+
         const recetaPlato = recetas.filter(r => r.plato_id === item.plato_id)
-        
+
         for (const receta of recetaPlato) {
-          const cantidadTotal = receta.cantidad * cantidadPersonas
+          const cantidadTotal = receta.cantidad * personasDia
           const insumo = insumos.find(i => i.id === receta.insumo_id)
-          
+
           if (!insumo) continue
-          
+
           if (mapaInsumos.has(receta.insumo_id)) {
             const existente = mapaInsumos.get(receta.insumo_id)!
             existente.cantidad_total += cantidadTotal
@@ -492,21 +670,21 @@ export default function ModuloCompras() {
               cantidad_total: cantidadTotal,
               cantidad_porcion: receta.cantidad
             }
-            
+
             if (rol === "gerencia" && insumo.precio !== undefined && insumo.precio !== null) {
               nuevoInsumo.precio_unitario = insumo.precio
               nuevoInsumo.costo_total = cantidadTotal * insumo.precio
             }
-            
+
             mapaInsumos.set(receta.insumo_id, nuevoInsumo)
           }
         }
       }
 
-      const resultado = Array.from(mapaInsumos.values()).sort((a, b) => 
+      const resultado = Array.from(mapaInsumos.values()).sort((a, b) =>
         a.insumo_nombre.localeCompare(b.insumo_nombre)
       )
-      
+
       setInsumosRequeridos(resultado)
     } catch (error) {
       console.error("Error al calcular:", error)
@@ -516,73 +694,245 @@ export default function ModuloCompras() {
     }
   }
 
-  const exportarAExcel = async () => {
+const exportarAExcel = async () => {
     if (insumosRequeridos.length === 0) return
-    
+
     setExportando(true)
     try {
       const sedeInfo = sedes.find(s => s.id === sedeSeleccionada)
       
-      const datosExport = insumosRequeridos.map(insumo => {
-        const { cantidad, unidad } = formatearCantidad(insumo.cantidad_total, insumo.unidad)
-        const cantidadRedondeada = redondearCantidad(cantidad)
-        
-        const fila: any = {
-          'Insumo': insumo.insumo_nombre,
-          'Cantidad por Porción': `${insumo.cantidad_porcion.toFixed(3)} ${insumo.unidad}`,
-          'Cantidad Total': `${cantidadRedondeada} ${unidad}`,
-          'Unidad': unidad,
+      // 1. Crear el libro de Excel
+      const wb = new ExcelJS.Workbook()
+      wb.creator = 'MegaFood'
+      wb.created = new Date()
+
+      // --- PALETA DE COLORES DE LA APP (Formato ARGB) ---
+      const COLOR_OSCURO = 'FF2B2B2B'  // Header principal
+      const COLOR_NARANJA = 'FFF37F21' // Cabeceras de tabla / Textos resaltados
+      const COLOR_VERDE = 'FF8CC63F'   // Totales
+      const COLOR_FONDO_VERDE = 'FFF5FBF0'
+      const COLOR_FONDO_GRIS = 'FFF5F5F0'
+
+      // ==========================================
+      // HOJA 1: REQUERIMIENTO DE INSUMOS
+      // ==========================================
+      const wsRequerimiento = wb.addWorksheet('Requerimiento')
+
+      // Título Principal
+      const ultimaColumnaReq = rol === "gerencia" ? 'F' : 'D'
+      wsRequerimiento.mergeCells(`A1:${ultimaColumnaReq}2`)
+      const cellTitle = wsRequerimiento.getCell('A1')
+      cellTitle.value = `REQUERIMIENTO DE INSUMOS - ${sedeInfo?.nombre?.toUpperCase() || 'SEDE'}`
+      cellTitle.font = { name: 'Arial', size: 16, bold: true, color: { argb: 'FFFFFFFF' } }
+      cellTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_OSCURO } }
+      cellTitle.alignment = { vertical: 'middle', horizontal: 'center' }
+
+      // Subtítulo (Fechas)
+      wsRequerimiento.mergeCells(`A3:${ultimaColumnaReq}3`)
+      const cellSubtitle = wsRequerimiento.getCell('A3')
+      cellSubtitle.value = `Periodo programado: ${fechaInicio} al ${fechaFin}`
+      cellSubtitle.font = { name: 'Arial', size: 11, italic: true, color: { argb: COLOR_OSCURO } }
+      cellSubtitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_FONDO_GRIS } }
+      cellSubtitle.alignment = { vertical: 'middle', horizontal: 'center' }
+
+      wsRequerimiento.addRow([]) // Espacio vacío
+
+      // Cabeceras de la tabla
+      const headersReq = ['Insumo', 'Cant. por Porción', 'Cantidad Total', 'Unidad']
+      if (rol === "gerencia") {
+        headersReq.push('Precio Unit. (S/)', 'Subtotal (S/)')
+      }
+      
+      const rowHeader = wsRequerimiento.addRow(headersReq)
+      rowHeader.eachCell((cell) => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_NARANJA } }
+        cell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } }
+        cell.alignment = { vertical: 'middle', horizontal: 'center' }
+        cell.border = {
+          top: { style: 'thin' }, left: { style: 'thin' },
+          bottom: { style: 'thin' }, right: { style: 'thin' }
         }
-        
-        if (rol === "gerencia") {
-          fila['Precio Unitario'] = formatearMoneda(insumo.precio_unitario || 0)
-          fila['Costo Total'] = formatearMoneda(insumo.costo_total || 0)
-        }
-        
-        return fila
       })
 
-      const wb = XLSX.utils.book_new()
-      const ws = XLSX.utils.json_to_sheet(datosExport)
-      ws['!cols'] = [
-        { wch: 30 }, { wch: 20 }, { wch: 20 }, { wch: 12 },
-        ...(rol === "gerencia" ? [{ wch: 15 }, { wch: 15 }] : [])
+      // Datos de la tabla
+      insumosRequeridos.forEach((insumo) => {
+        const formateadoTotal = formatearCantidadConUnidad(insumo.cantidad_total, insumo.unidad)
+        const formateadoPorcion = formatearCantidadConUnidad(insumo.cantidad_porcion, insumo.unidad)
+
+        const rowData: any[] = [
+          insumo.insumo_nombre,
+          formateadoPorcion.display,
+          formateadoTotal.display,
+          formateadoTotal.unidad
+        ]
+
+        if (rol === "gerencia") {
+          rowData.push(insumo.precio_unitario || 0, insumo.costo_total || 0)
+        }
+
+        const row = wsRequerimiento.addRow(rowData)
+
+        // Estilizar celdas de datos
+        row.eachCell((cell, colNumber) => {
+          cell.font = { name: 'Arial', size: 10 }
+          cell.border = {
+            top: { style: 'hair', color: { argb: 'FFDDDDDD' } },
+            bottom: { style: 'hair', color: { argb: 'FFDDDDDD' } },
+            left: { style: 'hair', color: { argb: 'FFDDDDDD' } },
+            right: { style: 'hair', color: { argb: 'FFDDDDDD' } }
+          }
+          
+          // Alinear Insumo a la izq, lo demás centrado
+          cell.alignment = { vertical: 'middle', horizontal: colNumber === 1 ? 'left' : 'center' }
+
+          // Resaltar la Cantidad Total en Naranja
+          if (colNumber === 3) {
+            cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: COLOR_NARANJA } }
+          }
+
+          // Formatear Moneda si es gerencia
+          if (rol === 'gerencia' && (colNumber === 5 || colNumber === 6)) {
+            cell.numFmt = '"S/"#,##0.00'
+            cell.alignment = { vertical: 'middle', horizontal: 'right' }
+            // Fondo ligerísimo verde para el subtotal
+            if (colNumber === 6) {
+               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_FONDO_VERDE } }
+               cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF1F3A0A' } }
+            }
+          }
+        })
+      })
+
+      // Fila de Total General (Solo Gerencia)
+      if (rol === "gerencia") {
+        wsRequerimiento.addRow([]) // Espacio
+        const totalRow = wsRequerimiento.addRow(['', '', '', '', 'COSTO TOTAL:', costoTotalGeneral])
+        
+        const labelCell = totalRow.getCell(5)
+        labelCell.font = { name: 'Arial', size: 12, bold: true, color: { argb: COLOR_OSCURO } }
+        labelCell.alignment = { horizontal: 'right' }
+
+        const valueCell = totalRow.getCell(6)
+        valueCell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } }
+        valueCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_VERDE } }
+        valueCell.numFmt = '"S/"#,##0.00'
+        valueCell.alignment = { horizontal: 'right' }
+      }
+
+      // Ajustar anchos de columna
+      wsRequerimiento.columns = [
+        { width: 40 }, // Insumo
+        { width: 22 }, // Cantidad por porción
+        { width: 22 }, // Cantidad Total
+        { width: 15 }, // Unidad
+        ...(rol === "gerencia" ? [{ width: 18 }, { width: 20 }] : [])
       ]
+
+      // ==========================================
+      // HOJA 2: RESUMEN DE OPERACIÓN
+      // ==========================================
+      const wsResumen = wb.addWorksheet('Resumen')
       
-      XLSX.utils.book_append_sheet(wb, ws, 'Requerimiento')
-      
-      const resumen = [
-        { 'Concepto': 'Sede', 'Valor': sedeInfo?.nombre || 'No especificada' },
-        { 'Concepto': 'Rango', 'Valor': `${fechaInicio} al ${fechaFin}` },
-        { 'Concepto': 'Días', 'Valor': programacion.length > 0 ? [...new Set(programacion.map(p => p.fecha_texto))].length : 0 },
-        { 'Concepto': 'Comensales/día', 'Valor': cantidadPersonas },
+      wsResumen.mergeCells('A1:B2')
+      const cellTitleRes = wsResumen.getCell('A1')
+      cellTitleRes.value = 'RESUMEN OPERATIVO'
+      cellTitleRes.font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FFFFFFFF' } }
+      cellTitleRes.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_VERDE } }
+      cellTitleRes.alignment = { vertical: 'middle', horizontal: 'center' }
+
+      wsResumen.addRow([])
+
+      const resumenDatos = [
+        ['Sede Asignada', sedeInfo?.nombre || 'No especificada'],
+        ['Rango de Fechas', `${fechaInicio} al ${fechaFin}`],
+        ['Días de Operación', programacion.length > 0 ? [...new Set(programacion.map(p => p.fecha_texto))].length : 0],
+        ['Comensales por día', usarMismaCantidad ? cantidadPersonas : 'Variable (ver detalle)'],
+        ['Total Comensales (Periodo)', totalComensalesDias],
         ...(rol === "gerencia" ? [
-          { 'Concepto': 'Costo Total', 'Valor': formatearMoneda(insumosRequeridos.reduce((acc, curr) => acc + (curr.costo_total || 0), 0)) }
+          ['Costo Total Estimado', costoTotalGeneral],
+          ['Costo Promedio por Día', totalDias > 0 ? costoTotalGeneral / totalDias : 0],
+          ['Costo Promedio por Comensal', totalComensalesDias > 0 ? costoTotalGeneral / totalComensalesDias : 0]
         ] : [])
       ]
+
+      resumenDatos.forEach(dato => {
+        const row = wsResumen.addRow(dato)
+        row.getCell(1).font = { bold: true, color: { argb: COLOR_OSCURO } }
+        row.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_FONDO_GRIS } }
+        
+        // Dar formato moneda si corresponde a un costo (últimos 3 items de gerencia)
+        if (typeof dato[1] === 'number' && String(dato[0]).includes('Costo')) {
+           row.getCell(2).numFmt = '"S/"#,##0.00'
+           row.getCell(2).font = { bold: true, color: { argb: COLOR_VERDE } }
+        }
+      })
+
+      wsResumen.columns = [{ width: 35 }, { width: 30 }]
+
+      // ==========================================
+      // HOJA 3: COMENSALES POR DÍA (Opcional)
+      // ==========================================
+      if (!usarMismaCantidad) {
+        const wsComensales = wb.addWorksheet('Comensales por día')
+        
+        const rowHeaderCom = wsComensales.addRow(['Fecha de Servicio', 'Cantidad de Comensales'])
+        rowHeaderCom.eachCell((cell) => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_OSCURO } }
+          cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
+          cell.alignment = { horizontal: 'center' }
+        })
+
+        const fechasOrdenadasExcel = Object.keys(comensalesPorFecha).sort((a, b) => compararFechasCronologico(a, b))
+        
+        fechasOrdenadasExcel.forEach((fecha) => {
+          const row = wsComensales.addRow([fecha, comensalesPorFecha[fecha] || 0])
+          row.getCell(2).alignment = { horizontal: 'center' }
+          row.getCell(2).font = { bold: true, color: { argb: COLOR_NARANJA } }
+        })
+        
+        wsComensales.columns = [{ width: 25 }, { width: 25 }]
+      }
+
+      // 4. Generar y descargar el archivo
+      const buffer = await wb.xlsx.writeBuffer()
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+      saveAs(blob, `Requerimiento_MegaFood_${sedeInfo?.nombre}_${fechaInicio}.xlsx`)
       
-      const wsResumen = XLSX.utils.json_to_sheet(resumen)
-      XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen')
-      
-      XLSX.writeFile(wb, `requerimiento_compras_${sedeInfo?.nombre}_${fechaInicio}_al_${fechaFin}.xlsx`)
     } catch (error) {
       console.error("Error al exportar:", error)
-      alert("Error al exportar el archivo")
+      alert("Error al exportar el archivo Excel")
     } finally {
       setExportando(false)
     }
   }
 
+  // ─── AGRUPAR Y ORDENAR FECHAS ───
   const programacionPorFecha = programacion.reduce((acc, item) => {
     if (!acc[item.fecha_texto]) acc[item.fecha_texto] = []
     acc[item.fecha_texto].push(item)
     return acc
   }, {} as Record<string, ProgramacionItem[]>)
 
+  const fechasOrdenadas = Object.keys(programacionPorFecha).sort((a, b) => 
+    compararFechasCronologico(a, b)
+  )
+
+  const fechasComensalesOrdenadas = Object.keys(comensalesPorFecha).sort((a, b) =>
+    compararFechasCronologico(a, b)
+  )
+
   const totalDias = Object.keys(programacionPorFecha).length
   const totalPlatos = programacion.length
   const costoTotalGeneral = insumosRequeridos.reduce((acc, curr) => acc + (curr.costo_total || 0), 0)
   const sedeInfo = sedes.find(s => s.id === sedeSeleccionada)
+
+  const totalComensalesDias = usarMismaCantidad
+    ? cantidadPersonas * totalDias
+    : Object.keys(programacionPorFecha).reduce(
+        (acc, fecha) => acc + (comensalesPorFecha[fecha] ?? 0), 0
+      )
+
+  const promedioComensalesDia = totalDias > 0 ? Math.round(totalComensalesDias / totalDias) : 0
 
   if (verificandoAcceso) {
     return (
@@ -618,12 +968,12 @@ export default function ModuloCompras() {
           aria-hidden="true"
         />
 
-        <div className="relative max-w-7xl mx-auto px-8 py-10">
-          <div className="flex items-start justify-between">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-3 mb-1 sm:mb-2">
                 <span
-                  className="uppercase font-mono text-xs"
+                  className="uppercase font-mono text-[10px] sm:text-xs"
                   style={{
                     fontWeight: 700,
                     letterSpacing: '0.18em',
@@ -633,22 +983,22 @@ export default function ModuloCompras() {
                   Módulo de gestión
                 </span>
               </div>
-              <h1 className="text-3xl font-black tracking-tight">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight leading-tight">
                 <span style={{ color: '#FFFFFF' }}>Módulo de</span>
                 <span style={{ color: '#F37F21' }} className="capitalize">
                   {rol === "gerencia" ? " Gerencia" : " Compras"}
                 </span>
               </h1>
-              <p className="mt-2" style={{ color: '#C9C9C3', fontSize: '1rem' }}>
-                {rol === "gerencia" 
+              <p className="mt-1 sm:mt-2 text-sm sm:text-base" style={{ color: '#C9C9C3' }}>
+                {rol === "gerencia"
                   ? "📊 Gestión completa con costos y análisis financiero"
                   : "🛒 Lista de compras sin información de precios"}
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
               <Link
                 href="/dashboard"
-                className="flex items-center gap-2 px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition"
+                className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition text-sm sm:text-base w-full sm:w-auto"
               >
                 <ArrowLeft size={18} />
                 Panel
@@ -659,9 +1009,9 @@ export default function ModuloCompras() {
       </header>
 
       {/* Contenido principal */}
-      <main className="max-w-7xl mx-auto px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
         {/* Filtros */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
           <div>
             <label className="block text-sm font-medium text-[#2B2B2B] mb-1">
               <Building className="inline w-4 h-4 mr-2 text-[#8CC63F]" />
@@ -675,6 +1025,7 @@ export default function ModuloCompras() {
                 setFechaFin("")
                 setProgramacion([])
                 setInsumosRequeridos([])
+                setComensalesPorFecha({})
               }}
               className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
             >
@@ -682,16 +1033,20 @@ export default function ModuloCompras() {
               {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
             </select>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-[#2B2B2B] mb-1">
               <Users className="inline w-4 h-4 mr-2 text-[#F37F21]" />
-              Comensales por día
+              Comensales por día {!usarMismaCantidad && <span className="text-[10px] text-[#9A9A93] font-normal">(valor por defecto)</span>}
             </label>
             <input
               type="number"
               value={cantidadPersonas}
-              onChange={(e) => setCantidadPersonas(parseInt(e.target.value) || 0)}
+              onChange={(e) => {
+                const valor = parseInt(e.target.value) || 0
+                setCantidadPersonas(valor)
+                setInsumosRequeridos([])
+              }}
               min="1"
               className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
             />
@@ -713,6 +1068,40 @@ export default function ModuloCompras() {
           </div>
         </div>
 
+        {/* ─── Checkbox de comensales variables ─── */}
+        <div className="mb-6">
+          <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={usarMismaCantidad}
+              onChange={(e) => {
+                const checked = e.target.checked
+                setUsarMismaCantidad(checked)
+                setInsumosRequeridos([])
+                if (!checked) {
+                  const fechasUnicasProgramadas = [...new Set(programacion.map(p => p.fecha_texto))]
+                  setComensalesPorFecha(prev => {
+                    const actualizado = { ...prev }
+                    fechasUnicasProgramadas.forEach(fecha => {
+                      if (!actualizado[fecha]) actualizado[fecha] = cantidadPersonas
+                    })
+                    return actualizado
+                  })
+                }
+              }}
+              className="w-4 h-4 rounded border-[#E7E7E2] text-[#8CC63F] focus:ring-[#8CC63F]"
+            />
+            <span className="text-sm text-[#2B2B2B]">
+              Usar la misma cantidad de comensales todos los días
+            </span>
+          </label>
+          {!usarMismaCantidad && (
+            <p className="text-xs text-[#9A9A93] mt-1 ml-6">
+              Desactivado: podrás definir la cantidad de comensales para cada fecha una vez cargada la programación.
+            </p>
+          )}
+        </div>
+
         {/* Selector de rango */}
         {sedeSeleccionada && (
           <div className="mb-6 p-4 rounded-lg border border-[#E7E7E2] bg-white shadow-sm">
@@ -727,6 +1116,7 @@ export default function ModuloCompras() {
                 setFechaFin(fin)
                 setProgramacion([])
                 setInsumosRequeridos([])
+                setComensalesPorFecha({})
               }}
               fechaInicio={fechaInicio}
               fechaFin={fechaFin}
@@ -744,7 +1134,7 @@ export default function ModuloCompras() {
         {/* Programación cargada */}
         {programacion.length > 0 && (
           <div className="mb-6 rounded-lg border border-[#E7E7E2] bg-white overflow-hidden shadow-sm">
-            <div className="px-6 py-4 flex justify-between items-center" style={{ background: '#2B2B2B' }}>
+            <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3" style={{ background: '#2B2B2B' }}>
               <h2 className="text-white font-bold text-sm flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 Programación del {fechaInicio} al {fechaFin}
@@ -753,63 +1143,66 @@ export default function ModuloCompras() {
                 {totalDias} días · {totalPlatos} platos
               </span>
             </div>
-            
+
             <div className="p-4 overflow-x-auto">
               <div className="flex gap-6 min-w-max pb-2">
-                {Object.entries(programacionPorFecha).map(([fecha, items]) => (
-                  <div key={fecha} className="min-w-[240px] max-w-[280px] flex-shrink-0 border-r border-[#E7E7E2] pr-6 last:border-r-0 last:pr-0">
-                    <h3 className="text-sm font-bold text-[#F37F21] mb-3 sticky left-0 bg-white py-1">
-                      {fecha}
-                    </h3>
-                    {Object.entries(
-                      items.reduce((acc, item) => {
-                        if (!acc[item.tipo]) acc[item.tipo] = []
-                        acc[item.tipo].push(item)
-                        return acc
-                      }, {} as Record<string, ProgramacionItem[]>)
-                    ).map(([tipo, itemsPorTipo]) => {
-                      const tipoInfo = TIPOS_MENU.find(t => t.value === tipo)
-                      return (
-                        <div key={tipo} className="mb-3 last:mb-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span
-                              className="text-[10px] font-bold rounded-full px-2 py-0.5"
-                              style={{ background: tipoInfo?.bg, color: tipoInfo?.color }}
-                            >
-                              {tipoInfo?.icon} {tipoInfo?.label}
-                            </span>
-                            <span className="text-[10px] text-[#9A9A93]">{itemsPorTipo.length}</span>
+                {fechasOrdenadas.map((fecha) => {
+                  const items = programacionPorFecha[fecha]
+                  return (
+                    <div key={fecha} className="min-w-[220px] max-w-[280px] flex-shrink-0 border-r border-[#E7E7E2] pr-6 last:border-r-0 last:pr-0">
+                      <h3 className="text-sm font-bold text-[#F37F21] mb-3 sticky left-0 bg-white py-1">
+                        {fecha}
+                      </h3>
+                      {Object.entries(
+                        items.reduce((acc, item) => {
+                          if (!acc[item.tipo]) acc[item.tipo] = []
+                          acc[item.tipo].push(item)
+                          return acc
+                        }, {} as Record<string, ProgramacionItem[]>)
+                      ).map(([tipo, itemsPorTipo]) => {
+                        const tipoInfo = TIPOS_MENU.find(t => t.value === tipo)
+                        return (
+                          <div key={tipo} className="mb-3 last:mb-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span
+                                className="text-[10px] font-bold rounded-full px-2 py-0.5"
+                                style={{ background: tipoInfo?.bg, color: tipoInfo?.color }}
+                              >
+                                {tipoInfo?.icon} {tipoInfo?.label}
+                              </span>
+                              <span className="text-[10px] text-[#9A9A93]">{itemsPorTipo.length}</span>
+                            </div>
+                            <div className="space-y-1">
+                              {itemsPorTipo.map((item) => {
+                                const catColor = CAT_COLORS[item.categoria] || { color: "#555", bg: "#f5f5f5" }
+                                return (
+                                  <div key={item.id} className="p-1.5 rounded" style={{ background: catColor.bg }}>
+                                    <span className="text-[9px] font-bold uppercase block" style={{ color: catColor.color }}>
+                                      {item.categoria}
+                                    </span>
+                                    <span className="text-xs font-medium text-[#2B2B2B]">{item.plato_nombre}</span>
+                                  </div>
+                                )
+                              })}
+                            </div>
                           </div>
-                          <div className="space-y-1">
-                            {itemsPorTipo.map((item) => {
-                              const catColor = CAT_COLORS[item.categoria] || { color: "#555", bg: "#f5f5f5" }
-                              return (
-                                <div key={item.id} className="p-1.5 rounded" style={{ background: catColor.bg }}>
-                                  <span className="text-[9px] font-bold uppercase block" style={{ color: catColor.color }}>
-                                    {item.categoria}
-                                  </span>
-                                  <span className="text-xs font-medium text-[#2B2B2B]">{item.plato_nombre}</span>
-                                </div>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                ))}
+                        )
+                      })}
+                    </div>
+                  )
+                })}
               </div>
             </div>
 
-            <div className="px-6 py-3 border-t border-[#E7E7E2] bg-[#F5F5F0] flex flex-wrap items-center justify-between gap-3">
+            <div className="px-4 sm:px-6 py-3 border-t border-[#E7E7E2] bg-[#F5F5F0] flex flex-col sm:flex-row flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-[#6B6B65] flex items-center gap-2">
                 <Users className="w-3 h-3" />
-                {totalDias} días · {totalPlatos} platos · {cantidadPersonas} comensales/día
+                {totalDias} días · {totalPlatos} platos · {usarMismaCantidad ? `${cantidadPersonas} comensales/día` : `${totalComensalesDias} comensales en total (variable por día)`}
               </p>
               <button
                 onClick={calcularRequerimientoRango}
                 disabled={calculando}
-                className="px-5 py-2 rounded-lg bg-[#F37F21] text-white font-medium hover:bg-[#C4600F] transition disabled:opacity-50 flex items-center gap-2"
+                className="w-full sm:w-auto px-5 py-2 rounded-lg bg-[#F37F21] text-white font-medium hover:bg-[#C4600F] transition disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {calculando ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -822,10 +1215,47 @@ export default function ModuloCompras() {
           </div>
         )}
 
+        {/* ─── Panel de comensales por día ─── */}
+        {!usarMismaCantidad && programacion.length > 0 && (
+          <div className="mb-6 rounded-lg border border-[#E7E7E2] bg-white overflow-hidden shadow-sm">
+            <div className="px-4 sm:px-6 py-3 border-b border-[#E7E7E2]" style={{ background: '#F5F5F0' }}>
+              <h3 className="text-sm font-bold text-[#2B2B2B] flex items-center gap-2">
+                <Users className="w-4 h-4 text-[#F37F21]" />
+                Comensales por día
+              </h3>
+              <p className="text-xs text-[#9A9A93] mt-0.5">
+                Define cuántos comensales hubo (o habrá) cada día antes de calcular el requerimiento.
+              </p>
+            </div>
+            <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {fechasComensalesOrdenadas.map((fecha) => (
+                <div key={fecha} className="flex flex-col gap-1">
+                  <label className="text-xs font-medium text-[#6B6B65] truncate" title={fecha}>
+                    {fecha}
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={comensalesPorFecha[fecha] ?? cantidadPersonas}
+                    onChange={(e) => actualizarComensalesFecha(fecha, parseInt(e.target.value) || 0)}
+                    className="w-full rounded-lg border border-[#E7E7E2] px-3 py-2 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="px-4 sm:px-6 py-2 border-t border-[#E7E7E2] bg-[#F5FBF0]">
+              <p className="text-xs text-[#6B6B65]">
+                Total: <strong className="text-[#2B2B2B]">{totalComensalesDias} comensales</strong>
+                <span className="ml-3">Promedio/día: <strong className="text-[#2B2B2B]">{promedioComensalesDia}</strong></span>
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Requerimiento de insumos */}
         {insumosRequeridos.length > 0 && (
           <div className="rounded-lg border border-[#E7E7E2] bg-white overflow-hidden shadow-sm">
-            <div className="px-6 py-4 flex justify-between items-center" style={{ background: '#2B2B2B' }}>
+            <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3" style={{ background: '#2B2B2B' }}>
               <div>
                 <h2 className="text-white font-bold text-sm flex items-center gap-2">
                   <Package className="w-4 h-4" />
@@ -835,7 +1265,7 @@ export default function ModuloCompras() {
                   {totalDias} días ({fechaInicio} al {fechaFin})
                 </p>
               </div>
-              <div className="flex items-center gap-4">
+              <div className="flex flex-wrap items-center gap-4">
                 {rol === "gerencia" && (
                   <div className="text-right">
                     <p className="text-[#9A9A93] text-[10px] uppercase tracking-wide">Costo Total Estimado</p>
@@ -846,7 +1276,7 @@ export default function ModuloCompras() {
                 <button
                   onClick={exportarAExcel}
                   disabled={exportando}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#8CC63F] text-[#1F3A0A] font-medium hover:bg-[#7AB835] transition disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#8CC63F] text-[#1F3A0A] font-medium hover:bg-[#7AB835] transition disabled:opacity-50 text-sm"
                 >
                   {exportando ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -862,37 +1292,37 @@ export default function ModuloCompras() {
               <table className="w-full text-sm">
                 <thead className="bg-[#F5F5F0] text-xs uppercase text-[#6B6B65]">
                   <tr>
-                    <th className="px-6 py-3 text-left font-bold">Insumo</th>
-                    <th className="px-6 py-3 text-left font-bold">Cantidad por Porción</th>
-                    <th className="px-6 py-3 text-left font-bold">Cantidad Total</th>
-                    <th className="px-6 py-3 text-left font-bold">Unidad</th>
+                    <th className="px-4 sm:px-6 py-3 text-left font-bold">Insumo</th>
+                    <th className="px-4 sm:px-6 py-3 text-left font-bold">Cantidad por Porción</th>
+                    <th className="px-4 sm:px-6 py-3 text-left font-bold">Cantidad Total</th>
+                    <th className="px-4 sm:px-6 py-3 text-left font-bold">Unidad</th>
                     {rol === "gerencia" && (
                       <>
-                        <th className="px-6 py-3 text-left font-bold">Precio Unitario</th>
-                        <th className="px-6 py-3 text-left font-bold">Subtotal</th>
+                        <th className="px-4 sm:px-6 py-3 text-left font-bold">Precio Unitario</th>
+                        <th className="px-4 sm:px-6 py-3 text-left font-bold">Subtotal</th>
                       </>
                     )}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#F5F5F0]">
                   {insumosRequeridos.map((insumo) => {
-                    const { cantidad, unidad } = formatearCantidad(insumo.cantidad_total, insumo.unidad)
-                    const cantidadRedondeada = redondearCantidad(cantidad)
-                    
+                    const formateadoTotal = formatearCantidadConUnidad(insumo.cantidad_total, insumo.unidad)
+                    const formateadoPorcion = formatearCantidadConUnidad(insumo.cantidad_porcion, insumo.unidad)
+
                     return (
                       <tr key={insumo.insumo_id} className="hover:bg-[#F5FBF0] transition">
-                        <td className="px-6 py-3 font-medium text-[#2B2B2B]">{insumo.insumo_nombre}</td>
-                        <td className="px-6 py-3 text-[#6B6B65]">
-                          {insumo.cantidad_porcion.toFixed(3)} {insumo.unidad}
+                        <td className="px-4 sm:px-6 py-3 font-medium text-[#2B2B2B]">{insumo.insumo_nombre}</td>
+                        <td className="px-4 sm:px-6 py-3 text-[#6B6B65]">
+                          {formateadoPorcion.display}
                         </td>
-                        <td className="px-6 py-3 font-bold text-[#F37F21]">
-                          {cantidadRedondeada} {unidad}
+                        <td className="px-4 sm:px-6 py-3 font-bold text-[#F37F21]">
+                          {formateadoTotal.display}
                         </td>
-                        <td className="px-6 py-3 text-[#6B6B65]">{unidad}</td>
+                        <td className="px-4 sm:px-6 py-3 text-[#6B6B65]">{formateadoTotal.unidad}</td>
                         {rol === "gerencia" && (
                           <>
-                            <td className="px-6 py-3">{formatearMoneda(insumo.precio_unitario || 0)}</td>
-                            <td className="px-6 py-3 font-semibold text-[#2B2B2B]">
+                            <td className="px-4 sm:px-6 py-3">{formatearMoneda(insumo.precio_unitario || 0)}</td>
+                            <td className="px-4 sm:px-6 py-3 font-semibold text-[#2B2B2B]">
                               {formatearMoneda(insumo.costo_total || 0)}
                             </td>
                           </>
@@ -904,7 +1334,7 @@ export default function ModuloCompras() {
               </table>
             </div>
 
-            <div className="px-6 py-3 bg-[#F5FBF0] border-t border-[#E7E7E2]">
+            <div className="px-4 sm:px-6 py-3 bg-[#F5FBF0] border-t border-[#E7E7E2]">
               <p className="text-xs text-[#6B6B65]">
                 Total de insumos: <strong className="text-[#2B2B2B]">{insumosRequeridos.length} items</strong>
                 {rol === "gerencia" && (
@@ -913,7 +1343,7 @@ export default function ModuloCompras() {
                       · Costo por día: <strong className="text-[#2B2B2B]">{formatearMoneda(costoTotalGeneral / totalDias)}</strong>
                     </span>
                     <span className="ml-4">
-                      · Costo por persona/día: <strong className="text-[#2B2B2B]">{formatearMoneda((costoTotalGeneral / totalDias) / cantidadPersonas)}</strong>
+                      · Costo por comensal: <strong className="text-[#2B2B2B]">{formatearMoneda(totalComensalesDias > 0 ? costoTotalGeneral / totalComensalesDias : 0)}</strong>
                     </span>
                   </>
                 )}
@@ -940,7 +1370,7 @@ export default function ModuloCompras() {
 
       {/* Footer */}
       <footer style={{ borderTop: '1.5px solid #EFEFE9' }} className="mt-8">
-        <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between flex-wrap gap-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p style={{ fontSize: '0.8rem', color: '#9A9A93' }}>
             © 2026 MegaFood · Módulo de {rol === "gerencia" ? "Gerencia" : "Compras"}
           </p>

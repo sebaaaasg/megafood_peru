@@ -281,7 +281,7 @@ export default function VisualizarPlanificacion() {
             </div>
             <div className="flex gap-3">
               <Link
-                href="/dashboard/programacion"
+                href="/dashboard/menus"
                 className="flex items-center gap-2 px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition"
               >
                 <ArrowLeft size={18} />
