@@ -283,7 +283,7 @@ export default function UsuariosClient({
                 className="flex items-center gap-2 px-5 py-2.5 bg-[#F37F21]/10 text-[#F37F21] rounded-lg font-semibold hover:bg-[#F37F21]/20 transition border border-[#F37F21]/20"
               >
                 <Building size={18} />
-                Nueva sede
+                Sedes
               </button>
               <button
                 onClick={() => setShowForm(!showForm)}
@@ -529,54 +529,106 @@ export default function UsuariosClient({
         )}
       </main>
 
-      {/* Modal para crear sede */}
-      {showSedeModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-[#2B2B2B] flex items-center gap-2">
-                <Building className="w-5 h-5 text-[#8CC63F]" />
-                Nueva sede
-              </h3>
-              <button onClick={resetSedeForm} className="text-gray-400 hover:text-gray-600">
-                <X size={24} />
-              </button>
-            </div>
+      {/* Modal para gestionar sedes */}
+{showSedeModal && (
+  <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+    <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
 
-            <form onSubmit={handleCreateSede}>
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-[#2B2B2B] mb-1">Nombre de la sede</label>
-                <input
-                  type="text"
-                  value={sedeFormData.nombre}
-                  onChange={(e) => setSedeFormData({ nombre: e.target.value })}
-                  className="w-full px-4 py-2.5 border border-[#E7E7E2] rounded-lg focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
-                  placeholder="Ej: Concesión Nueva Sede"
-                  required
-                  autoFocus
-                />
-              </div>
+      {/* Encabezado */}
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-xl font-bold text-[#2B2B2B] flex items-center gap-2">
+          <Building className="w-5 h-5 text-[#8CC63F]" />
+          Sedes
+        </h3>
 
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={resetSedeForm}
-                  className="flex-1 py-2.5 rounded-lg border border-[#E7E7E2] text-[#6B6B65] font-medium hover:bg-gray-50 transition"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 py-2.5 rounded-lg bg-[#8CC63F] text-[#1F3A0A] font-bold hover:bg-[#7AB835] transition disabled:opacity-50"
-                >
-                  {loading ? 'Creando...' : 'Crear sede'}
-                </button>
+        <button
+          onClick={resetSedeForm}
+          className="text-gray-400 hover:text-gray-600"
+        >
+          <X size={24} />
+        </button>
+      </div>
+
+      {/* Sedes existentes */}
+      <div className="mb-6">
+        <label className="block text-sm font-semibold text-[#2B2B2B] mb-2">
+          Sedes existentes
+        </label>
+
+        {sedes.length > 0 ? (
+          <div className="border border-[#E7E7E2] rounded-lg overflow-hidden">
+            {sedes.map((sede) => (
+              <div
+                key={sede.id}
+                className="flex items-center justify-between px-4 py-3 border-b last:border-b-0 border-[#F5F5F0] hover:bg-[#F5FBF0] transition"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-[#8CC63F]/10 flex items-center justify-center">
+                    <Building className="w-4 h-4 text-[#8CC63F]" />
+                  </div>
+
+                  <span className="text-sm font-medium text-[#2B2B2B]">
+                    {sede.nombre}
+                  </span>
+                </div>
               </div>
-            </form>
+            ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="border border-dashed border-[#E7E7E2] rounded-lg px-4 py-6 text-center">
+            <Building className="w-8 h-8 mx-auto mb-2 text-[#9A9A93]" />
+            <p className="text-sm text-[#6B6B65]">
+              No hay sedes registradas
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Separador */}
+      <div className="border-t border-[#E7E7E2] pt-5">
+
+        <label className="block text-sm font-semibold text-[#2B2B2B] mb-2">
+          Nueva sede
+        </label>
+
+        <form onSubmit={handleCreateSede}>
+          <div className="mb-4">
+            <input
+              type="text"
+              value={sedeFormData.nombre}
+              onChange={(e) =>
+                setSedeFormData({ nombre: e.target.value })
+              }
+              className="w-full px-4 py-2.5 border border-[#E7E7E2] rounded-lg focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent outline-none"
+              placeholder="Ej: Concesión Nueva Sede"
+              required
+              autoFocus
+            />
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={resetSedeForm}
+              className="flex-1 py-2.5 rounded-lg border border-[#E7E7E2] text-[#6B6B65] font-medium hover:bg-gray-50 transition"
+            >
+              Cancelar
+            </button>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 py-2.5 rounded-lg bg-[#8CC63F] text-[#1F3A0A] font-bold hover:bg-[#7AB835] transition disabled:opacity-50"
+            >
+              {loading ? 'Creando...' : 'Crear sede'}
+            </button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Footer */}
       <footer style={{ borderTop: '1.5px solid #EFEFE9' }} className="mt-8">
