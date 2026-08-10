@@ -18,6 +18,7 @@ import {
   CheckCircle
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import CalendarioProgramacion from '@/components/CalendarioProgramacion'
 
 interface Plato {
   id: string
@@ -64,38 +65,6 @@ const CAT_COLORS: Record<string, { color: string; bg: string }> = {
   "POSTRE":        { color: "#6d28d9", bg: "#f5f3ff" },
   "BEBIBLE":       { color: "#1e40af", bg: "#eff6ff" },
   "SALSA":         { color: "#b45309", bg: "#fffbeb" },
-}
-
-// ─── FUNCIÓN PARA COMPARAR FECHAS CRONOLÓGICAMENTE ───
-const compararFechasCronologico = (fechaA: string, fechaB: string): number => {
-  const regex = /(\d+) de (\w+) de (\d+)/
-  const matchA = fechaA.match(regex)
-  const matchB = fechaB.match(regex)
-  
-  if (!matchA || !matchB) return 0
-  
-  const meses: Record<string, number> = {
-    'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3,
-    'mayo': 4, 'junio': 5, 'julio': 6, 'agosto': 7,
-    'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
-  }
-  
-  const diaA = parseInt(matchA[1])
-  const mesA = meses[matchA[2].toLowerCase()]
-  const añoA = parseInt(matchA[3])
-  const fechaADate = new Date(añoA, mesA, diaA)
-  
-  const diaB = parseInt(matchB[1])
-  const mesB = meses[matchB[2].toLowerCase()]
-  const añoB = parseInt(matchB[3])
-  const fechaBDate = new Date(añoB, mesB, diaB)
-  
-  return fechaADate.getTime() - fechaBDate.getTime()
-}
-
-// ─── FUNCIÓN PARA ORDENAR FECHAS ───
-const ordenarFechasCronologico = (fechas: string[]): string[] => {
-  return [...fechas].sort(compararFechasCronologico)
 }
 
 export default function EditarProgramacion() {
@@ -160,9 +129,7 @@ export default function EditarProgramacion() {
 
     if (data) {
       const fechasUnicas = [...new Set(data.map(f => f.fecha_texto))]
-      // ─── ORDENAR FECHAS CRONOLÓGICAMENTE ───
-      const fechasOrdenadas = ordenarFechasCronologico(fechasUnicas)
-      setFechasDisponibles(fechasOrdenadas)
+      setFechasDisponibles(fechasUnicas)
     }
   }
 
@@ -409,22 +376,21 @@ export default function EditarProgramacion() {
               <Calendar className="inline w-4 h-4 mr-2 text-[#F37F21]" />
               Fecha
             </label>
-            <select
-              value={fechaSeleccionada}
-              onChange={(e) => {
-                setFechaSeleccionada(e.target.value)
+            <CalendarioProgramacion
+              sedeId={sedeSeleccionada}
+              onFechaSeleccionada={(fecha) => {
+                setFechaSeleccionada(fecha)
                 setProgramacionActual([])
                 setProgramacionEditada([])
                 setTipoEditando(null)
               }}
-              className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
-              disabled={!sedeSeleccionada}
-            >
-              <option value="">Seleccionar fecha</option>
-              {fechasDisponibles.map(fecha => (
-                <option key={fecha} value={fecha}>{fecha}</option>
-              ))}
-            </select>
+              fechaSeleccionada={fechaSeleccionada}
+            />
+            {fechaSeleccionada && (
+              <p className="text-xs text-[#8CC63F] mt-1">
+                ✓ Fecha seleccionada: {fechaSeleccionada}
+              </p>
+            )}
           </div>
         </div>
 
