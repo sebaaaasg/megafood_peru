@@ -10,7 +10,15 @@ import {
   FileSpreadsheet,
   Edit,
   Trash2,
-  X
+  X,
+  Soup,
+  Drumstick,
+  Wheat,
+  CakeSlice,
+  CupSoda,
+  Droplets,
+  MapPin,
+  ChevronDown
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Plato, Insumo, Sede, Categoria, RecetaLinea } from '@/lib/supabase/platos'
@@ -27,13 +35,13 @@ interface PlatosClientProps {
 // ─── Constantes ────────────────────────────────────────
 type CategoriaKey = "ENTRADA" | "CÁRNICO" | "GUARNICIÓN" | "POSTRE" | "BEBIBLE" | "SALSA"
 
-const CATS: { key: CategoriaKey; label: string; color: string; bg: string }[] = [
-  { key: "ENTRADA",    label: "Entrada",    color: "#2d5a1e", bg: "#eaf3de" },
-  { key: "CÁRNICO",    label: "Cárnico",    color: "#991b1b", bg: "#fef2f2" },
-  { key: "GUARNICIÓN", label: "Guarnición", color: "#c2410c", bg: "#fff7ed" },
-  { key: "POSTRE",     label: "Postre",     color: "#6d28d9", bg: "#f5f3ff" },
-  { key: "BEBIBLE",    label: "Bebible",    color: "#1e40af", bg: "#eff6ff" },
-  { key: "SALSA",      label: "Salsa",      color: "#b45309", bg: "#fffbeb" },
+const CATS: { key: CategoriaKey; label: string; color: string; bg: string; icon: any }[] = [
+  { key: "ENTRADA",    label: "Entrada",    color: "#2d5a1e", bg: "#eaf3de", icon: Soup },
+  { key: "CÁRNICO",    label: "Cárnico",    color: "#991b1b", bg: "#fef2f2", icon: Drumstick },
+  { key: "GUARNICIÓN", label: "Guarnición", color: "#c2410c", bg: "#fff7ed", icon: Wheat },
+  { key: "POSTRE",     label: "Postre",     color: "#6d28d9", bg: "#f5f3ff", icon: CakeSlice },
+  { key: "BEBIBLE",    label: "Bebible",    color: "#1e40af", bg: "#eff6ff", icon: CupSoda },
+  { key: "SALSA",      label: "Salsa",      color: "#b45309", bg: "#fffbeb", icon: Droplets },
 ]
 
 const SUBCATS_ENTRADA = [
@@ -578,66 +586,73 @@ export default function PlatosClient({
       {/* Contenido */}
       <main className="max-w-7xl mx-auto px-8 py-8">
         {/* Selector de sede */}
-        <div className="mb-6 flex items-center gap-3 rounded-lg border border-[#E7E7E2] bg-white p-4 shadow-sm">
-          <span className="text-sm font-medium text-[#2B2B2B]">📍 Sede activa:</span>
-          <select
-            value={sedeActiva}
-            onChange={e => setSedeActiva(e.target.value)}
-            className="flex-1 rounded-lg border border-[#E7E7E2] bg-white px-3 py-1.5 text-sm font-medium text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F]"
-          >
-            {sedes.map(s => (
-              <option key={s.id} value={s.id}>{s.nombre}</option>
-            ))}
-          </select>
+        <div className="mb-7 rounded-2xl border border-[#E7E7E2] bg-white shadow-[0_2px_12px_rgba(43,43,43,0.04)] overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#8CC63F]/10 text-[#2d5a1e]"><MapPin size={19} /></div>
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#9A9A93]">Sede activa</p>
+                <p className="mt-0.5 text-sm font-bold text-[#2B2B2B]">Gestionando catálogo y recetas</p>
+              </div>
+            </div>
+            <div className="relative min-w-[230px]">
+              <select value={sedeActiva} onChange={e => setSedeActiva(e.target.value)} className="w-full appearance-none rounded-xl border border-[#E7E7E2] bg-[#F8F8F5] px-4 py-2.5 pr-10 text-sm font-semibold text-[#2B2B2B] outline-none transition focus:border-[#8CC63F] focus:bg-white focus:ring-4 focus:ring-[#8CC63F]/10">
+                {sedes.map(s => (<option key={s.id} value={s.id}>{s.nombre}</option>))}
+              </select>
+              <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#8A8A83]" />
+            </div>
+          </div>
         </div>
 
         {/* Categorías */}
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-2 mb-6">
-          {CATS.map(cat => {
-            const isActive = catActiva === cat.key
-            const count = platos.filter(p => p.categoria === cat.key).length
-            return (
-              <button
-                key={cat.key}
-                onClick={() => {
-                  setCatActiva(cat.key)
-                  setSubcategoria("")
-                  setLineas([{ ...EMPTY_LINEA }])
-                }}
-                className={`
-                  flex flex-col items-center justify-center gap-1 rounded-lg py-3 px-1 text-xs font-bold transition-all
-                  ${isActive
-                    ? 'shadow-md ring-2 ring-offset-1 scale-[0.98] text-white'
-                    : 'opacity-80 hover:opacity-100 hover:scale-[1.02]'}
-                `}
-                style={{
-                  background: isActive ? cat.color : cat.bg,
-                  color: isActive ? "white" : cat.color,
-                  border: `1px solid ${cat.color}40`,
-                }}
-              >
-                <span className="uppercase tracking-wide text-[10px]">{cat.label}</span>
-                <span className={`text-[9px] font-bold ${isActive ? 'text-white/80' : 'text-gray-500'}`}>
-                  {count} platos
-                </span>
-              </button>
-            )
-          })}
+        <div className="mb-7">
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#9A9A93]">Categorías</p>
+              <p className="mt-1 text-sm text-[#6B6B65]">Selecciona el tipo de plato que deseas gestionar</p>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-[#8A8A83]"> <span className="h-2 w-2 rounded-full bg-[#8CC63F]" />{platos.length} platos en total</div>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {CATS.map(cat => {
+              const isActive = catActiva === cat.key
+              const count = platos.filter(p => p.categoria === cat.key).length
+              const Icon = cat.icon
+              return (
+                <button
+                  key={cat.key}
+                  onClick={() => { setCatActiva(cat.key); setSubcategoria(""); setLineas([{ ...EMPTY_LINEA }]) }}
+                  className={`group relative flex h-[116px] w-[154px] flex-shrink-0 flex-col items-center justify-center gap-1.5 rounded-2xl border-2 px-2 transition-all duration-200 ${isActive ? 'shadow-[0_5px_16px_rgba(43,43,43,0.14)] -translate-y-0.5' : 'hover:-translate-y-0.5 hover:shadow-sm'}`}
+                  style={{ background: isActive ? cat.color : cat.bg, color: isActive ? '#FFFFFF' : cat.color, borderColor: isActive ? '#FFFFFF' : `${cat.color}30`, boxShadow: isActive ? `0 5px 16px ${cat.color}22` : undefined }}
+                >
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: isActive ? 'rgba(255,255,255,0.13)' : 'rgba(255,255,255,0.68)' }}><Icon size={20} strokeWidth={2} /></span>
+                  <span className="text-[13px] font-extrabold uppercase tracking-wide">{cat.label}</span>
+                  <span className={`text-[11px] font-semibold ${isActive ? 'text-white/70' : 'text-[#8A8A83]'}`}>{count} {count === 1 ? 'plato' : 'platos'}</span>
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {/* Formulario nuevo plato */}
         {isAdmin && (
-          <form onSubmit={guardar} className="mb-6 bg-white rounded-lg p-6 border border-[#E7E7E2] border-t-4 border-t-[#8CC63F] shadow-sm">
-            <p className="text-sm font-bold text-[#2B2B2B] mb-4 flex items-center gap-2">
-              ✏️ Nuevo plato
+          <form onSubmit={guardar} className="mb-7 overflow-hidden rounded-2xl border border-[#E7E7E2] bg-white shadow-[0_3px_16px_rgba(43,43,43,0.05)]">
+            <div className="border-b border-[#EFEFE9] bg-[#FAFAF7] px-6 py-4">
+              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#9A9A93]">Crear nuevo</p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <p className="text-base font-extrabold text-[#2B2B2B] flex items-center gap-2">
+                  <Plus size={17} className="text-[#8CC63F]" /> Nuevo plato
               <span className="rounded-full px-2.5 py-0.5 text-xs font-bold" style={{ background: catActual.bg, color: catActual.color }}>
                 {catActual.label}
               </span>
               <span className="rounded-full px-2.5 py-0.5 text-xs font-bold bg-indigo-50 text-indigo-600">
                 {sedeActualNombre || "Sin sede"}
               </span>
-            </p>
+                </p>
+              </div>
+            </div>
 
+            <div className="p-6">
             <div className="mb-4">
               <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Nombre del plato</label>
               <input
@@ -731,38 +746,47 @@ export default function PlatosClient({
             >
               {loading ? "Guardando..." : "Crear plato"}
             </button>
+            </div>
           </form>
         )}
 
         {/* Lista de platos */}
-        <div className="mb-4">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">
-            {catActual.label} — {sedeActualNombre || "sin sede"} — {platosDeCat.length} {platosDeCat.length === 1 ? "plato" : "platos"}
-          </p>
+        <div className="mb-4 flex items-end justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#9A9A93]">Catálogo</p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <h2 className="text-lg font-extrabold text-[#2B2B2B]">{catActual.label}</h2>
+              <span className="rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: catActual.bg, color: catActual.color }}>{platosDeCat.length} {platosDeCat.length === 1 ? "plato" : "platos"}</span>
+            </div>
+          </div>
+          <span className="hidden sm:block text-xs font-semibold text-[#9A9A93]">{sedeActualNombre || "Sin sede"}</span>
         </div>
 
         {platosDeCat.length === 0 ? (
-          <p className="text-center text-sm text-gray-400 py-8 rounded-lg border border-gray-200 bg-gray-50">
-            Sin platos en esta categoría.
-          </p>
+          <div className="rounded-2xl border border-dashed border-[#DCDCD5] bg-[#FAFAF7] py-12 text-center">
+            <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl border border-[#E7E7E2] bg-white text-[#9A9A93]"><Plus size={19} /></div>
+            <p className="text-sm font-bold text-[#5F5F59]">Sin platos en esta categoría</p>
+            <p className="mt-1 text-xs text-[#9A9A93]">Crea el primero usando el formulario superior.</p>
+          </div>
         ) : (
           platosDeCat.map(plato => {
             const recetaSede = plato.recetas.filter(r => r.sede_id === sedeActiva)
             return (
               <div
                 key={plato.id}
-                className="flex items-start justify-between gap-3 rounded-lg border border-[#E7E7E2] bg-white px-4 py-3 mb-2 shadow-sm hover:shadow-md transition-shadow"
+                className="group mb-3 flex items-start justify-between gap-4 rounded-2xl border border-[#E7E7E2] bg-white px-5 py-4 shadow-[0_2px_10px_rgba(43,43,43,0.035)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#DCDCD5] hover:shadow-[0_7px_18px_rgba(43,43,43,0.07)]"
               >
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-bold text-[#2B2B2B]">{plato.nombre}</p>
+                  <div className="mb-1 flex items-center gap-2 flex-wrap">
+                    <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: catActual.color }} />
+                    <p className="text-sm font-extrabold text-[#2B2B2B]">{plato.nombre}</p>
                     {plato.subcategoria && (
                       <span className="text-xs font-bold rounded-full px-2 py-0.5 bg-[#eaf3de] text-[#2d5a1e]">
                         {plato.subcategoria}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 truncate mt-0.5">
+                  <p className="text-xs text-[#7A7A73] truncate mt-1">
                     {recetaSede.length > 0
                       ? recetaSede
                           .map(r => `${r.insumos.nombre} (${r.cantidad} ${r.insumos.unidad})`)

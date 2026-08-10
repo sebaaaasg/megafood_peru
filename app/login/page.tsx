@@ -3,12 +3,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { getEmailByUsername } from '@/lib/supabase/users'
 import { Leaf, User, Lock } from 'lucide-react'
 
+const LOGIN_DOMAIN = 'sistema.com' // 🔒 mantener en un solo lugar
+
 export default function LoginPage() {
-  const [username, setUsername] = useState('username')
-  const [password, setPassword] = useState('password')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const router = useRouter()
@@ -20,17 +21,15 @@ export default function LoginPage() {
     setError('')
 
     try {
-      // Obtener el email real del usuario
-      let email = await getEmailByUsername(username.trim())
-      
-      if (!email) {
-        setError('Usuario no encontrado. Verifica tu nombre de usuario.')
-        setLoading(false)
-        return
-      }
+      const cleanUsername = username.trim()
+      // Si ya escribieron un email completo, se respeta. Si no, se construye
+      // el email interno a partir del username (patrón username@sistema.com).
+      const loginEmail = cleanUsername.includes('@')
+        ? cleanUsername
+        : `${cleanUsername}@${LOGIN_DOMAIN}`
 
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: loginEmail,
         password,
       })
 
@@ -93,7 +92,7 @@ export default function LoginPage() {
                     background: "#FFFFFF",
                     color: "#2B2B2B",
                   }}
-                  placeholder="admin"
+                  placeholder="username"
                   required
                 />
               </div>

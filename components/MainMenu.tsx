@@ -12,8 +12,6 @@ import {
   ClipboardList,
   ArrowUpRight,
   Leaf,
-  LogOut,
-  UserCircle,
 } from "lucide-react";
 
 type StationType = {
@@ -25,23 +23,6 @@ type StationType = {
   href: string;
   tone: "green" | "orange";
 };
-
-/*
-  MEGA FOOD — Panel de logística
-  Paleta corporativa exclusiva:
-    Verde lima   #8CC63F  -> destacados / secundario
-    Naranja      #F37F21  -> acentos, títulos, CTAs
-    Blanco       #FFFFFF  -> fondo
-  Tonos derivados solo para profundidad (hover / texto largo):
-    Verde oscuro  #4A7A1E
-    Naranja oscuro#C4600F
-    Carbón        #2B2B2B (texto de lectura, nunca negro puro)
-
-  Concepto: tablero de "comanda de cocina". Cada módulo es una estación
-  operativa numerada (01–06) porque el flujo real de un negocio de menús
-  SÍ es secuencial: insumos entran, se convierten en recetas, se programan
-  en el menú, se preparan en cocina y generan la próxima orden de compra.
-*/
 
 const stations: StationType[] = [
   {
@@ -100,6 +81,26 @@ const stations: StationType[] = [
   },
 ] as const;
 
+// ─────────────────────────────────────────────────────────
+// Qué estaciones puede ver cada rol. Debe reflejar el mismo
+// mapa de acceso que usa el middleware (ROLE_ACCESS).
+// '*' -> todas las estaciones.
+// ─────────────────────────────────────────────────────────
+const ROLE_STATIONS: Record<string, string[] | "*"> = {
+  admin: "*",
+  gerencia: "*",
+  cocinero: ["cocina"],
+  compras: ["compra"],
+};
+
+function getVisibleStations(role: string | null): StationType[] {
+  if (!role) return []
+  const allowed = ROLE_STATIONS[role]
+  if (!allowed) return []
+  if (allowed === "*") return stations
+  return stations.filter((s) => allowed.includes(s.id))
+}
+
 const toneStyles = {
   green: {
     ticket: "#8CC63F",
@@ -125,21 +126,21 @@ function StationCard({ station }: { station: StationType }) {
   return (
     <a
       href={station.href}
-  className="group relative flex flex-col justify-between overflow-hidden bg-white transition-all duration-200 p-4 sm:p-6"
-  style={{
-    borderLeft: `1.5px solid ${isHovered ? t.hoverBorder : "#E7E7E2"}`,
-    borderRight: `1.5px solid ${isHovered ? t.hoverBorder : "#E7E7E2"}`,
-    borderBottom: `1.5px solid ${isHovered ? t.hoverBorder : "#E7E7E2"}`,
-    borderTop: `5px solid ${t.ticket}`,
-    borderRadius: "4px",
-    minHeight: "150px",
-    transform: isHovered ? "translateY(-3px)" : "translateY(0)",
-    boxShadow: isHovered ? "0 10px 24px -12px rgba(43,43,43,0.22)" : "none",
-  }}
+      className="group relative flex flex-col justify-between overflow-hidden bg-white transition-all duration-200 p-4 sm:p-6"
+      style={{
+        borderLeft: `1.5px solid ${isHovered ? t.hoverBorder : "#E7E7E2"}`,
+        borderRight: `1.5px solid ${isHovered ? t.hoverBorder : "#E7E7E2"}`,
+        borderBottom: `1.5px solid ${isHovered ? t.hoverBorder : "#E7E7E2"}`,
+        borderTop: `5px solid ${t.ticket}`,
+        borderRadius: "4px",
+        minHeight: "150px",
+        transform: isHovered ? "translateY(-3px)" : "translateY(0)",
+        boxShadow: isHovered ? "0 10px 24px -12px rgba(43,43,43,0.22)" : "none",
+      }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Ticket perforation dots, kitchen-order motif */}
+      {/* Ticket perforation dots */}
       <div
         className="absolute top-0 left-0 right-0 flex justify-between px-3"
         style={{ transform: "translateY(-3px)" }}
@@ -210,34 +211,36 @@ function StationCard({ station }: { station: StationType }) {
 export default function MainMenu() {
   const router = useRouter();
   const supabase = createClient();
-  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("");
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         router.push('/login');
         return;
       }
 
-      setUserEmail(user.email || null);
-      const email = user.email || 'Colaborador';
-      const name = email.split('@')[0];
-      setUserName(name.charAt(0).toUpperCase() + name.slice(1));
+      // 🔥 Obtener full_name y role de la tabla profiles en una sola query
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, role')
+        .eq('id', user.id)
+        .single();
+
+      let displayName = profile?.full_name || user.email?.split('@')[0] || 'Colaborador';
+      displayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+
+      setUserName(displayName);
+      setUserRole(profile?.role ?? null);
       setLoading(false);
     };
 
     getUser();
   }, [router, supabase]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-    router.refresh();
-  };
 
   if (loading) {
     return (
@@ -250,9 +253,11 @@ export default function MainMenu() {
     );
   }
 
+  const visibleStations = getVisibleStations(userRole);
+
   return (
     <div className="min-h-screen w-full" style={{ background: "#FFFFFF" }}>
-      {/* Header: superficie tipo tabla de cortar / acero, textura sutil */}
+      {/* Header */}
       <header
         className="relative overflow-hidden"
         style={{ background: "#2B2B2B" }}
@@ -358,18 +363,6 @@ export default function MainMenu() {
                 </span>
               </div>
             </div>
-
-            {/* Botón de logout */}
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 rounded-lg transition-all duration-200 border border-red-500/20 hover:border-red-500/40"
-              style={{
-                backdropFilter: "blur(4px)",
-              }}
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="text-sm font-medium">Cerrar Sesión</span>
-            </button>
           </div>
         </div>
       </header>
@@ -399,11 +392,17 @@ export default function MainMenu() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-5">
-          {stations.map((s) => (
-            <StationCard key={s.id} station={s} />
-          ))}
-        </div>
+        {visibleStations.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-5">
+            {visibleStations.map((s) => (
+              <StationCard key={s.id} station={s} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12" style={{ color: "#6B6B65" }}>
+            No tienes estaciones asignadas. Contacta a un administrador.
+          </div>
+        )}
       </main>
 
       {/* Footer */}

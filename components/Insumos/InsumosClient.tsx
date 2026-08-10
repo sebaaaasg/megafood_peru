@@ -3,25 +3,26 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import {
-  ArrowLeft,
-  Upload,
-  Plus,
-  Loader2,
+import { 
+  ArrowLeft, 
+  Upload, 
+  Plus, 
+  Loader2, 
   Search,
-  Package,
   Edit,
-  Trash2,
+  FileSpreadsheet,
   X,
-  Apple,
-  Beef,
-  FlaskConical,
-  Grid3x3,
-  Pencil,
-  DollarSign
+  DollarSign,
+  Package,      // Abarrotes
+  Apple,        // Frutas y Verduras  
+  Beef,         // Cárnicos
+  FlaskConical, // Químicos
+  Trash2,       // Descartables
+  Grid3x3       // Todas
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Insumo } from '@/lib/supabase/insumos'
+import * as XLSX from 'xlsx'
 
 type Category = {
   name: string
@@ -33,25 +34,84 @@ interface InsumosClientProps {
   initialCategories: Category[]
 }
 
-// Configuración visual por categoría
-const CATEGORY_STYLES: Record<string, { icon: any; light: string; text: string; border: string }> = {
-  'Abarrotes': { icon: Package, light: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-100' },
-  'Frutas y Verduras': { icon: Apple, light: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-100' },
-  'Cárnicos': { icon: Beef, light: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-100' },
-  'Químicos': { icon: FlaskConical, light: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-100' },
-  'Descartables': { icon: Trash2, light: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200' },
+// Colores para cada categoría
+// Colores e iconos para cada categoría
+const categoryConfig: Record<string, { 
+  bg: string
+  hover: string
+  active: string
+  text: string
+  icon: any
+}> = {
+  'Abarrotes': {
+    bg: 'bg-[#8CC63F]/10',
+    hover: 'hover:bg-[#8CC63F]/20',
+    active: 'bg-[#8CC63F]',
+    text: 'text-[#8CC63F]',
+    icon: Package
+  },
+  'Frutas y Verduras': {
+    bg: 'bg-[#F37F21]/10',
+    hover: 'hover:bg-[#F37F21]/20',
+    active: 'bg-[#F37F21]',
+    text: 'text-[#F37F21]',
+    icon: Apple
+  },
+  'Cárnicos': {
+    bg: 'bg-red-500/10',
+    hover: 'hover:bg-red-500/20',
+    active: 'bg-red-500',
+    text: 'text-red-500',
+    icon: Beef
+  },
+  'Químicos': {
+    bg: 'bg-yellow-500/10',
+    hover: 'hover:bg-yellow-500/20',
+    active: 'bg-yellow-500',
+    text: 'text-yellow-500',
+    icon: FlaskConical
+  },
+  'Descartables': {
+    bg: 'bg-gray-500/10',
+    hover: 'hover:bg-gray-500/20',
+    active: 'bg-gray-500',
+    text: 'text-gray-500',
+    icon: Trash2
+  }
 }
 
-const DEFAULT_STYLE = { icon: Package, light: 'bg-slate-100', text: 'text-slate-600', border: 'border-slate-200' }
+// Normalizar unidades para importación
+const normalizarUnidad = (u: string): string => {
+  const map: Record<string, string> = {
+    "KILOS": "kg", "KILOGRAMOS": "kg", "KG": "kg",
+    "GRAMOS": "gr", "GR": "gr",
+    "LITROS": "lt", "LT": "lt", "L": "lt",
+    "MILILITROS": "ml", "ML": "ml",
+    "GALON": "GLN", "GALONES": "GLN", "GL": "GLN",
+    "UNIDADES": "un", "UND": "un", "UNIDAD": "un",
+    "PAQUETE": "PQTE", "PAQUETES": "PQTE",
+    "ROLLOS": "ROLLO", "ROLLO": "ROLLO",
+    "BOLSAS": "BOLSA", "BOLSA": "BOLSA",
+    "PARES": "PAR", "PAR": "PAR",
+    "SACO": "SACO", "TARRO": "TARRO", "SOBRE": "SOBRE",
+    "CAJA": "CAJA", "LATA": "LATA", "PQTE": "PAQUETE"
+  }
+  const normalized = map[u.toUpperCase().trim()]
+  return normalized || u.toLowerCase()
+}
 
-// Formatear precio en Soles Peruanos
-const formatPrice = (precio: number) => {
-  return new Intl.NumberFormat('es-PE', {
-    style: 'currency',
-    currency: 'PEN',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(precio)
+// Normalizar categorías para importación
+const normalizarCategoria = (cat: string): string => {
+  const map: Record<string, string> = {
+    "ABARROTES": "Abarrotes", "ABARROTE": "Abarrotes",
+    "FRUTAS": "Frutas y Verduras", "VERDURAS": "Frutas y Verduras", 
+    "FRUTAS Y VERDURAS": "Frutas y Verduras", "FRUTAS_VERDURAS": "Frutas y Verduras",
+    "FRUTA_VEG": "Frutas y Verduras", "FRUIT_VEG": "Frutas y Verduras",
+    "CARNICOS": "Cárnicos", "CARNICO": "Cárnicos", "CARNES": "Cárnicos",
+    "QUIMICOS": "Químicos", "QUIMICO": "Químicos",
+    "DESCARTABLES": "Descartables", "DESCARTABLE": "Descartables"
+  }
+  return map[cat.toUpperCase().trim()] || cat
 }
 
 export default function InsumosClient({ initialInsumos, initialCategories }: InsumosClientProps) {
@@ -64,59 +124,80 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isCheckingRole, setIsCheckingRole] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingInsumo, setEditingInsumo] = useState<Insumo | null>(null)
+  const [importing, setImporting] = useState(false)
 
+  // Form state
   const [formData, setFormData] = useState({
     nombre: '',
     unidad: '',
     categoria: 'Abarrotes',
-    precio: ''  // 🔥 NUEVO: campo precio
+    precio: ''
   })
 
+  // Verificar si el usuario es admin
   useEffect(() => {
     const checkRole = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single()
-        setIsAdmin(profile?.role === 'admin')
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', user.id)
+            .single()
+          
+          if (profile?.role === 'admin') {
+            setIsAdmin(true)
+          } else {
+            // Si no es admin, redirigir al dashboard
+            router.push('/dashboard')
+            return
+          }
+        } else {
+          router.push('/login')
+          return
+        }
+      } catch (error) {
+        console.error('Error al verificar rol:', error)
+        router.push('/dashboard')
+      } finally {
+        setIsCheckingRole(false)
       }
     }
+    
     checkRole()
-  }, [supabase])
+  }, [supabase, router])
 
+  // Filtrar insumos por categoría y búsqueda
   useEffect(() => {
     let filtered = insumos
-
+    
     if (selectedCategory !== 'Todas') {
       filtered = filtered.filter(i => i.categoria === selectedCategory)
     }
-
+    
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase().trim()
-      filtered = filtered.filter(i =>
+      filtered = filtered.filter(i => 
         i.nombre.toLowerCase().includes(term)
       )
     }
-
+    
     setFilteredInsumos(filtered)
   }, [insumos, selectedCategory, searchTerm])
 
+  // Resetear formulario
   const resetForm = () => {
-    setFormData({ 
-      nombre: '', 
-      unidad: '', 
-      categoria: selectedCategory !== 'Todas' ? selectedCategory : 'Abarrotes',
-      precio: ''
-    })
+    setFormData({ nombre: '', unidad: '', categoria: 'Abarrotes', precio: '' })
     setEditingInsumo(null)
     setShowForm(false)
   }
 
+  // Manejar envío del formulario
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formData.nombre.trim()) return
@@ -135,7 +216,7 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
             nombre: formData.nombre.trim().toUpperCase(),
             unidad: formData.unidad,
             categoria: formData.categoria,
-            precio: precioNum  // 🔥 Incluir precio en actualización
+            precio: precioNum
           })
           .eq('id', editingInsumo.id)
           .select()
@@ -151,7 +232,7 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
             nombre: formData.nombre.trim().toUpperCase(),
             unidad: formData.unidad,
             categoria: formData.categoria,
-            precio: precioNum,  // 🔥 Incluir precio en creación
+            precio: precioNum,
             created_by: user.id
           })
           .select()
@@ -162,10 +243,11 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
         setInsumos([...insumos, data])
       }
 
+      // Actualizar categorías
       const { data: newCategories } = await supabase
         .from('insumos')
         .select('categoria')
-
+      
       if (newCategories) {
         const counts: Record<string, number> = {}
         newCategories.forEach(item => {
@@ -184,9 +266,10 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
     }
   }
 
+  // Eliminar insumo
   const handleDelete = async (id: string) => {
     if (!confirm('¿Estás seguro de eliminar este insumo?')) return
-
+    
     setLoading(true)
     try {
       const { error } = await supabase
@@ -206,321 +289,607 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
     }
   }
 
+  // Editar insumo
   const handleEdit = (insumo: Insumo) => {
     setFormData({
       nombre: insumo.nombre,
       unidad: insumo.unidad,
       categoria: insumo.categoria,
-      precio: insumo.precio?.toString() || ''  // 🔥 Cargar precio existente
+      precio: insumo.precio.toString()
     })
     setEditingInsumo(insumo)
     setShowForm(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const getCategoryStyle = (categoria: string) => CATEGORY_STYLES[categoria] || DEFAULT_STYLE
+  // Importación Excel
+  const importarExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setImporting(true)
+    setLoading(true)
+
+    try {
+      const { data: existentes } = await supabase
+        .from('insumos')
+        .select('nombre')
+      
+      const existentesSet = new Set(existentes?.map(i => i.nombre.toUpperCase().trim()) || [])
+
+      const reader = new FileReader()
+      reader.onload = async (evt) => {
+        try {
+          const data = new Uint8Array(evt.target?.result as ArrayBuffer)
+          const workbook = XLSX.read(data, { type: 'array' })
+          const datos = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]) as any[]
+          
+          const nuevos: any[] = []
+          const duplicados: string[] = []
+          const errores: string[] = []
+
+          for (const fila of datos) {
+            const nombreRaw = fila["NOMBRE"] || fila["INSUMO"] || fila["nombre"] || fila["Nombre"]
+            const unidadRaw = fila["UNIDAD"] || fila["unidad"] || fila["Unidad"]
+            const categoriaRaw = fila["CATEGORIA"] || fila["categoria"] || fila["Categoria"]
+            const precioRaw = fila["PRECIO"] || fila["precio"] || fila["Precio"]
+
+            if (!nombreRaw) {
+              errores.push('Fila sin nombre: ' + JSON.stringify(fila))
+              continue
+            }
+            
+            const nombre = nombreRaw.toString().toUpperCase().trim()
+            
+            if (existentesSet.has(nombre)) {
+              duplicados.push(nombre)
+              continue
+            }
+            
+            const unidad = normalizarUnidad(unidadRaw?.toString() || "kg")
+            const categoria = normalizarCategoria(categoriaRaw?.toString() || "Abarrotes")
+            const precio = parseFloat(precioRaw?.toString().replace(',', '.') || "0") || 0
+            
+            nuevos.push({
+              nombre,
+              unidad,
+              categoria,
+              precio
+            })
+            existentesSet.add(nombre)
+          }
+
+          let mensaje = ''
+          if (duplicados.length > 0) {
+            mensaje += `⚠️ Omitidos (duplicados): ${duplicados.length}\n${duplicados.slice(0, 10).join('\n')}${duplicados.length > 10 ? `\n... y ${duplicados.length - 10} más` : ''}\n\n`
+          }
+          if (errores.length > 0) {
+            mensaje += `❌ Errores: ${errores.length}\n${errores.slice(0, 5).join('\n')}\n\n`
+          }
+          
+          if (nuevos.length === 0) {
+            alert(`📋 No se encontraron insumos nuevos para importar.\n\n${mensaje || 'Todos los insumos ya existen en la base de datos.'}`)
+            setImporting(false)
+            setLoading(false)
+            e.target.value = ''
+            return
+          }
+
+          mensaje += `📊 ${nuevos.length} insumos nuevos listos para importar.`
+          
+          if (confirm(`${mensaje}\n\n¿Deseas importarlos?`)) {
+            const { error } = await supabase
+              .from('insumos')
+              .insert(nuevos)
+
+            if (error) {
+              alert('❌ Error al importar: ' + error.message)
+            } else {
+              alert(`✅ ${nuevos.length} insumos importados exitosamente!`)
+              const { data: refreshed } = await supabase
+                .from('insumos')
+                .select('*')
+                .order('nombre', { ascending: true })
+              
+              if (refreshed) {
+                setInsumos(refreshed)
+                
+                const counts: Record<string, number> = {}
+                refreshed.forEach(item => {
+                  counts[item.categoria] = (counts[item.categoria] || 0) + 1
+                })
+                setCategories(Object.entries(counts).map(([name, count]) => ({ name, count })))
+              }
+              router.refresh()
+            }
+          }
+        } catch (error) {
+          console.error('Error al procesar Excel:', error)
+          alert('❌ Error al procesar el archivo Excel. Verifica que el formato sea correcto.')
+        } finally {
+          setImporting(false)
+          setLoading(false)
+          e.target.value = ''
+        }
+      }
+      
+      reader.readAsArrayBuffer(file)
+    } catch (error) {
+      console.error('Error al leer archivo:', error)
+      alert('❌ Error al leer el archivo')
+      setImporting(false)
+      setLoading(false)
+      e.target.value = ''
+    }
+  }
+
+  const getCategoriaColor = (categoria: string) => {
+    const colors: Record<string, string> = {
+      'Abarrotes': 'bg-[#8CC63F]/10 text-[#8CC63F] border-[#8CC63F]/20',
+      'Frutas y Verduras': 'bg-[#F37F21]/10 text-[#F37F21] border-[#F37F21]/20',
+      'Cárnicos': 'bg-red-500/10 text-red-600 border-red-500/20',
+      'Químicos': 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20',
+      'Descartables': 'bg-gray-500/10 text-gray-600 border-gray-500/20'
+    }
+    return colors[categoria] || 'bg-gray-100 text-gray-700'
+  }
+
+  const formatPrice = (precio: number) => {
+    return new Intl.NumberFormat('es-PE', {
+      style: 'currency',
+      currency: 'PEN',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(precio)
+  }
 
   const totalInsumos = categories.reduce((sum, cat) => sum + cat.count, 0)
 
+  // Mostrar loading mientras se verifica el rol
+  if (isCheckingRole) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#FFFFFF' }}>
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-8 h-8 animate-spin text-[#8CC63F]" />
+          <p className="text-[#6B6B65]">Verificando permisos...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Si no es admin, no mostrar nada (ya redirige)
+  if (!isAdmin) {
+    return null
+  }
+
   return (
-    <div
-      className="min-h-screen w-full"
-      style={{ background: 'linear-gradient(135deg, #EEF6EC 0%, #FBF6EC 55%, #FDF1E6 100%)' }}
-    >
+    <div className="min-h-screen w-full" style={{ background: '#FFFFFF' }}>
       {loading && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 flex items-center gap-3">
-            <Loader2 className="w-6 h-6 animate-spin text-emerald-600" />
-            <span className="text-gray-700">Procesando...</span>
+            <Loader2 className="w-6 h-6 animate-spin text-[#8CC63F]" />
+            <span className="text-gray-700">
+              {importing ? 'Importando insumos...' : 'Procesando...'}
+            </span>
           </div>
         </div>
       )}
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8">
-        {/* Barra superior */}
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-8 sm:mb-10">
-          <div className="text-xl font-black tracking-tight">
-            <span className="text-slate-900">MEGA</span>
-            <span className="text-orange-500">FOOD</span>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            {isAdmin && (
-              <button className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white border border-emerald-200 text-emerald-700 rounded-full text-xs sm:text-sm font-semibold hover:bg-emerald-50 transition shadow-sm">
-                <Upload size={14} className="sm:w-4 sm:h-4" />
-                <span className="hidden xs:inline">Importar Excel</span>
-              </button>
-            )}
-            <Link
-              href="/dashboard"
-              className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-white border border-slate-200 text-slate-600 rounded-full text-xs sm:text-sm font-semibold hover:bg-slate-50 transition shadow-sm"
-            >
-              <ArrowLeft size={14} className="sm:w-4 sm:h-4" />
-              <span className="hidden xs:inline">Panel</span>
-            </Link>
-          </div>
-        </div>
+      {/* Header estilo MegaFood */}
+      <header className="relative overflow-hidden" style={{ background: '#2B2B2B' }}>
+        <div
+          className="absolute inset-0 opacity-[0.06]"
+          style={{
+            backgroundImage:
+              "repeating-linear-gradient(135deg, #FFFFFF 0px, #FFFFFF 1px, transparent 1px, transparent 14px)",
+          }}
+          aria-hidden="true"
+        />
+        <div
+          className="absolute left-0 top-0 bottom-0"
+          style={{ width: '6px', background: '#F37F21' }}
+          aria-hidden="true"
+        />
+        <div
+          className="absolute left-[6px] top-0 bottom-0"
+          style={{ width: '6px', background: '#8CC63F' }}
+          aria-hidden="true"
+        />
 
-        {/* Título */}
-        <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-slate-900">
-            Inventario de <span className="text-orange-500">insumos</span>
-          </h1>
-          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-slate-500">
-            Selecciona una categoría para gestionar sus insumos.
-          </p>
-        </div>
-
-        {/* Pestañas de categoría */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-3 mb-6 sm:mb-8">
-          <button
-            onClick={() => setSelectedCategory('Todas')}
-            className={`rounded-xl sm:rounded-2xl px-3 sm:px-4 py-3 sm:py-4 text-center transition border ${
-              selectedCategory === 'Todas'
-                ? 'bg-emerald-800 border-emerald-800 text-white shadow-md'
-                : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-            }`}
-          >
-            <Grid3x3 className="mx-auto mb-1" size={18} />
-            <div className="text-[10px] sm:text-xs font-bold tracking-wide uppercase">Todas</div>
-            <div className={`text-[10px] sm:text-xs mt-0.5 ${selectedCategory === 'Todas' ? 'text-emerald-100' : 'text-slate-400'}`}>
-              {totalInsumos} insumos
-            </div>
-          </button>
-
-          {categories.map((cat) => {
-            const style = getCategoryStyle(cat.name)
-            const Icon = style.icon
-            const isActive = selectedCategory === cat.name
-            return (
-              <button
-                key={cat.name}
-                onClick={() => setSelectedCategory(cat.name)}
-                className={`rounded-xl sm:rounded-2xl px-3 sm:px-4 py-3 sm:py-4 text-center transition border ${
-                  isActive
-                    ? 'bg-emerald-800 border-emerald-800 text-white shadow-md'
-                    : `${style.light} ${style.border} ${style.text} hover:brightness-95`
-                }`}
-              >
-                <Icon className="mx-auto mb-1" size={18} />
-                <div className="text-[10px] sm:text-xs font-bold tracking-wide uppercase">{cat.name}</div>
-                <div className={`text-[10px] sm:text-xs mt-0.5 ${isActive ? 'text-emerald-100' : 'opacity-70'}`}>
-                  {cat.count} insumos
-                </div>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Formulario */}
-        {isAdmin && (
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white shadow-sm mb-6 sm:mb-8">
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-4 sm:mb-5">
-              <div className="flex items-center gap-2">
-                <Pencil size={18} className="text-slate-400 hidden sm:inline" />
-                <h2 className="text-base sm:text-lg font-bold text-slate-900">
-                  {editingInsumo ? 'Editar insumo' : 'Nuevo insumo'}
-                </h2>
-                {formData.categoria && (
-                  <span className="px-2 py-0.5 sm:py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] sm:text-xs font-semibold">
-                    {formData.categoria}
-                  </span>
-                )}
-              </div>
-              {!showForm && (
-                <button
-                  onClick={() => setShowForm(true)}
-                  className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-emerald-800 text-white rounded-full text-xs sm:text-sm font-semibold hover:bg-emerald-900 transition"
+        <div className="relative max-w-7xl mx-auto px-8 py-10">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <span
+                  className="uppercase font-mono text-xs"
+                  style={{
+                    fontWeight: 700,
+                    letterSpacing: '0.18em',
+                    color: '#8CC63F',
+                  }}
                 >
-                  <Plus size={14} className="sm:w-4 sm:h-4" />
-                  Nuevo insumo
-                </button>
-              )}
-              {showForm && (
-                <button onClick={resetForm} className="text-slate-400 hover:text-slate-600">
-                  <X size={18} className="sm:w-5 sm:h-5" />
-                </button>
-              )}
+                  Módulo de gestión
+                </span>
+              </div>
+              <h1 className="text-3xl font-black tracking-tight">
+                <span style={{ color: '#FFFFFF' }}>Inventario de</span>
+                <span style={{ color: '#F37F21' }}> Insumos</span>
+              </h1>
+              <p className="mt-2" style={{ color: '#C9C9C3', fontSize: '1rem' }}>
+                Registra, edita e importa los ingredientes por categoría.
+              </p>
             </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowForm(!showForm)}
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#8CC63F] text-[#1F3A0A] rounded-lg font-semibold hover:bg-[#7AB835] transition"
+              >
+                <Plus size={18} />
+                Nuevo insumo
+              </button>
+              <Link
+                href="/dashboard"
+                className="flex items-center gap-2 px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition"
+              >
+                <ArrowLeft size={18} />
+                Panel
+              </Link>
+            </div>
+          </div>
+        </div>
+      </header>
 
-            {showForm && (
-              <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
-                <div>
-                  <label className="block text-[10px] sm:text-xs font-bold tracking-wide uppercase text-slate-500 mb-1 sm:mb-2">
-                    Nombre del insumo
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.nombre}
-                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm sm:text-base"
-                    placeholder="Ej: PECHUGA DE POLLO"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] sm:text-xs font-bold tracking-wide uppercase text-slate-500 mb-1 sm:mb-2">
-                    Categoría
-                  </label>
-                  <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                    {Object.keys(CATEGORY_STYLES).map((cat) => (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => setFormData({ ...formData, categoria: cat })}
-                        className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-[11px] sm:text-sm font-medium border transition ${
-                          formData.categoria === cat
-                            ? 'bg-emerald-800 border-emerald-800 text-white'
-                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                        }`}
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                  <div className="flex-1">
-                    <label className="block text-[10px] sm:text-xs font-bold tracking-wide uppercase text-slate-500 mb-1 sm:mb-2">
-                      Unidad
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.unidad}
-                      onChange={(e) => setFormData({ ...formData, unidad: e.target.value })}
-                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm sm:text-base"
-                      placeholder="kg, l, gln..."
-                      required
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <label className="block text-[10px] sm:text-xs font-bold tracking-wide uppercase text-slate-500 mb-1 sm:mb-2">
-                      <DollarSign className="inline w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                      Precio (S/.)
-                    </label>
+      {/* Contenido principal */}
+      <main className="max-w-7xl mx-auto px-8 py-8">
+        {/* Formulario */}
+        {showForm && (
+          <div className="mb-8 bg-white rounded-lg p-6 border border-[#E7E7E2] border-t-4 border-t-[#8CC63F] shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-[#2B2B2B]">
+                {editingInsumo ? '✏️ Editar insumo' : '✏️ Nuevo insumo'}
+              </h2>
+              <button
+                onClick={resetForm}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-[#2B2B2B] mb-1">
+                  Nombre del insumo
+                </label>
+                <input
+                  type="text"
+                  value={formData.nombre}
+                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-[#E7E7E2] rounded-lg focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
+                  placeholder="Ej: PECHUGA DE POLLO"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#2B2B2B] mb-1">
+                  Categoría
+                </label>
+                <select
+                  value={formData.categoria}
+                  onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-[#E7E7E2] rounded-lg focus:ring-2 focus:ring-[#8CC63F]"
+                >
+                  <option value="Abarrotes">Abarrotes</option>
+                  <option value="Frutas y Verduras">Frutas y Verduras</option>
+                  <option value="Cárnicos">Cárnicos</option>
+                  <option value="Químicos">Químicos</option>
+                  <option value="Descartables">Descartables</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#2B2B2B] mb-1">
+                  Unidad
+                </label>
+                <input
+                  type="text"
+                  value={formData.unidad}
+                  onChange={(e) => setFormData({ ...formData, unidad: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-[#E7E7E2] rounded-lg focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
+                  placeholder="kg, l, gln..."
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[#2B2B2B] mb-1">
+                  Precio
+                </label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
                       type="number"
                       value={formData.precio}
                       onChange={(e) => setFormData({ ...formData, precio: e.target.value })}
-                      className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm sm:text-base"
+                      className="w-full pl-9 pr-4 py-2.5 border border-[#E7E7E2] rounded-lg focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
                       placeholder="0.00"
                       step="0.01"
                       min="0"
                     />
                   </div>
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-[#F37F21] text-white rounded-lg font-semibold hover:bg-[#C4600F] transition whitespace-nowrap"
+                  >
+                    {editingInsumo ? 'Actualizar' : 'Guardar'}
+                  </button>
                 </div>
-
-                <button
-                  type="submit"
-                  className="w-full sm:w-auto px-6 py-2.5 sm:py-3 bg-emerald-800 text-white rounded-xl font-semibold hover:bg-emerald-900 transition"
-                >
-                  {editingInsumo ? 'Actualizar insumo' : 'Crear insumo'}
-                </button>
-              </form>
-            )}
+              </div>
+            </form>
           </div>
         )}
 
-        {/* Búsqueda */}
-        <div className="flex justify-end mb-3 sm:mb-4">
-          <div className="relative w-full sm:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 sm:py-2.5 border border-slate-200 rounded-full bg-white/80 focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
-              placeholder="Buscar insumo..."
-            />
+        {/* Importar Excel */}
+        <div className="mb-8 bg-white rounded-lg p-6 border border-[#E7E7E2] border-t-4 border-t-[#F37F21] shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-3">
+                <FileSpreadsheet className="w-6 h-6 text-[#8CC63F]" />
+                <div>
+                  <p className="font-medium text-[#2B2B2B]">Importar desde Excel</p>
+                  <p className="text-sm text-gray-400">Columnas: NOMBRE, UNIDAD, CATEGORIA, PRECIO (S/)</p>
+                </div>
+              </div>
+            </div>
+            <label className="flex items-center gap-2 px-5 py-2.5 border-2 border-dashed border-[#8CC63F] text-[#8CC63F] rounded-lg hover:bg-[#8CC63F]/5 transition cursor-pointer">
+              <Upload size={18} />
+              {importing ? 'Importando...' : 'Subir archivo'}
+              <input 
+                type="file" 
+                accept=".xlsx,.xls" 
+                onChange={importarExcel} 
+                className="hidden" 
+                disabled={importing}
+              />
+            </label>
           </div>
         </div>
 
-        {/* Encabezado de lista */}
-        <div className="mb-3 sm:mb-4">
-          <p className="text-[10px] sm:text-xs font-bold tracking-wide uppercase text-slate-500">
-            {selectedCategory === 'Todas' ? 'Todos los insumos' : selectedCategory} — {filteredInsumos.length} {filteredInsumos.length === 1 ? 'insumo' : 'insumos'}
-          </p>
-        </div>
+        {/* Filtros */}
+{/* Filtros por categoría */}
+<div className="mb-7">
+  <div className="flex gap-3 overflow-x-auto pb-2">
+
+    {/* TODAS */}
+    <button
+      onClick={() => setSelectedCategory('Todas')}
+      className={`
+        flex-shrink-0
+        w-[150px] h-[112px]
+        rounded-2xl
+        flex flex-col items-center justify-center
+        gap-1
+        border-2
+        transition-all duration-200
+        ${selectedCategory === 'Todas'
+          ? `
+            bg-[#2B2B2B]
+            border-white
+            shadow-[0_4px_12px_rgba(43,43,43,0.20)]
+            ring-2 ring-[#2B2B2B]/10
+          `
+          : `
+            bg-[#F7F7F3]
+            border-[#E7E7E2]
+            hover:bg-[#EFEFEA]
+            hover:border-[#D8D8D1]
+            hover:-translate-y-0.5
+            hover:shadow-sm
+          `
+        }
+      `}
+    >
+      <div className={`
+        flex items-center justify-center
+        w-9 h-9
+        rounded-xl
+        mb-1
+        ${selectedCategory === 'Todas'
+          ? 'bg-white/10 text-white'
+          : 'bg-[#EAEAE5] text-[#6B6B65]'
+        }
+      `}>
+        <Grid3x3 size={20} />
+      </div>
+
+      <span className={`
+        text-sm font-bold uppercase tracking-wide
+        ${selectedCategory === 'Todas'
+          ? 'text-white'
+          : 'text-[#6B6B65]'
+        }
+      `}>
+        Todas
+      </span>
+
+      <span className={`
+        text-xs font-medium
+        ${selectedCategory === 'Todas'
+          ? 'text-white/70'
+          : 'text-[#9A9A93]'
+        }
+      `}>
+        {totalInsumos} insumos
+      </span>
+    </button>
+
+
+    {/* CATEGORÍAS */}
+    {categories.map((cat) => {
+      const config =
+        categoryConfig[cat.name] ||
+        categoryConfig['Descartables']
+
+      const Icon = config.icon
+      const isSelected = selectedCategory === cat.name
+
+      return (
+        <button
+          key={cat.name}
+          onClick={() => setSelectedCategory(cat.name)}
+          className={`
+            flex-shrink-0
+            w-[150px] h-[112px]
+            rounded-2xl
+            flex flex-col items-center justify-center
+            gap-1
+            border-2
+            transition-all duration-200
+
+            ${isSelected
+              ? `
+                ${config.active}
+                border-white
+                shadow-[0_4px_12px_rgba(43,43,43,0.15)]
+                ring-2 ring-current/10
+                -translate-y-0.5
+              `
+              : `
+                ${config.bg}
+                border-current/20
+                ${config.hover}
+                hover:-translate-y-0.5
+                hover:shadow-sm
+              `
+            }
+          `}
+        >
+          <div className={`
+            flex items-center justify-center
+            w-9 h-9
+            rounded-xl
+            mb-1
+
+            ${isSelected
+              ? 'bg-white/15 text-white'
+              : `bg-white/60 ${config.text}`
+            }
+          `}>
+            <Icon size={20} strokeWidth={2} />
+          </div>
+
+          <span className={`
+            text-sm font-bold uppercase tracking-wide
+            text-center
+            ${isSelected
+              ? 'text-white'
+              : config.text
+            }
+          `}>
+            {cat.name}
+          </span>
+
+          <span className={`
+            text-xs font-medium
+            ${isSelected
+              ? 'text-white/70'
+              : 'text-[#9A9A93]'
+            }
+          `}>
+            {cat.count} insumos
+          </span>
+        </button>
+      )
+    })}
+
+  </div>
+</div>
+
+
+
+
+
 
         {/* Grid de insumos */}
-        {filteredInsumos.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-            {filteredInsumos.map((insumo) => {
-              const style = getCategoryStyle(insumo.categoria)
-              return (
-                <div
-                  key={insumo.id}
-                  className="bg-white/90 rounded-xl sm:rounded-2xl border border-white p-4 sm:p-5 hover:shadow-md transition-shadow shadow-sm"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-slate-900 text-base sm:text-lg leading-tight break-words">
-                        {insumo.nombre}
-                      </h3>
-                      <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1.5 sm:mt-2">
-                        <span className={`px-2 sm:px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-medium border ${style.light} ${style.text} ${style.border}`}>
-                          {insumo.categoria}
-                        </span>
-                        <span className="text-xs sm:text-sm text-slate-500 bg-slate-100 px-2 sm:px-2.5 py-0.5 rounded-full">
-                          {insumo.unidad}
-                        </span>
-                        {insumo.precio !== undefined && insumo.precio > 0 && (
-                          <span className="text-xs sm:text-sm font-semibold text-orange-600 bg-orange-50 px-2 sm:px-2.5 py-0.5 rounded-full">
-                            {formatPrice(insumo.precio)}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {isAdmin && (
-                      <div className="flex gap-1 flex-shrink-0">
-                        <button
-                          onClick={() => handleEdit(insumo)}
-                          className="p-1.5 sm:p-2 text-slate-400 hover:text-orange-500 rounded-lg hover:bg-orange-50 transition"
-                          aria-label="Editar insumo"
-                        >
-                          <Edit size={14} className="sm:w-4 sm:h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(insumo.id)}
-                          className="p-1.5 sm:p-2 text-slate-400 hover:text-rose-500 rounded-lg hover:bg-rose-50 transition"
-                          aria-label="Eliminar insumo"
-                        >
-                          <Trash2 size={14} className="sm:w-4 sm:h-4" />
-                        </button>
-                      </div>
-                    )}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredInsumos.map((insumo) => (
+            <div
+              key={insumo.id}
+              className="bg-white rounded-lg border border-[#E7E7E2] p-5 hover:shadow-md transition-shadow group"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <h3 className="font-bold text-[#2B2B2B] text-lg leading-tight">
+                    {insumo.nombre}
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <span className={`px-2.5 py-0.5 rounded-full text-xs font-medium border ${getCategoriaColor(insumo.categoria)}`}>
+                      {insumo.categoria}
+                    </span>
+                    <span className="text-sm text-[#6B6B65] bg-[#F5F5F0] px-2.5 py-0.5 rounded-full">
+                      {insumo.unidad}
+                    </span>
+                    <span className="text-sm font-semibold text-[#F37F21] bg-[#F37F21]/10 px-2.5 py-0.5 rounded-full">
+                      {formatPrice(insumo.precio)}
+                    </span>
                   </div>
                 </div>
-              )
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-10 sm:py-14 bg-white/70 border border-white rounded-xl sm:rounded-2xl">
-            <Package className="w-10 h-10 sm:w-12 sm:h-12 text-slate-300 mx-auto mb-2 sm:mb-3" />
-            <p className="text-sm sm:text-base text-slate-500 font-medium">
-              {searchTerm ? 'No se encontraron insumos con ese nombre' : 'Sin insumos en esta categoría'}
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => handleEdit(insumo)}
+                    className="p-1.5 text-[#6B6B65] hover:text-[#F37F21] rounded-lg hover:bg-[#F37F21]/10 transition"
+                  >
+                    <Edit size={16} />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(insumo.id)}
+                    className="p-1.5 text-[#6B6B65] hover:text-red-500 rounded-lg hover:bg-red-50 transition"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Estado vacío */}
+        {filteredInsumos.length === 0 && (
+          <div className="text-center py-12 bg-[#F5F5F0] rounded-lg">
+            <Package className="w-12 h-12 text-[#6B6B65] mx-auto mb-3" />
+            <p className="text-[#6B6B65] font-medium">
+              {searchTerm ? 'No se encontraron insumos con ese nombre' : 'No hay insumos en esta categoría'}
             </p>
-            {isAdmin && !searchTerm && !showForm && (
-              <button
-                onClick={() => setShowForm(true)}
-                className="mt-2 sm:mt-3 text-emerald-700 font-medium hover:underline text-sm sm:text-base"
-              >
-                + Agregar primer insumo
-              </button>
-            )}
+            <button
+              onClick={() => setShowForm(true)}
+              className="mt-3 text-[#8CC63F] font-medium hover:underline"
+            >
+              + Agregar primer insumo
+            </button>
           </div>
         )}
+      </main>
 
-        {/* Footer */}
-        <div className="mt-8 sm:mt-10 pt-3 sm:pt-4 border-t border-slate-200/60 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-[10px] sm:text-xs text-slate-400">© 2026 MegaFood · Inventario de insumos</p>
+      {/* Footer */}
+      <footer style={{ borderTop: '1.5px solid #EFEFE9' }} className="mt-8">
+        <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between flex-wrap gap-2">
+          <p style={{ fontSize: '0.8rem', color: '#9A9A93' }}>
+            © 2026 MegaFood · Inventario de insumos
+          </p>
           <div className="flex items-center gap-2">
-            <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-emerald-600 inline-block" />
-            <span className="text-[10px] sm:text-xs text-slate-400 font-semibold">v1.0</span>
+            <span
+              style={{
+                width: '8px',
+                height: '8px',
+                borderRadius: '50%',
+                background: '#8CC63F',
+                display: 'inline-block',
+              }}
+            />
+            <span style={{ fontSize: '0.8rem', color: '#9A9A93', fontWeight: 600 }}>
+              v1.0
+            </span>
           </div>
         </div>
-      </div>
+      </footer>
     </div>
   )
 }
