@@ -7,20 +7,19 @@ import {
   ArrowLeft,
   Building,
   Calendar,
-  Eye,
-  Filter,
   Loader2,
-  ChevronLeft,
-  ChevronRight
+  UtensilsCrossed,
+  Eye
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import CalendarioProgramacion from '@/components/CalendarioProgramacion'
 
 interface Sede {
   id: string
   nombre: string
 }
 
-interface Programacion {
+interface ProgramacionItem {
   id: number
   fecha_texto: string
   tipo: string
@@ -29,19 +28,17 @@ interface Programacion {
   plato_nombre: string
 }
 
-interface FechaDisponible {
-  fecha: string
-  fechaISO: string
-  fechaOrden: number
-  programaciones: Programacion[]
+interface Plato {
+  id: string
+  nombre: string
+  categoria: string
 }
 
-// Tipos de menú con colores (mismo estilo que insumos/platos)
 const TIPOS_MENU = [
-  { value: "estandar", label: "Estándar", color: "#8CC63F", bg: "#EAF5DE" },
-  { value: "dieta", label: "Dieta", color: "#3B82F6", bg: "#EFF6FF" },
-  { value: "especial", label: "Especial", color: "#8B5CF6", bg: "#F5F3FF" },
-  { value: "evento", label: "Evento", color: "#F37F21", bg: "#FFF7ED" },
+  { value: "estandar", label: "Estándar", color: "#8CC63F", bg: "#EAF5DE", icon: "📋" },
+  { value: "dieta", label: "Dieta", color: "#3B82F6", bg: "#EFF6FF", icon: "🥗" },
+  { value: "especial", label: "Especial", color: "#8B5CF6", bg: "#F5F3FF", icon: "⭐" },
+  { value: "evento", label: "Evento", color: "#F37F21", bg: "#FFF7ED", icon: "🎯" },
 ]
 
 const CAT_COLORS: Record<string, { color: string; bg: string }> = {
@@ -55,183 +52,86 @@ const CAT_COLORS: Record<string, { color: string; bg: string }> = {
   "SALSA":         { color: "#b45309", bg: "#fffbeb" },
 }
 
-export default function VisualizarPlanificacion() {
+// Función para formatear fecha para BD
+const formatearFechaParaBD = (fecha: Date): string => {
+  const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
+  const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+  return `${dias[fecha.getDay()]}, ${fecha.getDate()} de ${meses[fecha.getMonth()]} de ${fecha.getFullYear()}`
+}
+
+export default function VisualizarProgramacionSimple() {
   const router = useRouter()
   const supabase = createClient()
   
   const [sedes, setSedes] = useState<Sede[]>([])
   const [sedeSeleccionada, setSedeSeleccionada] = useState("")
+  const [fechaSeleccionada, setFechaSeleccionada] = useState("")
+  const [programacion, setProgramacion] = useState<ProgramacionItem[]>([])
   const [cargando, setCargando] = useState(false)
-  const [fechasDisponibles, setFechasDisponibles] = useState<FechaDisponible[]>([])
-  const [fechaSeleccionada, setFechaSeleccionada] = useState<FechaDisponible | null>(null)
-  const [filtroTipo, setFiltroTipo] = useState("todos")
-  const [indiceFecha, setIndiceFecha] = useState(0)
+  const [cargandoFechas, setCargandoFechas] = useState(false)
 
   useEffect(() => {
     cargarSedes()
   }, [])
 
   useEffect(() => {
-    if (sedeSeleccionada) {
-      cargarFechasDisponibles()
+    if (sedeSeleccionada && fechaSeleccionada) {
+      cargarProgramacion()
     }
-  }, [sedeSeleccionada])
+  }, [sedeSeleccionada, fechaSeleccionada])
 
   const cargarSedes = async () => {
     const { data } = await supabase.from("sedes").select("id, nombre").order("nombre")
     if (data) setSedes(data)
   }
 
-  const fechaTextoATimestamp = (fechaTexto: string): number => {
-    const meses: Record<string, number> = {
-      'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3,
-      'mayo': 4, 'junio': 5, 'julio': 6, 'agosto': 7,
-      'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
-    }
+  const cargarProgramacion = async () => {
+    if (!sedeSeleccionada || !fechaSeleccionada) return
     
-    try {
-      const partes = fechaTexto.match(/(\d+) de (\w+) de (\d{4})/)
-      if (partes) {
-        const dia = parseInt(partes[1])
-        const mes = meses[partes[2].toLowerCase()]
-        const año = parseInt(partes[3])
-        return new Date(año, mes, dia).getTime()
-      }
-    } catch (e) {
-      console.error("Error parseando fecha:", fechaTexto)
-    }
-    return 0
-  }
-
-  const formatearFechaLegible = (fechaTexto: string): string => {
-    const meses: Record<string, string> = {
-      'enero': 'Ene', 'febrero': 'Feb', 'marzo': 'Mar', 'abril': 'Abr',
-      'mayo': 'May', 'junio': 'Jun', 'julio': 'Jul', 'agosto': 'Ago',
-      'septiembre': 'Sep', 'octubre': 'Oct', 'noviembre': 'Nov', 'diciembre': 'Dic'
-    }
-    
-    for (const [mesCompleto, mesCorto] of Object.entries(meses)) {
-      if (fechaTexto.toLowerCase().includes(mesCompleto)) {
-        const dia = fechaTexto.match(/\d+/)?.[0]
-        return `${dia} ${mesCorto}`
-      }
-    }
-    return fechaTexto.split(',')[0] || fechaTexto
-  }
-
-  const cargarFechasDisponibles = async () => {
     setCargando(true)
-    setFechasDisponibles([])
-    setFechaSeleccionada(null)
-    setIndiceFecha(0)
-    
     try {
-      const { data: fechas, error } = await supabase
+      const { data } = await supabase
         .from("planificacion_detalles")
-        .select("fecha_texto")
+        .select("id, fecha_texto, tipo, categoria, plato_id")
         .eq("sede_id", sedeSeleccionada)
+        .eq("fecha_texto", fechaSeleccionada)
 
-      if (error) throw error
+      if (data && data.length > 0) {
+        const platoIds = [...new Set(data.map(p => p.plato_id))]
+        const { data: platosData } = await supabase
+          .from("platos")
+          .select("id, nombre")
+          .in("id", platoIds)
 
-      if (!fechas || fechas.length === 0) {
-        setCargando(false)
-        return
-      }
+        const mapaPlatos = new Map()
+        platosData?.forEach(p => mapaPlatos.set(p.id, p.nombre))
 
-      const fechasUnicas = [...new Map(fechas.map(f => [f.fecha_texto, f.fecha_texto])).values()]
-      
-      const fechasConTimestamp = fechasUnicas.map(fecha => ({
-        fecha: fecha,
-        timestamp: fechaTextoATimestamp(fecha)
-      }))
-      
-      fechasConTimestamp.sort((a, b) => a.timestamp - b.timestamp)
-      
-      const fechasConProgramacion: FechaDisponible[] = []
-      
-      for (const { fecha } of fechasConTimestamp) {
-        const { data: programaciones } = await supabase
-          .from("planificacion_detalles")
-          .select(`
-            id,
-            fecha_texto,
-            tipo,
-            categoria,
-            plato_id
-          `)
-          .eq("sede_id", sedeSeleccionada)
-          .eq("fecha_texto", fecha)
+        const programacionConNombre = data.map(p => ({
+          ...p,
+          plato_nombre: mapaPlatos.get(p.plato_id) || "Desconocido"
+        }))
 
-        if (programaciones && programaciones.length > 0) {
-          const platoIds = [...new Set(programaciones.map(p => p.plato_id))]
-          const { data: platosData } = await supabase
-            .from("platos")
-            .select("id, nombre")
-            .in("id", platoIds)
-          
-          const mapaPlatos = new Map()
-          platosData?.forEach(p => mapaPlatos.set(p.id, p.nombre))
-
-          const programacionesConNombre = programaciones.map(p => ({
-            ...p,
-            plato_nombre: mapaPlatos.get(p.plato_id) || "Desconocido"
-          }))
-
-          fechasConProgramacion.push({
-            fecha: formatearFechaLegible(fecha),
-            fechaISO: fecha,
-            fechaOrden: fechasConTimestamp.findIndex(f => f.fecha === fecha),
-            programaciones: programacionesConNombre
-          })
-        }
-      }
-
-      setFechasDisponibles(fechasConProgramacion)
-      if (fechasConProgramacion.length > 0) {
-        setFechaSeleccionada(fechasConProgramacion[0])
-        setIndiceFecha(0)
+        setProgramacion(programacionConNombre)
+      } else {
+        setProgramacion([])
       }
     } catch (error) {
-      console.error("Error:", error)
+      console.error("Error al cargar programación:", error)
     } finally {
       setCargando(false)
     }
   }
 
-  const navegarFecha = (direccion: number) => {
-    const nuevoIndice = indiceFecha + direccion
-    if (nuevoIndice >= 0 && nuevoIndice < fechasDisponibles.length) {
-      setIndiceFecha(nuevoIndice)
-      setFechaSeleccionada(fechasDisponibles[nuevoIndice])
-      setFiltroTipo("todos")
-    }
-  }
-
-  const getBadgeStyle = (tipo: string) => {
-    const tipoInfo = TIPOS_MENU.find(t => t.value === tipo)
-    return {
-      bg: tipoInfo?.bg || "bg-gray-100",
-      text: tipoInfo?.color || "text-gray-700",
-      border: `border-${tipoInfo?.color || "gray-400"}`
-    }
-  }
-
-  const tiposDisponibles = () => {
-    if (!fechaSeleccionada) return []
-    return [...new Set(fechaSeleccionada.programaciones.map(p => p.tipo))]
-  }
-
-  const programacionesFiltradas = fechaSeleccionada 
-    ? filtroTipo === "todos" 
-      ? fechaSeleccionada.programaciones 
-      : fechaSeleccionada.programaciones.filter(p => p.tipo === filtroTipo)
-    : []
-
-  const programacionesPorTipo = programacionesFiltradas.reduce((acc, prog) => {
-    if (!acc[prog.tipo]) acc[prog.tipo] = []
-    acc[prog.tipo].push(prog)
+  const programacionPorTipo = programacion.reduce((acc, item) => {
+    if (!acc[item.tipo]) acc[item.tipo] = []
+    acc[item.tipo].push(item)
     return acc
-  }, {} as Record<string, Programacion[]>)
+  }, {} as Record<string, ProgramacionItem[]>)
+
+  const totalPlatos = programacion.length
+
+  // Obtener el nombre de la sede seleccionada
+  const sedeInfo = sedes.find(s => s.id === sedeSeleccionada)
 
   return (
     <div className="min-h-screen w-full" style={{ background: '#FFFFFF' }}>
@@ -256,12 +156,12 @@ export default function VisualizarPlanificacion() {
           aria-hidden="true"
         />
 
-        <div className="relative max-w-7xl mx-auto px-8 py-10">
-          <div className="flex items-start justify-between">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-3 mb-1 sm:mb-2">
                 <span
-                  className="uppercase font-mono text-xs"
+                  className="uppercase font-mono text-[10px] sm:text-xs"
                   style={{
                     fontWeight: 700,
                     letterSpacing: '0.18em',
@@ -271,18 +171,18 @@ export default function VisualizarPlanificacion() {
                   Módulo de gestión
                 </span>
               </div>
-              <h1 className="text-3xl font-black tracking-tight">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight leading-tight">
                 <span style={{ color: '#FFFFFF' }}>Visualizar</span>
-                <span style={{ color: '#F37F21' }}> Planificación</span>
+                <span style={{ color: '#F37F21' }}> Programación</span>
               </h1>
-              <p className="mt-2" style={{ color: '#C9C9C3', fontSize: '1rem' }}>
-                Consulta el calendario completo de menús por sede y fecha.
+              <p className="mt-1 sm:mt-2 text-sm sm:text-base" style={{ color: '#C9C9C3' }}>
+                Consulta los menús programados por sede y fecha.
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
               <Link
                 href="/dashboard/menus"
-                className="flex items-center gap-2 px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition"
+                className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition text-sm sm:text-base w-full sm:w-auto"
               >
                 <ArrowLeft size={18} />
                 Volver
@@ -293,211 +193,185 @@ export default function VisualizarPlanificacion() {
       </header>
 
       {/* Contenido principal */}
-      <main className="max-w-7xl mx-auto px-8 py-8">
-        {/* Selector de sede */}
-        <div className="mb-6 max-w-xs">
-          <label className="block text-sm font-medium text-[#2B2B2B] mb-1">
-            <Building className="inline w-4 h-4 mr-2 text-[#8CC63F]" />
-            Sede
-          </label>
-          <select
-            value={sedeSeleccionada}
-            onChange={(e) => setSedeSeleccionada(e.target.value)}
-            className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
-          >
-            <option value="">Seleccionar sede</option>
-            {sedes.map(sede => <option key={sede.id} value={sede.id}>{sede.nombre}</option>)}
-          </select>
+      <main className="max-w-5xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
+        {/* Filtros */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {/* Selector de Sede */}
+          <div>
+            <label className="block text-sm font-medium text-[#2B2B2B] mb-1">
+              <Building className="inline w-4 h-4 mr-2 text-[#8CC63F]" />
+              Sede
+            </label>
+            <select
+              value={sedeSeleccionada}
+              onChange={(e) => {
+                setSedeSeleccionada(e.target.value)
+                setFechaSeleccionada("")
+                setProgramacion([])
+              }}
+              className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
+            >
+              <option value="">Seleccionar sede</option>
+              {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+            </select>
+          </div>
+
+          {/* Fecha con Calendario */}
+          <div>
+            <label className="block text-sm font-medium text-[#2B2B2B] mb-1">
+              <Calendar className="inline w-4 h-4 mr-2 text-[#F37F21]" />
+              Fecha de programación
+            </label>
+            {sedeSeleccionada ? (
+              <CalendarioProgramacion
+                sedeId={sedeSeleccionada}
+                onFechaSeleccionada={(fecha) => {
+                  setFechaSeleccionada(fecha)
+                  setProgramacion([])
+                }}
+                fechaSeleccionada={fechaSeleccionada}
+              />
+            ) : (
+              <div className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#9A9A93] bg-gray-50">
+                Selecciona una sede primero
+              </div>
+            )}
+            {fechaSeleccionada && (
+              <p className="text-xs text-[#8CC63F] mt-1">
+                ✓ Fecha seleccionada: {fechaSeleccionada}
+              </p>
+            )}
+          </div>
         </div>
 
-        {/* Loading */}
+        {/* Estado de carga */}
         {cargando && (
           <div className="flex justify-center py-12">
             <Loader2 className="w-8 h-8 animate-spin text-[#8CC63F]" />
           </div>
         )}
 
-        {/* Sin datos */}
-        {!cargando && sedeSeleccionada && fechasDisponibles.length === 0 && (
+        {/* Mensaje sin fecha seleccionada */}
+        {!cargando && sedeSeleccionada && !fechaSeleccionada && (
           <div className="text-center py-12 bg-[#F5F5F0] rounded-lg border border-[#E7E7E2]">
             <Calendar className="w-12 h-12 text-[#9A9A93] mx-auto mb-3" />
-            <p className="text-[#6B6B65]">No hay programaciones para esta sede</p>
+            <p className="text-[#6B6B65]">Selecciona una fecha en el calendario para ver el menú</p>
           </div>
         )}
 
-        {/* Vista con datos */}
-        {fechasDisponibles.length > 0 && (
-          <>
-            {/* Navegación de fechas */}
-            <div className="flex items-center gap-4 mb-6">
-              <button
-                onClick={() => navegarFecha(-1)}
-                disabled={indiceFecha === 0}
-                className="p-2 rounded-lg border border-[#E7E7E2] text-[#6B6B65] hover:bg-gray-50 transition disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              
-              <div className="flex-1 text-center">
-                <p className="text-lg font-bold text-[#2B2B2B]">
-                  {fechaSeleccionada?.fechaISO || "Selecciona una fecha"}
-                </p>
-                <p className="text-xs text-[#6B6B65]">
-                  {indiceFecha + 1} de {fechasDisponibles.length} fechas
+        {/* Sin programación para la fecha */}
+        {!cargando && fechaSeleccionada && programacion.length === 0 && (
+          <div className="text-center py-12 bg-[#F5F5F0] rounded-lg border border-[#E7E7E2]">
+            <UtensilsCrossed className="w-12 h-12 text-[#9A9A93] mx-auto mb-3" />
+            <p className="text-[#6B6B65]">No hay programación para esta fecha</p>
+            <p className="text-xs text-[#9A9A93] mt-1">Selecciona otra fecha en el calendario</p>
+          </div>
+        )}
+
+        {/* Vista del menú */}
+        {!cargando && programacion.length > 0 && (
+          <div className="rounded-lg border border-[#E7E7E2] bg-white overflow-hidden shadow-sm">
+            {/* Header del día */}
+            <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3" style={{ background: '#2B2B2B' }}>
+              <div>
+                <h2 className="text-white font-bold text-sm flex items-center gap-2">
+                  <UtensilsCrossed className="w-4 h-4" />
+                  Menú del {fechaSeleccionada}
+                </h2>
+                <p className="text-white/60 text-xs mt-0.5">
+                  {sedeInfo?.nombre || 'Sede'} · {totalPlatos} platos en total
                 </p>
               </div>
-              
-              <button
-                onClick={() => navegarFecha(1)}
-                disabled={indiceFecha === fechasDisponibles.length - 1}
-                className="p-2 rounded-lg border border-[#E7E7E2] text-[#6B6B65] hover:bg-gray-50 transition disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-2">
+                <Eye className="w-4 h-4 text-white/60" />
+                <span className="text-white/60 text-xs">
+                  {Object.keys(programacionPorTipo).length} tipos de menú
+                </span>
+              </div>
             </div>
 
-            {/* Mini selector de fechas */}
-            <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
-              {fechasDisponibles.map((fecha, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => {
-                    setIndiceFecha(idx)
-                    setFechaSeleccionada(fecha)
-                    setFiltroTipo("todos")
-                  }}
-                  className={`
-                    flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-all
-                    ${idx === indiceFecha 
-                      ? 'bg-[#2B2B2B] text-white shadow-md' 
-                      : 'bg-[#F5F5F0] text-[#6B6B65] hover:bg-[#E7E7E2]'
-                    }
-                  `}
-                >
-                  {fecha.fecha}
-                </button>
-              ))}
-            </div>
-
-            {/* Filtro por tipo de menú */}
-            {fechaSeleccionada && tiposDisponibles().length > 1 && (
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <Filter className="w-4 h-4 text-[#6B6B65]" />
-                  <span className="text-sm font-medium text-[#2B2B2B]">Filtrar por tipo</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setFiltroTipo("todos")}
-                    className={`
-                      px-4 py-2 rounded-lg text-sm font-medium transition-all
-                      ${filtroTipo === "todos" 
-                        ? "bg-[#2B2B2B] text-white shadow-md" 
-                        : "bg-[#F5F5F0] text-[#6B6B65] hover:bg-[#E7E7E2]"
-                      }
-                    `}
-                  >
-                    Todos
-                  </button>
-
-                  {TIPOS_MENU.filter(t => tiposDisponibles().includes(t.value)).map(tipo => {
-                    const isActive = filtroTipo === tipo.value
-                    return (
-                      <button
-                        key={tipo.value}
-                        onClick={() => setFiltroTipo(tipo.value)}
-                        className={`
-                          px-4 py-2 rounded-lg text-sm font-medium transition-all
-                          ${isActive 
-                            ? 'text-white shadow-md' 
-                            : 'opacity-80 hover:opacity-100'
-                          }
-                        `}
-                        style={{
-                          background: isActive ? tipo.color : tipo.bg,
-                          color: isActive ? "white" : tipo.color,
-                          border: `1px solid ${tipo.color}40`,
-                        }}
+            {/* Contenido del menú */}
+            <div className="p-4 sm:p-6">
+              {Object.entries(programacionPorTipo).map(([tipo, items]) => {
+                const tipoInfo = TIPOS_MENU.find(t => t.value === tipo)
+                if (!tipoInfo) return null
+                
+                return (
+                  <div key={tipo} className="mb-6 last:mb-0">
+                    {/* Título del tipo */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <span
+                        className="text-xs font-bold rounded-full px-3 py-1"
+                        style={{ background: tipoInfo.bg, color: tipoInfo.color }}
                       >
-                        {tipo.label}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
+                        {tipoInfo.icon} {tipoInfo.label}
+                      </span>
+                      <span className="text-xs text-[#9A9A93]">{items.length} platos</span>
+                    </div>
 
-            {/* Vista del menú */}
-            {fechaSeleccionada && (
-              <div className="rounded-lg border border-[#E7E7E2] bg-white overflow-hidden shadow-sm">
-                <div className="px-6 py-4" style={{ background: '#2B2B2B' }}>
-                  <h2 className="text-white font-bold text-sm flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    {fechaSeleccionada.fechaISO}
-                  </h2>
-                </div>
-
-                <div className="p-5 overflow-x-auto">
-                  {Object.keys(programacionesPorTipo).length === 0 ? (
-                    <p className="text-center text-[#6B6B65] py-8">
-                      No hay platos para este filtro
-                    </p>
-                  ) : (
-                    <div className="flex gap-4 min-w-max">
-                      {Object.entries(programacionesPorTipo).map(([tipo, platos]) => {
-                        const style = getBadgeStyle(tipo)
-                        const tipoInfo = TIPOS_MENU.find(t => t.value === tipo)
+                    {/* Grid de platos */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {items.map((item) => {
+                        const catColor = CAT_COLORS[item.categoria] || { color: "#555", bg: "#f5f5f5" }
                         return (
-                          <div key={tipo} className="w-64 flex-shrink-0">
-                            <div 
-                              className="rounded-lg p-3 mb-2"
-                              style={{ background: style.bg }}
+                          <div
+                            key={item.id}
+                            className="p-3 rounded-lg border transition hover:shadow-md"
+                            style={{ 
+                              background: catColor.bg, 
+                              borderColor: `${catColor.color}30`
+                            }}
+                          >
+                            <span 
+                              className="text-[10px] font-bold uppercase block"
+                              style={{ color: catColor.color }}
                             >
-                              <span className="text-xs font-bold uppercase" style={{ color: style.text }}>
-                                {tipoInfo?.label || tipo}
-                              </span>
-                              <span className="text-xs text-[#6B6B65] ml-2">
-                                ({platos.length})
-                              </span>
-                            </div>
-                            <div className="space-y-2">
-                              {platos.map((prog, idx) => {
-                                const catColor = CAT_COLORS[prog.categoria] || { color: "#555", bg: "#f5f5f5" }
-                                return (
-                                  <div 
-                                    key={idx} 
-                                    className="bg-white rounded-lg p-3 border border-[#E7E7E2] shadow-sm hover:shadow-md transition"
-                                  >
-                                    <span 
-                                      className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full"
-                                      style={{ background: catColor.bg, color: catColor.color }}
-                                    >
-                                      {prog.categoria}
-                                    </span>
-                                    <p className="text-sm font-bold text-[#2B2B2B] mt-1">
-                                      {prog.plato_nombre}
-                                    </p>
-                                  </div>
-                                )
-                              })}
-                            </div>
+                              {item.categoria}
+                            </span>
+                            <p className="text-sm font-bold text-[#2B2B2B] mt-1">
+                              {item.plato_nombre}
+                            </p>
                           </div>
                         )
                       })}
                     </div>
-                  )}
+                  </div>
+                )
+              })}
+
+              {/* Footer con resumen */}
+              <div className="mt-6 pt-4 border-t border-[#E7E7E2] flex flex-wrap justify-between items-center gap-2">
+                <p className="text-xs text-[#6B6B65] flex items-center gap-2">
+                  <UtensilsCrossed className="w-3 h-3" />
+                  Total: <strong className="text-[#2B2B2B]">{totalPlatos} platos</strong>
+                </p>
+                <div className="flex items-center gap-2 text-xs text-[#6B6B65]">
+                  <span>Tipos: </span>
+                  <div className="flex gap-1">
+                    {Object.keys(programacionPorTipo).map((tipo) => {
+                      const tipoInfo = TIPOS_MENU.find(t => t.value === tipo)
+                      return (
+                        <span
+                          key={tipo}
+                          className="w-3 h-3 rounded-full inline-block"
+                          style={{ background: tipoInfo?.color || '#ccc' }}
+                          title={tipoInfo?.label || tipo}
+                        />
+                      )
+                    })}
+                  </div>
                 </div>
               </div>
-            )}
-          </>
+            </div>
+          </div>
         )}
       </main>
 
       {/* Footer */}
       <footer style={{ borderTop: '1.5px solid #EFEFE9' }} className="mt-8">
-        <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between flex-wrap gap-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p style={{ fontSize: '0.8rem', color: '#9A9A93' }}>
-            © 2026 MegaFood · Visualizar planificación
+            © 2026 MegaFood · Visualizar programación
           </p>
           <div className="flex items-center gap-2">
             <span

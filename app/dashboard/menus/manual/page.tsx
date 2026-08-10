@@ -16,6 +16,7 @@ import {
   CheckCircle
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import CalendarioProgramacion from '@/components/CalendarioMenus'
 
 interface Plato {
   id: string
@@ -359,13 +360,20 @@ export default function ProgramacionManual() {
                 <Calendar className="inline w-4 h-4 mr-2 text-[#F37F21]" />
                 Fecha
               </label>
-              <input
-                type="date"
-                value={fechaSeleccionada}
-                onChange={e => setFechaSeleccionada(e.target.value)}
-                className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
-                required
-              />
+
+
+              <CalendarioProgramacion
+  sedeId={sedeSeleccionada}
+  onFechaSeleccionada={(fecha) => {
+    setFechaSeleccionada(fecha)
+    setProgramacionExistente([])
+    setFechaBloqueada(false)
+    setSeleccionesPorTipo(EMPTY_SEL_POR_TIPO())
+  }}
+  fechaSeleccionada={fechaSeleccionada}
+/>
+
+
             </div>
           </div>
 
@@ -385,7 +393,7 @@ export default function ProgramacionManual() {
                 <p className="text-sm font-bold text-red-700">Esta fecha ya tiene programación</p>
               </div>
               <p className="text-sm text-red-600">
-                Para modificarla, ve a <strong>Visualizar Planificación</strong> y edita desde ahí.
+                Para modificarla, ve a <strong>Editar Planificación</strong> y edita desde ahí.
               </p>
             </div>
           )}

@@ -66,6 +66,38 @@ const CAT_COLORS: Record<string, { color: string; bg: string }> = {
   "SALSA":         { color: "#b45309", bg: "#fffbeb" },
 }
 
+// ─── FUNCIÓN PARA COMPARAR FECHAS CRONOLÓGICAMENTE ───
+const compararFechasCronologico = (fechaA: string, fechaB: string): number => {
+  const regex = /(\d+) de (\w+) de (\d+)/
+  const matchA = fechaA.match(regex)
+  const matchB = fechaB.match(regex)
+  
+  if (!matchA || !matchB) return 0
+  
+  const meses: Record<string, number> = {
+    'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3,
+    'mayo': 4, 'junio': 5, 'julio': 6, 'agosto': 7,
+    'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
+  }
+  
+  const diaA = parseInt(matchA[1])
+  const mesA = meses[matchA[2].toLowerCase()]
+  const añoA = parseInt(matchA[3])
+  const fechaADate = new Date(añoA, mesA, diaA)
+  
+  const diaB = parseInt(matchB[1])
+  const mesB = meses[matchB[2].toLowerCase()]
+  const añoB = parseInt(matchB[3])
+  const fechaBDate = new Date(añoB, mesB, diaB)
+  
+  return fechaADate.getTime() - fechaBDate.getTime()
+}
+
+// ─── FUNCIÓN PARA ORDENAR FECHAS ───
+const ordenarFechasCronologico = (fechas: string[]): string[] => {
+  return [...fechas].sort(compararFechasCronologico)
+}
+
 export default function EditarProgramacion() {
   const router = useRouter()
   const supabase = createClient()
@@ -128,7 +160,9 @@ export default function EditarProgramacion() {
 
     if (data) {
       const fechasUnicas = [...new Set(data.map(f => f.fecha_texto))]
-      setFechasDisponibles(fechasUnicas)
+      // ─── ORDENAR FECHAS CRONOLÓGICAMENTE ───
+      const fechasOrdenadas = ordenarFechasCronologico(fechasUnicas)
+      setFechasDisponibles(fechasOrdenadas)
     }
   }
 
@@ -309,12 +343,12 @@ export default function EditarProgramacion() {
           aria-hidden="true"
         />
 
-        <div className="relative max-w-7xl mx-auto px-8 py-10">
-          <div className="flex items-start justify-between">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
+          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3 mb-2">
+              <div className="flex items-center gap-3 mb-1 sm:mb-2">
                 <span
-                  className="uppercase font-mono text-xs"
+                  className="uppercase font-mono text-[10px] sm:text-xs"
                   style={{
                     fontWeight: 700,
                     letterSpacing: '0.18em',
@@ -324,18 +358,18 @@ export default function EditarProgramacion() {
                   Módulo de gestión
                 </span>
               </div>
-              <h1 className="text-3xl font-black tracking-tight">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight leading-tight">
                 <span style={{ color: '#FFFFFF' }}>Editar</span>
                 <span style={{ color: '#F37F21' }}> Programación</span>
               </h1>
-              <p className="mt-2" style={{ color: '#C9C9C3', fontSize: '1rem' }}>
+              <p className="mt-1 sm:mt-2 text-sm sm:text-base" style={{ color: '#C9C9C3' }}>
                 Modifica los menús programados por día y sede.
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
               <Link
                 href="/dashboard/menus"
-                className="flex items-center gap-2 px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition"
+                className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition text-sm sm:text-base w-full sm:w-auto"
               >
                 <ArrowLeft size={18} />
                 Volver
@@ -346,7 +380,7 @@ export default function EditarProgramacion() {
       </header>
 
       {/* Contenido principal */}
-      <main className="max-w-6xl mx-auto px-8 py-8">
+      <main className="max-w-6xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
         {/* Filtros */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <div>
@@ -356,7 +390,14 @@ export default function EditarProgramacion() {
             </label>
             <select
               value={sedeSeleccionada}
-              onChange={(e) => setSedeSeleccionada(e.target.value)}
+              onChange={(e) => {
+                setSedeSeleccionada(e.target.value)
+                setFechasDisponibles([])
+                setFechaSeleccionada("")
+                setProgramacionActual([])
+                setProgramacionEditada([])
+                setTipoEditando(null)
+              }}
               className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
             >
               <option value="">Seleccionar sede</option>
@@ -370,7 +411,12 @@ export default function EditarProgramacion() {
             </label>
             <select
               value={fechaSeleccionada}
-              onChange={(e) => setFechaSeleccionada(e.target.value)}
+              onChange={(e) => {
+                setFechaSeleccionada(e.target.value)
+                setProgramacionActual([])
+                setProgramacionEditada([])
+                setTipoEditando(null)
+              }}
               className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
               disabled={!sedeSeleccionada}
             >
@@ -434,7 +480,7 @@ export default function EditarProgramacion() {
             {/* Vista del menú por tipo */}
             {tipoEditando && programacionPorTipo[tipoEditando] && (
               <div className="rounded-lg border border-[#E7E7E2] bg-white overflow-hidden shadow-sm mb-6">
-                <div className="px-6 py-4 flex justify-between items-center" style={{ background: '#2B2B2B' }}>
+                <div className="px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3" style={{ background: '#2B2B2B' }}>
                   <h2 className="text-white font-bold text-sm">
                     Editando: {TIPOS_MENU.find(t => t.value === tipoEditando)?.label}
                   </h2>
@@ -534,7 +580,7 @@ export default function EditarProgramacion() {
 
             {/* Botones de acción */}
             {Object.keys(programacionPorTipo).length > 0 && (
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={cancelarCambios}
                   className="flex-1 py-3 rounded-lg border border-[#E7E7E2] text-[#6B6B65] font-medium hover:bg-gray-50 transition"
@@ -700,7 +746,7 @@ export default function EditarProgramacion() {
 
       {/* Footer */}
       <footer style={{ borderTop: '1.5px solid #EFEFE9' }} className="mt-8">
-        <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between flex-wrap gap-2">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p style={{ fontSize: '0.8rem', color: '#9A9A93' }}>
             © 2026 MegaFood · Editar programación
           </p>

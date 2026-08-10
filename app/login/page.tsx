@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Leaf, User, Lock } from 'lucide-react'
+import { User, Lock } from 'lucide-react'
+import Image from 'next/image'
 
 const LOGIN_DOMAIN = 'sistema.com' // 🔒 mantener en un solo lugar
 
@@ -54,8 +55,15 @@ export default function LoginPage() {
       <div className="max-w-md w-full">
         {/* Logo MegaFood */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-lg mb-4" style={{ background: "#8CC63F" }}>
-            <Leaf size={32} color="#1F3A0A" strokeWidth={2.5} />
+          <div className="flex items-center justify-center mb-4">
+            <Image
+              src="/megafood.png"
+              alt="MegaFood Logo"
+              width={80}
+              height={80}
+              className="object-contain"
+              priority
+            />
           </div>
           <h1 className="text-4xl font-black tracking-tight">
             <span style={{ color: "#2B2B2B" }}>MEGA</span>
