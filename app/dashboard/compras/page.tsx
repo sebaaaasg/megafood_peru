@@ -44,6 +44,7 @@ interface InsumoRequerido {
   insumo_id: string
   insumo_nombre: string
   unidad: string
+  categoria: string
   cantidad_total: number
   cantidad_porcion: number
   precio_unitario?: number
@@ -76,6 +77,16 @@ const CAT_COLORS: Record<string, { color: string; bg: string }> = {
   "BEBIBLE":       { color: "#1e40af", bg: "#eff6ff" },
   "SALSA":         { color: "#b45309", bg: "#fffbeb" },
 }
+
+// ─── Paleta de colores por categoría de INSUMOS (usada en el Excel) ───
+const CATEGORIA_COLORS_EXCEL: Record<string, { header: string; subheader: string; altA: string; altB: string }> = {
+  "Frutas y Verduras": { header: 'FF1E5631', subheader: 'FF2D7A4F', altA: 'FFFFFFFF', altB: 'FFF2F2F2' },
+  "Cárnicos":           { header: 'FF7B1A1A', subheader: 'FFC0392B', altA: 'FFFFFFFF', altB: 'FFF5C6C6' },
+  "Abarrotes":          { header: 'FF1A3E6B', subheader: 'FF2E6DA4', altA: 'FFFFFFFF', altB: 'FFDCE8F5' },
+  "Descartables":       { header: 'FF4A3B6B', subheader: 'FF7A5FB0', altA: 'FFFFFFFF', altB: 'FFE6E0F0' },
+  "Químicos":           { header: 'FF1B4F4F', subheader: 'FF2E7D7D', altA: 'FFFFFFFF', altB: 'FFD9EDED' },
+}
+const CATEGORIA_COLOR_DEFAULT = { header: 'FF555555', subheader: 'FF888888', altA: 'FFFFFFFF', altB: 'FFEDEDED' }
 
 const formatearCantidad = (cantidad: number, unidad: string): { cantidad: number; unidad: string } => {
   const unidadUpper = unidad.toUpperCase()
@@ -484,7 +495,7 @@ export default function ModuloCompras() {
 
       const { data, error } = await supabase
         .from("insumos")
-        .select("id, nombre, unidad, precio")
+        .select("id, nombre, unidad, precio, categoria")
 
       if (!error && data) {
         const insumosValidos = data.filter(item =>
@@ -667,6 +678,7 @@ export default function ModuloCompras() {
               insumo_id: receta.insumo_id,
               insumo_nombre: insumo.nombre,
               unidad: insumo.unidad,
+              categoria: insumo.categoria || "Sin categoría",
               cantidad_total: cantidadTotal,
               cantidad_porcion: receta.cantidad
             }
@@ -714,12 +726,15 @@ const exportarAExcel = async () => {
       const COLOR_FONDO_GRIS = 'FFF5F5F0'
 
       // ==========================================
-      // HOJA 1: REQUERIMIENTO DE INSUMOS
+      // HOJA 1: REQUERIMIENTO DE INSUMOS (por categoría)
       // ==========================================
       const wsRequerimiento = wb.addWorksheet('Requerimiento')
 
+      const numColumnas = rol === "gerencia" ? 8 : 6
+      const LETRAS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
+      const ultimaColumnaReq = LETRAS[numColumnas - 1]
+
       // Título Principal
-      const ultimaColumnaReq = rol === "gerencia" ? 'F' : 'D'
       wsRequerimiento.mergeCells(`A1:${ultimaColumnaReq}2`)
       const cellTitle = wsRequerimiento.getCell('A1')
       cellTitle.value = `REQUERIMIENTO DE INSUMOS - ${sedeInfo?.nombre?.toUpperCase() || 'SEDE'}`
@@ -737,82 +752,113 @@ const exportarAExcel = async () => {
 
       wsRequerimiento.addRow([]) // Espacio vacío
 
-      // Cabeceras de la tabla
-      const headersReq = ['Insumo', 'Cant. por Porción', 'Cantidad Total', 'Unidad']
+      // ─── Agrupar insumos por categoría (orden alfabético) ───
+      const insumosPorCategoria = insumosRequeridos.reduce((acc, item) => {
+        const cat = item.categoria || "Sin categoría"
+        if (!acc[cat]) acc[cat] = []
+        acc[cat].push(item)
+        return acc
+      }, {} as Record<string, InsumoRequerido[]>)
+
+      const categoriasOrdenadas = Object.keys(insumosPorCategoria).sort((a, b) => a.localeCompare(b))
+
+      const headersReq = ['N°', 'Insumo', 'Cant. por Porción', 'Cantidad Total', 'Unidad', 'Proveedor']
       if (rol === "gerencia") {
-        headersReq.push('Precio Unit. (S/)', 'Subtotal (S/)')
+        headersReq.push('Precio Unit. (S/)', 'Precio Total (S/)')
       }
-      
-      const rowHeader = wsRequerimiento.addRow(headersReq)
-      rowHeader.eachCell((cell) => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_NARANJA } }
-        cell.font = { name: 'Arial', size: 11, bold: true, color: { argb: 'FFFFFFFF' } }
-        cell.alignment = { vertical: 'middle', horizontal: 'center' }
-        cell.border = {
-          top: { style: 'thin' }, left: { style: 'thin' },
-          bottom: { style: 'thin' }, right: { style: 'thin' }
-        }
-      })
 
-      // Datos de la tabla
-      insumosRequeridos.forEach((insumo) => {
-        const formateadoTotal = formatearCantidadConUnidad(insumo.cantidad_total, insumo.unidad)
-        const formateadoPorcion = formatearCantidadConUnidad(insumo.cantidad_porcion, insumo.unidad)
+      let contadorGlobal = 0
 
-        const rowData: any[] = [
-          insumo.insumo_nombre,
-          formateadoPorcion.display,
-          formateadoTotal.display,
-          formateadoTotal.unidad
-        ]
+      categoriasOrdenadas.forEach((categoria) => {
+        const paleta = CATEGORIA_COLORS_EXCEL[categoria] || CATEGORIA_COLOR_DEFAULT
+        const itemsCategoria = insumosPorCategoria[categoria]
 
-        if (rol === "gerencia") {
-          rowData.push(insumo.precio_unitario || 0, insumo.costo_total || 0)
-        }
+        // Fila de categoría (fusionada)
+        const rowCategoria = wsRequerimiento.addRow([categoria.toUpperCase()])
+        wsRequerimiento.mergeCells(`A${rowCategoria.number}:${ultimaColumnaReq}${rowCategoria.number}`)
+        const cellCategoria = wsRequerimiento.getCell(`A${rowCategoria.number}`)
+        cellCategoria.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } }
+        cellCategoria.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: paleta.header } }
+        cellCategoria.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 }
 
-        const row = wsRequerimiento.addRow(rowData)
-
-        // Estilizar celdas de datos
-        row.eachCell((cell, colNumber) => {
-          cell.font = { name: 'Arial', size: 10 }
+        // Fila de sub-cabecera (nombres de columna)
+        const rowHeader = wsRequerimiento.addRow(headersReq)
+        rowHeader.eachCell((cell) => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: paleta.subheader } }
+          cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } }
+          cell.alignment = { vertical: 'middle', horizontal: 'center' }
           cell.border = {
-            top: { style: 'hair', color: { argb: 'FFDDDDDD' } },
-            bottom: { style: 'hair', color: { argb: 'FFDDDDDD' } },
-            left: { style: 'hair', color: { argb: 'FFDDDDDD' } },
-            right: { style: 'hair', color: { argb: 'FFDDDDDD' } }
+            top: { style: 'thin' }, left: { style: 'thin' },
+            bottom: { style: 'thin' }, right: { style: 'thin' }
           }
-          
-          // Alinear Insumo a la izq, lo demás centrado
-          cell.alignment = { vertical: 'middle', horizontal: colNumber === 1 ? 'left' : 'center' }
+        })
 
-          // Resaltar la Cantidad Total en Naranja
-          if (colNumber === 3) {
-            cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: COLOR_NARANJA } }
+        // Filas de insumos (alternando color)
+        itemsCategoria.forEach((insumo, idx) => {
+          contadorGlobal++
+          const formateadoTotal = formatearCantidadConUnidad(insumo.cantidad_total, insumo.unidad)
+          const formateadoPorcion = formatearCantidadConUnidad(insumo.cantidad_porcion, insumo.unidad)
+
+          const rowData: any[] = [
+            contadorGlobal,
+            insumo.insumo_nombre,
+            formateadoPorcion.display,
+            formateadoTotal.display,
+            formateadoTotal.unidad,
+            '' // Proveedor (vacío por ahora)
+          ]
+
+          if (rol === "gerencia") {
+            rowData.push(insumo.precio_unitario || 0, insumo.costo_total || 0)
           }
 
-          // Formatear Moneda si es gerencia
-          if (rol === 'gerencia' && (colNumber === 5 || colNumber === 6)) {
-            cell.numFmt = '"S/"#,##0.00'
-            cell.alignment = { vertical: 'middle', horizontal: 'right' }
-            // Fondo ligerísimo verde para el subtotal
-            if (colNumber === 6) {
-               cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_FONDO_VERDE } }
-               cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF1F3A0A' } }
+          const row = wsRequerimiento.addRow(rowData)
+          const colorFondo = idx % 2 === 0 ? paleta.altA : paleta.altB
+
+          row.eachCell((cell, colNumber) => {
+            cell.font = { name: 'Arial', size: 10 }
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: colorFondo } }
+            cell.border = {
+              top: { style: 'hair', color: { argb: 'FFDDDDDD' } },
+              bottom: { style: 'hair', color: { argb: 'FFDDDDDD' } },
+              left: { style: 'hair', color: { argb: 'FFDDDDDD' } },
+              right: { style: 'hair', color: { argb: 'FFDDDDDD' } }
             }
-          }
+            cell.alignment = {
+              vertical: 'middle',
+              horizontal: colNumber === 1 ? 'center' : colNumber === 2 ? 'left' : 'center'
+            }
+
+            // Cantidad Total en negrita (columna 4)
+            if (colNumber === 4) {
+              cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: COLOR_OSCURO } }
+            }
+
+            // Formato moneda si es gerencia (columnas 7 y 8)
+            if (rol === 'gerencia' && (colNumber === 7 || colNumber === 8)) {
+              cell.numFmt = '"S/"#,##0.00'
+              cell.alignment = { vertical: 'middle', horizontal: 'right' }
+              if (colNumber === 8) {
+                cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FF1F3A0A' } }
+              }
+            }
+          })
         })
       })
 
       // Fila de Total General (Solo Gerencia)
       if (rol === "gerencia") {
-        wsRequerimiento.addRow([]) // Espacio
-        const totalRow = wsRequerimiento.addRow(['', '', '', '', 'COSTO TOTAL:', costoTotalGeneral])
-        
-        const labelCell = totalRow.getCell(5)
+        wsRequerimiento.addRow([])
+        const filaTotal = new Array(numColumnas).fill('')
+        filaTotal[numColumnas - 2] = 'COSTO TOTAL:'
+        filaTotal[numColumnas - 1] = costoTotalGeneral
+        const totalRow = wsRequerimiento.addRow(filaTotal)
+
+        const labelCell = totalRow.getCell(numColumnas - 1)
         labelCell.font = { name: 'Arial', size: 12, bold: true, color: { argb: COLOR_OSCURO } }
         labelCell.alignment = { horizontal: 'right' }
 
-        const valueCell = totalRow.getCell(6)
+        const valueCell = totalRow.getCell(numColumnas)
         valueCell.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } }
         valueCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_VERDE } }
         valueCell.numFmt = '"S/"#,##0.00'
@@ -821,11 +867,13 @@ const exportarAExcel = async () => {
 
       // Ajustar anchos de columna
       wsRequerimiento.columns = [
-        { width: 40 }, // Insumo
-        { width: 22 }, // Cantidad por porción
-        { width: 22 }, // Cantidad Total
-        { width: 15 }, // Unidad
-        ...(rol === "gerencia" ? [{ width: 18 }, { width: 20 }] : [])
+        { width: 6 },  // N°
+        { width: 38 }, // Insumo
+        { width: 20 }, // Cantidad por porción
+        { width: 20 }, // Cantidad Total
+        { width: 12 }, // Unidad
+        { width: 20 }, // Proveedor
+        ...(rol === "gerencia" ? [{ width: 18 }, { width: 18 }] : [])
       ]
 
       // ==========================================
@@ -867,7 +915,68 @@ const exportarAExcel = async () => {
         }
       })
 
-      wsResumen.columns = [{ width: 35 }, { width: 30 }]
+      // ─── Desglose de costo por categoría (solo gerencia) ───
+      if (rol === "gerencia") {
+        wsResumen.addRow([]) // espacio
+
+        const rowSubtitulo = wsResumen.addRow(['COSTO POR CATEGORÍA'])
+        wsResumen.mergeCells(`A${rowSubtitulo.number}:C${rowSubtitulo.number}`)
+        const cellSubtitulo = wsResumen.getCell(`A${rowSubtitulo.number}`)
+        cellSubtitulo.font = { name: 'Arial', size: 12, bold: true, color: { argb: 'FFFFFFFF' } }
+        cellSubtitulo.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_OSCURO } }
+        cellSubtitulo.alignment = { vertical: 'middle', horizontal: 'center' }
+
+        const rowHeaderCat = wsResumen.addRow(['Categoría', 'Costo Total (S/)', '% del Total'])
+        rowHeaderCat.eachCell((cell) => {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_NARANJA } }
+          cell.font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } }
+          cell.alignment = { horizontal: 'center' }
+        })
+
+        // Agrupar costo total por categoría
+        const costoPorCategoria = insumosRequeridos.reduce((acc, item) => {
+          const cat = item.categoria || "Sin categoría"
+          acc[cat] = (acc[cat] || 0) + (item.costo_total || 0)
+          return acc
+        }, {} as Record<string, number>)
+
+        // Ordenar de mayor a menor costo
+        const categoriasPorCosto = Object.keys(costoPorCategoria).sort(
+          (a, b) => costoPorCategoria[b] - costoPorCategoria[a]
+        )
+
+        categoriasPorCosto.forEach((categoria) => {
+          const paleta = CATEGORIA_COLORS_EXCEL[categoria] || CATEGORIA_COLOR_DEFAULT
+          const porcentaje = costoTotalGeneral > 0 ? costoPorCategoria[categoria] / costoTotalGeneral : 0
+
+          const row = wsResumen.addRow([categoria, costoPorCategoria[categoria], porcentaje])
+
+          row.getCell(1).font = { name: 'Arial', size: 10, bold: true, color: { argb: paleta.header } }
+
+          row.getCell(2).font = { name: 'Arial', size: 10, bold: true, color: { argb: COLOR_OSCURO } }
+          row.getCell(2).numFmt = '"S/"#,##0.00'
+          row.getCell(2).alignment = { horizontal: 'right' }
+
+          row.getCell(3).font = { name: 'Arial', size: 10, color: { argb: 'FF6B6B65' } }
+          row.getCell(3).numFmt = '0.0%'
+          row.getCell(3).alignment = { horizontal: 'right' }
+        })
+
+        // Fila de total (verificación)
+        const rowTotalCat = wsResumen.addRow(['TOTAL', costoTotalGeneral, 1])
+        rowTotalCat.getCell(1).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } }
+        rowTotalCat.getCell(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_VERDE } }
+        rowTotalCat.getCell(2).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } }
+        rowTotalCat.getCell(2).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_VERDE } }
+        rowTotalCat.getCell(2).numFmt = '"S/"#,##0.00'
+        rowTotalCat.getCell(2).alignment = { horizontal: 'right' }
+        rowTotalCat.getCell(3).font = { name: 'Arial', size: 10, bold: true, color: { argb: 'FFFFFFFF' } }
+        rowTotalCat.getCell(3).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_VERDE } }
+        rowTotalCat.getCell(3).numFmt = '0.0%'
+        rowTotalCat.getCell(3).alignment = { horizontal: 'right' }
+      }
+
+      wsResumen.columns = [{ width: 35 }, { width: 22 }, { width: 15 }]
 
       // ==========================================
       // HOJA 3: COMENSALES POR DÍA (Opcional)
@@ -948,7 +1057,7 @@ const exportarAExcel = async () => {
   return (
     <div className="min-h-screen w-full" style={{ background: '#FFFFFF' }}>
       {/* Header estilo MegaFood */}
-      <header className="relative overflow-hidden" style={{ background: '#2B2B2B' }}>
+      <header className="relative overflow-hidden" style={{ background: '#1E5631' }}>
         <div
           className="absolute inset-0 opacity-[0.06]"
           style={{
