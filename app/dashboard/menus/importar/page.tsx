@@ -12,10 +12,13 @@ import {
   Loader2,
   CheckCircle,
   X,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Users
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import * as XLSX from 'xlsx'
+import TablaProgramacionMenu, { DiaProgramado } from '@/components/TablaProgramacionMenus'
+import MenusNav from '@/app/dashboard/menus/components/MenusNav'
 
 // ─────────────────────────────────────────────
 // Constantes
@@ -37,7 +40,7 @@ export default function ImportarProgramacion() {
   const [sedes, setSedes] = useState<any[]>([])
   const [mostrandoModalFaltantes, setMostrandoModalFaltantes] = useState(false)
   const [puedeImportar, setPuedeImportar] = useState(false)
-  const [rolUsuario, setRolUsuario] = useState("") // ✅ Estado agregado
+  const [rolUsuario, setRolUsuario] = useState("")
   const [fileName, setFileName] = useState("")
   const [importando, setImportando] = useState(false)
   const [cargandoSedes, setCargandoSedes] = useState(true)
@@ -55,11 +58,10 @@ export default function ImportarProgramacion() {
         .single()
 
       if (perfil) {
-        setRolUsuario(perfil.role) // ✅ Asignar el rol
+        setRolUsuario(perfil.role)
         setPuedeImportar(perfil.role === "admin" || perfil.role === "gerencia")
       }
 
-      // Cargar sedes
       const { data: sedesData } = await supabase
         .from("sedes")
         .select("id, nombre")
@@ -77,20 +79,33 @@ export default function ImportarProgramacion() {
   }, [supabase])
 
   // Formatear fecha como en importación
-  const formatearFechaExcel = (valor: any) => {
-    let fechaJS: Date
-    if (typeof valor === 'number') {
-      fechaJS = new Date(Math.round((valor - 25569) * 86400 * 1000))
-    } else {
-      fechaJS = new Date(valor)
-    }
-    return fechaJS.toLocaleDateString('es-ES', {
-      weekday: 'long', 
-      day: 'numeric', 
-      month: 'long', 
-      year: 'numeric', 
-      timeZone: 'UTC'
-    })
+const formatearFechaExcel = (valor: any): string => {
+  let fechaJS: Date
+  
+  if (typeof valor === 'number') {
+    // Número serial de Excel → Date UTC
+    fechaJS = new Date(Math.round((valor - 25569) * 86400 * 1000))
+  } else if (valor instanceof Date) {
+    fechaJS = valor
+  } else {
+    fechaJS = new Date(valor)
+  }
+  
+  // Extraer YYYY-MM-DD directamente sin conversiones de zona horaria
+  const year = fechaJS.getUTCFullYear()
+  const month = String(fechaJS.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(fechaJS.getUTCDate()).padStart(2, '0')
+  
+  return `${year}-${month}-${day}` // "2026-08-10"
+}
+
+  // Parsear un valor de celda de comensales a entero seguro
+  const parsearComensales = (valor: any): number | null => {
+    if (valor === undefined || valor === null) return null
+    const texto = valor.toString().trim()
+    if (texto === "" || texto === "-") return null
+    const numero = Number(texto.replace(/[^\d.-]/g, ""))
+    return Number.isFinite(numero) ? Math.round(numero) : null
   }
 
   // Importar Excel
@@ -119,7 +134,6 @@ export default function ImportarProgramacion() {
         const hoja = workbook.Sheets[workbook.SheetNames[0]]
         const matriz = XLSX.utils.sheet_to_json(hoja, { header: 1 }) as any[][]
 
-        // Ya no detectamos sede del Excel, usamos la seleccionada
         const categorias = CATEGORIAS_ORDEN
         const mapaDias = new Map()
         let tipoActual = "estandar"
@@ -135,13 +149,19 @@ export default function ImportarProgramacion() {
 
           if (celdaA === "FECHA") {
             const filaFechas = matriz[i]
+            // La fila COMENSALES va justo después del bloque de categorías
+            // (FECHA, 8 categorías, luego COMENSALES) => offset = categorias.length + 1
+            const filaComensales = matriz[i + 1 + categorias.length]
+            const esFilaComensalesValida =
+              filaComensales?.[0]?.toString().toUpperCase().trim() === "COMENSALES"
+
             for (let col = 1; col <= 14; col++) {
               const valorCelda = filaFechas[col]
               if (!valorCelda) continue
 
               const fechaLegible = formatearFechaExcel(valorCelda)
               if (!mapaDias.has(fechaLegible)) {
-                mapaDias.set(fechaLegible, { fecha: fechaLegible, platos: [] })
+                mapaDias.set(fechaLegible, { fecha: fechaLegible, platos: [], comensalesPorTipo: {} })
               }
               const diaObj = mapaDias.get(fechaLegible)
 
@@ -157,6 +177,14 @@ export default function ImportarProgramacion() {
                   })
                 }
               })
+
+              // Comensales del bloque actual (tipoActual) para este día
+              if (esFilaComensalesValida) {
+                const comensales = parsearComensales(filaComensales[col])
+                if (comensales !== null) {
+                  diaObj.comensalesPorTipo[tipoActual] = comensales
+                }
+              }
             }
           }
         }
@@ -222,7 +250,7 @@ export default function ImportarProgramacion() {
       // Insertar en planificacion_detalles
       const registrosAInsertar = platosProgramados.flatMap(dia =>
         dia.platos.map((p: any) => ({
-          fecha_texto: dia.fecha,
+          fecha: dia.fecha,
           plato_id: mapaPlatos.get(p.nombre),
           tipo: p.tipo,
           categoria: p.categoria_especifica,
@@ -232,6 +260,23 @@ export default function ImportarProgramacion() {
 
       const { error } = await supabase.from("planificacion_detalles").insert(registrosAInsertar)
       if (error) throw error
+
+      // Insertar/actualizar comensales por día + tipo (upsert por si se reimporta)
+      const registrosComensales = platosProgramados.flatMap(dia =>
+        Object.entries(dia.comensalesPorTipo || {}).map(([tipo, comensales]) => ({
+          fecha: dia.fecha,
+          sede_id: sedeId,
+          tipo,
+          comensales
+        }))
+      )
+
+      if (registrosComensales.length > 0) {
+        const { error: errorComensales } = await supabase
+          .from("planificacion_comensales")
+          .upsert(registrosComensales, { onConflict: "fecha,sede_id,tipo" })
+        if (errorComensales) throw errorComensales
+      }
 
       const nombreSede = sedes.find(s => s.id === sedeId)?.nombre || "Sede"
       alert(`✅ Programación para ${nombreSede} guardada con éxito!`)
@@ -258,14 +303,45 @@ export default function ImportarProgramacion() {
     }
   }
 
-  const getBadgeStyle = (tipo: string) => {
-    switch (tipo.toLowerCase()) {
-      case 'dieta': return "bg-blue-100 text-blue-700"
-      case 'especial': return "bg-purple-100 text-purple-700"
-      case 'evento': return "bg-orange-100 text-orange-700"
-      default: return "bg-gray-100 text-gray-700"
-    }
+ const getMenuStyle = (tipo: string) => {
+  switch (tipo.toLowerCase()) {
+    case 'dieta':
+      return {
+        header: 'bg-blue-100 text-blue-800',
+        cell: 'bg-blue-50',
+        cellAlt: 'bg-blue-50/60',
+        category: 'bg-blue-100/70 text-blue-900',
+        border: 'border-blue-200',
+      }
+
+    case 'especial':
+      return {
+        header: 'bg-purple-100 text-purple-800',
+        cell: 'bg-purple-50',
+        cellAlt: 'bg-purple-50/60',
+        category: 'bg-purple-100/70 text-purple-900',
+        border: 'border-purple-200',
+      }
+
+    case 'evento':
+      return {
+        header: 'bg-orange-100 text-orange-800',
+        cell: 'bg-orange-50',
+        cellAlt: 'bg-orange-50/60',
+        category: 'bg-orange-100/70 text-orange-900',
+        border: 'border-orange-200',
+      }
+
+    default:
+  return {
+    header: 'bg-green-100 text-green-800',
+    cell: 'bg-green-50',
+    cellAlt: 'bg-green-50/60',
+    category: 'bg-green-100/70 text-green-900',
+    border: 'border-green-200',
   }
+  }
+}
 
   // ─────────────────────────────────────────────
   // Data pivotada para la tabla estilo Excel
@@ -277,15 +353,20 @@ export default function ImportarProgramacion() {
     )
 
     const lookup: Record<string, Record<string, Record<string, string>>> = {}
+    const comensales: Record<string, Record<string, number>> = {}
     platosProgramados.forEach(dia => {
       dia.platos.forEach((p: any) => {
         lookup[p.tipo] = lookup[p.tipo] || {}
         lookup[p.tipo][p.categoria_especifica] = lookup[p.tipo][p.categoria_especifica] || {}
         lookup[p.tipo][p.categoria_especifica][dia.fecha] = p.nombre
       })
+      Object.entries(dia.comensalesPorTipo || {}).forEach(([tipo, valor]) => {
+        comensales[tipo] = comensales[tipo] || {}
+        comensales[tipo][dia.fecha] = valor as number
+      })
     })
 
-    return { dias, tiposPresentes, lookup }
+    return { dias, tiposPresentes, lookup, comensales }
   }, [platosProgramados])
 
   return (
@@ -311,7 +392,7 @@ export default function ImportarProgramacion() {
           aria-hidden="true"
         />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 pt-20 pb-6 sm:pt-24 sm:pb-10">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 mb-1 sm:mb-2">
@@ -344,6 +425,8 @@ export default function ImportarProgramacion() {
               </Link>
             </div>
           </div>
+
+          <MenusNav />
         </div>
       </header>
 
@@ -478,79 +561,11 @@ export default function ImportarProgramacion() {
 
         {/* Tabla de menús detectados (estilo Excel) */}
         {platosProgramados.length > 0 && (
-          <div className="mt-6">
-            <h3 className="font-bold text-[#2B2B2B] mb-3">📋 Menús detectados</h3>
-            <div className="bg-white rounded-lg border border-[#E7E7E2] shadow-sm overflow-hidden">
-              <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
-                <table className="border-collapse text-xs w-full">
-                  <thead>
-                    <tr>
-                      <th className="sticky left-0 top-0 z-30 bg-[#2B2B2B] text-white text-left px-3 py-2.5 font-bold min-w-[150px]">
-                        Categoría
-                      </th>
-                      {tablaMenu.dias.map((fecha, i) => (
-                        <th
-                          key={i}
-                          className="sticky top-0 z-20 bg-[#2B2B2B] text-white text-left px-3 py-2.5 font-semibold min-w-[190px] whitespace-nowrap border-l border-white/10"
-                        >
-                          {fecha}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {tablaMenu.tiposPresentes.map((tipo) => (
-                      <Fragment key={tipo}>
-                        {/* Fila separadora de tipo */}
-                        <tr className={getBadgeStyle(tipo)}>
-                          <td
-                            className="sticky left-0 z-10 px-3 py-1.5 font-bold uppercase text-[11px] tracking-wide"
-                            style={{ background: 'inherit' }}
-                          >
-                            {tipo}
-                          </td>
-                          {tablaMenu.dias.map((_, di) => (
-                            <td key={di} style={{ background: 'inherit' }} />
-                          ))}
-                        </tr>
+          <TablaProgramacionMenu 
+    platosProgramados={platosProgramados as DiaProgramado[]}
+    titulo="📋 Menús detectados"
+  />
 
-                        {/* Filas de categorías */}
-                        {CATEGORIAS_ORDEN
-                          .filter(cat => tablaMenu.lookup[tipo]?.[cat])
-                          .map((cat, ci) => (
-                            <tr
-                              key={cat}
-                              className={ci % 2 === 0 ? 'bg-white' : 'bg-[#F7F7F3]'}
-                            >
-                              <td
-                                className="sticky left-0 z-10 px-3 py-2 font-semibold
-                                           text-[#2B2B2B] bg-[#E5E5DC]
-                                           border-r-2 border-[#C9C9C0]
-                                           whitespace-nowrap"
-                              >
-                                {cat}
-                              </td>
-                              {tablaMenu.dias.map((fecha, di) => (
-                                <td
-                                  key={di}
-                                  className="px-3 py-2 text-[#2B2B2B]
-                                             border-l border-[#E7E7E2]
-                                             whitespace-nowrap"
-                                >
-                                  {tablaMenu.lookup[tipo][cat][fecha] || (
-                                    <span className="text-[#B0B0A8]">—</span>
-                                  )}
-                                </td>
-                              ))}
-                            </tr>
-                          ))}
-                      </Fragment>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
         )}
 
         {/* Modal platos nuevos */}

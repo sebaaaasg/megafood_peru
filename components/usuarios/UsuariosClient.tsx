@@ -258,7 +258,7 @@ export default function UsuariosClient({
         <div className="absolute left-0 top-0 bottom-0" style={{ width: '6px', background: '#F37F21' }} aria-hidden="true" />
         <div className="absolute left-[6px] top-0 bottom-0" style={{ width: '6px', background: '#8CC63F' }} aria-hidden="true" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-7 sm:py-10">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-7 sm:pt-24 sm:pb-10">
           <div className="flex flex-col md:flex-row md:items-center gap-7 md:gap-8">
             {/* Información del módulo */}
             <div className="min-w-0 md:flex-1">

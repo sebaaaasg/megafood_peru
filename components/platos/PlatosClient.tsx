@@ -559,7 +559,7 @@ export default function PlatosClient({
         <div className="absolute left-0 top-0 bottom-0" style={{ width: '6px', background: '#F37F21' }} aria-hidden="true" />
         <div className="absolute left-[6px] top-0 bottom-0" style={{ width: '6px', background: '#8CC63F' }} aria-hidden="true" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 pt-20 pb-6 sm:pt-24 sm:pb-10">
           {/* Contenedor flexible - columna en móvil, fila en desktop */}
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
             

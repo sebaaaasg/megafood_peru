@@ -496,7 +496,7 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
     aria-hidden="true"
   />
 
-  <div className="relative max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-10">
+  <div className="relative max-w-7xl mx-auto px-4 sm:px-8 pt-20 pb-6 sm:pt-24 sm:pb-10">
     {/* Contenedor flexible con dirección column en móvil */}
     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
       

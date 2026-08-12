@@ -4,17 +4,17 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Calendar, ChevronLeft, ChevronRight, X, Check } from 'lucide-react'
 
-interface CalendarioCompactoProps {
+interface CalendarioProgramacionProps {
   sedeId: string
-  onFechaSeleccionada: (fecha: string) => void
-  fechaSeleccionada?: string
+  onFechaSeleccionada: (fecha: string) => void // Emite YYYY-MM-DD
+  fechaSeleccionada?: string // Recibe YYYY-MM-DD
 }
 
-export default function CalendarioCompacto({
+export default function CalendarioProgramacion({
   sedeId,
   onFechaSeleccionada,
   fechaSeleccionada
-}: CalendarioCompactoProps) {
+}: CalendarioProgramacionProps) {
   const supabase = createClient()
   const [abierto, setAbierto] = useState(false)
   const [mesActual, setMesActual] = useState(new Date())
@@ -33,7 +33,7 @@ export default function CalendarioCompacto({
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Cargar fechas programadas
+  // Cargar fechas programadas usando la nueva columna "fecha" (tipo date)
   useEffect(() => {
     if (!sedeId) return
     
@@ -42,11 +42,12 @@ export default function CalendarioCompacto({
       try {
         const { data } = await supabase
           .from("planificacion_detalles")
-          .select("fecha_texto")
+          .select("fecha") // <-- CAMBIO AQUÍ: antes era fecha_texto
           .eq("sede_id", sedeId)
         
         if (data) {
-          setFechasProgramadas(new Set(data.map(f => f.fecha_texto)))
+          // Guardamos las fechas directamente (vienen en formato YYYY-MM-DD)
+          setFechasProgramadas(new Set(data.map(f => f.fecha)))
         }
       } catch (error) {
         console.error("Error al cargar fechas:", error)
@@ -57,19 +58,36 @@ export default function CalendarioCompacto({
     cargarFechas()
   }, [sedeId])
 
-  // Convertir fecha ISO a formato BD
-  const convertirISOaBD = (fecha: Date): string => {
+  // Helper para convertir objeto Date de JS a "YYYY-MM-DD" local
+  const obtenerISO = (fecha: Date): string => {
+    const y = fecha.getFullYear()
+    const m = String(fecha.getMonth() + 1).padStart(2, '0')
+    const d = String(fecha.getDate()).padStart(2, '0')
+    return `${y}-${m}-${d}`
+  }
+
+  // Helper para mostrar un texto bonito en el input (solo visual)
+  const convertirAtexto = (fecha: Date): string => {
     const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
     const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
     return `${dias[fecha.getDay()]}, ${fecha.getDate()} de ${meses[fecha.getMonth()]} de ${fecha.getFullYear()}`
   }
 
-  // Verificar si hay programación
+  // Verificar si hay programación (ahora comparamos YYYY-MM-DD contra YYYY-MM-DD)
   const tieneProgramacion = (fecha: Date): boolean => {
-    return fechasProgramadas.has(convertirISOaBD(fecha))
+    return fechasProgramadas.has(obtenerISO(fecha))
   }
 
-  // Obtener días del mes
+  // Formatear fecha para mostrar en el input (decodificando el YYYY-MM-DD)
+  const obtenerTextoMostrado = () => {
+    if (!fechaSeleccionada) return "Seleccionar fecha"
+    const [y, m, d] = fechaSeleccionada.split('-')
+    const date = new Date(parseInt(y), parseInt(m) - 1, parseInt(d))
+    return convertirAtexto(date)
+  }
+  const fechaMostrada = obtenerTextoMostrado()
+
+  // Obtener días del mes para pintar la cuadrícula
   const obtenerDias = () => {
     const año = mesActual.getFullYear()
     const mes = mesActual.getMonth()
@@ -88,10 +106,7 @@ export default function CalendarioCompacto({
   const nombreMes = mesActual.toLocaleString('es-ES', { month: 'long' })
   const año = mesActual.getFullYear()
 
-  // Formatear fecha para mostrar en el input
-  const fechaMostrada = fechaSeleccionada || "Seleccionar fecha"
-
-  // Verificar si una fecha es hoy
+  // Verificar si una fecha de la cuadrícula es hoy
   const esHoy = (fecha: Date): boolean => {
     const hoy = new Date()
     return fecha.getDate() === hoy.getDate() &&
@@ -124,7 +139,7 @@ export default function CalendarioCompacto({
             <button
               onClick={(e) => {
                 e.stopPropagation()
-                onFechaSeleccionada("")
+                onFechaSeleccionada("") // Limpiamos selección
                 setAbierto(false)
               }}
               className="p-0.5 text-[#6B6B65] hover:text-red-500 transition"
@@ -141,7 +156,6 @@ export default function CalendarioCompacto({
       {/* Calendario desplegable */}
       {abierto && (
         <div className="absolute top-full left-0 mt-2 bg-white rounded-lg border border-[#E7E7E2] shadow-xl z-50 w-72 overflow-hidden">
-          {/* Cabecera */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#E7E7E2]" style={{ background: '#2B2B2B' }}>
             <button 
               onClick={() => setMesActual(new Date(mesActual.getFullYear(), mesActual.getMonth() - 1, 1))}
@@ -160,14 +174,12 @@ export default function CalendarioCompacto({
             </button>
           </div>
 
-          {/* Loading */}
           {cargando && (
             <div className="flex justify-center py-4">
               <div className="w-5 h-5 border-2 border-[#8CC63F] border-t-transparent rounded-full animate-spin" />
             </div>
           )}
 
-          {/* Días de semana */}
           <div className="grid grid-cols-7 gap-1 px-2 pt-2">
             {diasSemana.map(dia => (
               <div key={dia} className="text-center text-xs font-bold text-[#9A9A93] py-1">
@@ -176,12 +188,12 @@ export default function CalendarioCompacto({
             ))}
           </div>
 
-          {/* Días del mes */}
           <div className="grid grid-cols-7 gap-1 p-2">
             {dias.map((fecha, idx) => {
               const esValida = fecha !== null
               const tieneProg = esValida && tieneProgramacion(fecha)
-              const esSeleccionada = esValida && fechaSeleccionada === convertirISOaBD(fecha)
+              const fechaISO = esValida ? obtenerISO(fecha) : ""
+              const esSeleccionada = esValida && fechaSeleccionada === fechaISO
               const hoy = esValida && esHoy(fecha)
               
               return (
@@ -189,7 +201,7 @@ export default function CalendarioCompacto({
                   key={idx}
                   onClick={() => {
                     if (esValida && tieneProg) {
-                      onFechaSeleccionada(convertirISOaBD(fecha))
+                      onFechaSeleccionada(fechaISO) // Emitimos el YYYY-MM-DD final
                       setAbierto(false)
                     }
                   }}
@@ -227,7 +239,6 @@ export default function CalendarioCompacto({
             })}
           </div>
 
-          {/* Footer */}
           <div className="border-t border-[#E7E7E2] px-3 py-2 flex justify-between items-center text-xs">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">

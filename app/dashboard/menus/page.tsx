@@ -1,7 +1,13 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowLeft, Upload, Calendar, Edit, Eye, ClipboardList } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
+import {
+  IconImportar,
+  IconManual,
+  IconEditar,
+  IconVisualizacion,
+} from '@/app/dashboard/components/NucleoIcons'
 
 // ─────────────────────────────────────────────
 // Constantes con iconos de Lucide React
@@ -13,7 +19,7 @@ const MODULES = [
     variant: "green", 
     title: "Importar Excel",
     description: "Carga los archivos de Gerencia para automatizar el calendario.",
-    icon: Upload
+    icon: IconImportar
   },
   { 
     id: 2, 
@@ -21,7 +27,7 @@ const MODULES = [
     variant: "blue", 
     title: "Programar Manual",
     description: "Diseña el calendario semana a semana con total control.",
-    icon: Calendar
+    icon: IconManual
   },
   { 
     id: 3, 
@@ -29,7 +35,7 @@ const MODULES = [
     variant: "orange", 
     title: "Editar Programación",
     description: "Modifica, actualiza o elimina platos programados existentes.",
-    icon: Edit
+    icon: IconEditar
   },
   { 
     id: 4, 
@@ -37,7 +43,7 @@ const MODULES = [
     variant: "green", 
     title: "Visualizar Planificación",
     description: "Consulta el calendario completo de menús por sede y fecha.",
-    icon: Eye
+    icon: IconVisualizacion
   },
 ] as const
 
@@ -151,7 +157,7 @@ export default function ProgramacionPage() {
           aria-hidden="true"
         />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 py-8 sm:py-10">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 pt-20 pb-8 sm:pt-24 sm:pb-10">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 mb-2">
