@@ -33,7 +33,8 @@ interface Sede {
 
 interface ProgramacionItem {
   id: number
-  fecha_texto: string
+  /** Columna `fecha` (date) de planificacion_detalles: yyyy-mm-dd. */
+  fecha: string
   tipo: string
   categoria: string
   plato_id: string
@@ -144,74 +145,31 @@ const formatearMoneda = (valor: number) => {
   }).format(valor)
 }
 
-const formatearFechaParaBD = (fecha: Date): string => {
-  const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
-  const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
-  return `${dias[fecha.getDay()]}, ${fecha.getDate()} de ${meses[fecha.getMonth()]} de ${fecha.getFullYear()}`
+// Date -> "yyyy-mm-dd" local, que es el formato de la columna `fecha` (date).
+// Se construye a mano en vez de con toISOString() para no cruzar husos horarios.
+const aISO = (fecha: Date): string => {
+  const y = fecha.getFullYear()
+  const m = String(fecha.getMonth() + 1).padStart(2, '0')
+  const d = String(fecha.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
 }
 
-const compararFechas = (fechaStr: string, fechaInicio: string, fechaFin: string): boolean => {
-  const regex = /(\d+) de (\w+) de (\d+)/
-  const match = fechaStr.match(regex)
-  if (!match) return false
-
-  const dia = parseInt(match[1])
-  const mesTexto = match[2].toLowerCase()
-  const año = parseInt(match[3])
-
-  const meses: Record<string, number> = {
-    'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3,
-    'mayo': 4, 'junio': 5, 'julio': 6, 'agosto': 7,
-    'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
-  }
-  const mesNum = meses[mesTexto]
-  if (mesNum === undefined) return false
-
-  const fechaActual = new Date(año, mesNum, dia)
-
-  const matchInicio = fechaInicio.match(regex)
-  if (!matchInicio) return false
-  const diaInicio = parseInt(matchInicio[1])
-  const mesInicio = meses[matchInicio[2].toLowerCase()]
-  const añoInicio = parseInt(matchInicio[3])
-  const fechaInicioDate = new Date(añoInicio, mesInicio, diaInicio)
-
-  const matchFin = fechaFin.match(regex)
-  if (!matchFin) return false
-  const diaFin = parseInt(matchFin[1])
-  const mesFin = meses[matchFin[2].toLowerCase()]
-  const añoFin = parseInt(matchFin[3])
-  const fechaFinDate = new Date(añoFin, mesFin, diaFin)
-
-  return fechaActual >= fechaInicioDate && fechaActual <= fechaFinDate
+// "yyyy-mm-dd" -> "miércoles, 12 de agosto de 2026" (solo para mostrar).
+const formatearFechaLegible = (fechaISO: string): string => {
+  if (!fechaISO) return ""
+  return new Date(fechaISO + 'T00:00:00').toLocaleDateString('es-ES', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
 }
 
-// ─── FUNCIÓN PARA COMPARAR FECHAS CRONOLÓGICAMENTE ───
-const compararFechasCronologico = (fechaA: string, fechaB: string): number => {
-  const regex = /(\d+) de (\w+) de (\d+)/
-  const matchA = fechaA.match(regex)
-  const matchB = fechaB.match(regex)
-  
-  if (!matchA || !matchB) return 0
-  
-  const meses: Record<string, number> = {
-    'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3,
-    'mayo': 4, 'junio': 5, 'julio': 6, 'agosto': 7,
-    'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
-  }
-  
-  const diaA = parseInt(matchA[1])
-  const mesA = meses[matchA[2].toLowerCase()]
-  const añoA = parseInt(matchA[3])
-  const fechaADate = new Date(añoA, mesA, diaA)
-  
-  const diaB = parseInt(matchB[1])
-  const mesB = meses[matchB[2].toLowerCase()]
-  const añoB = parseInt(matchB[3])
-  const fechaBDate = new Date(añoB, mesB, diaB)
-  
-  return fechaADate.getTime() - fechaBDate.getTime()
-}
+// ─── COMPARACIÓN DE FECHAS ───
+// Con "yyyy-mm-dd" el orden lexicográfico coincide con el cronológico, así que
+// ya no hace falta parsear el texto largo en español que usaba fecha_texto.
+const compararFechasCronologico = (fechaA: string, fechaB: string): number =>
+  fechaA.localeCompare(fechaB)
 
 // ─── Componente DateRangeSelector ──────────────────
 const DateRangeSelector = ({
@@ -237,18 +195,16 @@ const DateRangeSelector = ({
     const cargarFechas = async () => {
       const { data } = await supabase
         .from("planificacion_detalles")
-        .select("fecha_texto")
+        .select("fecha")
         .eq("sede_id", sedeId)
       if (data) {
-        setFechasProgramadas(new Set(data.map(f => f.fecha_texto)))
+        setFechasProgramadas(new Set(data.map((f: { fecha: string }) => f.fecha)))
       }
     }
     cargarFechas()
   }, [sedeId])
 
-  const convertirISOaBD = (fecha: Date): string => {
-    return formatearFechaParaBD(fecha)
-  }
+  const convertirISOaBD = (fecha: Date): string => aISO(fecha)
 
   const obtenerDias = (mes: Date) => {
     const año = mes.getFullYear()
@@ -357,7 +313,7 @@ const DateRangeSelector = ({
               }
             `}
           >
-            {fechaInicio || "Seleccionar inicio"}
+            <span className="capitalize">{formatearFechaLegible(fechaInicio) || "Seleccionar inicio"}</span>
           </button>
           {mostrarCalendarioInicio && (
             <div className="absolute top-full left-0 mt-2 bg-white rounded-lg border border-[#E7E7E2] shadow-xl z-50 w-64">
@@ -401,7 +357,7 @@ const DateRangeSelector = ({
               }
             `}
           >
-            {fechaFin || "Seleccionar fin"}
+            <span className="capitalize">{formatearFechaLegible(fechaFin) || "Seleccionar fin"}</span>
           </button>
           {mostrarCalendarioFin && (
             <div className="absolute top-full left-0 mt-2 bg-white rounded-lg border border-[#E7E7E2] shadow-xl z-50 w-64">
@@ -469,10 +425,10 @@ export default function ModuloCompras() {
   const [fechaFin, setFechaFin] = useState("")
   const [programacion, setProgramacion] = useState<ProgramacionItem[]>([])
   const [cargando, setCargando] = useState(false)
-  const [cantidadPersonas, setCantidadPersonas] = useState<number>(100)
 
-  const [usarMismaCantidad, setUsarMismaCantidad] = useState<boolean>(true)
-  const [comensalesPorFecha, setComensalesPorFecha] = useState<Record<string, number>>({})
+  // Comensales reales por fecha y tipo, leídos de planificacion_comensales.
+  // La clave es `${fecha}|${tipo}`. Sustituyen a los antiguos campos manuales.
+  const [comensalesPorFechaTipo, setComensalesPorFechaTipo] = useState<Record<string, number>>({})
 
   const [insumosRequeridos, setInsumosRequeridos] = useState<InsumoRequerido[]>([])
   const [calculando, setCalculando] = useState(false)
@@ -552,36 +508,43 @@ export default function ModuloCompras() {
     setCargando(true)
 
     try {
-      const { data: todasFechas } = await supabase
+      // Con `fecha` de tipo date el rango se filtra en la propia consulta,
+      // sin traer todas las fechas de la sede para compararlas en el cliente.
+      const { data, error } = await supabase
         .from("planificacion_detalles")
-        .select("fecha_texto")
+        .select("id, fecha, tipo, categoria, plato_id")
         .eq("sede_id", sedeSeleccionada)
-        .order("fecha_texto")
+        .gte("fecha", fechaInicio)
+        .lte("fecha", fechaFin)
 
-      const fechasUnicas = todasFechas ? [...new Set(todasFechas.map(f => f.fecha_texto))] : []
+      if (error) throw error
 
-      const fechasEnRango = fechasUnicas.filter(fecha =>
-        compararFechas(fecha, fechaInicio, fechaFin)
-      )
-
-      if (fechasEnRango.length === 0) {
+      if (!data || data.length === 0) {
         setProgramacion([])
         setInsumosRequeridos([])
-        setComensalesPorFecha({})
+        setComensalesPorFechaTipo({})
         alert("No hay programación en el rango de fechas seleccionado")
         setCargando(false)
         return
       }
 
-      const { data, error } = await supabase
-        .from("planificacion_detalles")
-        .select("id, fecha_texto, tipo, categoria, plato_id")
+      // Comensales reales del rango, por fecha y tipo de menú.
+      const { data: comData, error: comError } = await supabase
+        .from("planificacion_comensales")
+        .select("fecha, tipo, comensales")
         .eq("sede_id", sedeSeleccionada)
-        .in("fecha_texto", fechasEnRango)
+        .gte("fecha", fechaInicio)
+        .lte("fecha", fechaFin)
 
-      if (error) throw error
+      if (comError) throw comError
 
-      if (data && data.length > 0) {
+      const mapaComensales: Record<string, number> = {}
+      comData?.forEach((c: { fecha: string; tipo: string; comensales: number }) => {
+        mapaComensales[`${c.fecha}|${c.tipo}`] = c.comensales
+      })
+      setComensalesPorFechaTipo(mapaComensales)
+
+      {
         const platoIds = [...new Set(data.map(p => p.plato_id))]
         const { data: platosData } = await supabase
           .from("platos")
@@ -598,22 +561,11 @@ export default function ModuloCompras() {
 
         // ─── ORDENAR POR FECHA CRONOLÓGICA ───
         const programacionOrdenada = programacionConNombre.sort((a, b) => {
-          return compararFechasCronologico(a.fecha_texto, b.fecha_texto)
+          return compararFechasCronologico(a.fecha, b.fecha)
         })
 
         setProgramacion(programacionOrdenada)
         setInsumosRequeridos([])
-
-        const fechasUnicasProgramadas = [...new Set(programacionOrdenada.map(p => p.fecha_texto))]
-        const inicial: Record<string, number> = {}
-        fechasUnicasProgramadas.forEach(fecha => {
-          inicial[fecha] = cantidadPersonas
-        })
-        setComensalesPorFecha(inicial)
-      } else {
-        setProgramacion([])
-        setInsumosRequeridos([])
-        setComensalesPorFecha({})
       }
     } catch (error: any) {
       console.error("Error cargando programación:", error)
@@ -623,10 +575,9 @@ export default function ModuloCompras() {
     }
   }
 
-  const actualizarComensalesFecha = (fecha: string, valor: number) => {
-    setComensalesPorFecha(prev => ({ ...prev, [fecha]: valor }))
-    setInsumosRequeridos([])
-  }
+  /** Comensales registrados para una fecha y tipo (0 si no hay registro). */
+  const comensalesDe = (fecha: string, tipo: string): number =>
+    comensalesPorFechaTipo[`${fecha}|${tipo}`] ?? 0
 
   const calcularRequerimientoRango = async () => {
     if (programacion.length === 0) {
@@ -634,20 +585,12 @@ export default function ModuloCompras() {
       return
     }
 
-    if (usarMismaCantidad) {
-      if (cantidadPersonas <= 0) {
-        alert("Ingrese un número válido de personas")
-        return
-      }
-    } else {
-      const fechasProgramacion = [...new Set(programacion.map(p => p.fecha_texto))]
-      const fechaInvalida = fechasProgramacion.find(
-        fecha => !comensalesPorFecha[fecha] || comensalesPorFecha[fecha] <= 0
+    if (totalComensalesRango <= 0) {
+      alert(
+        "No hay comensales registrados en este rango.\n\n" +
+        "Regístralos en Menús › Editar programación antes de calcular el requerimiento."
       )
-      if (fechaInvalida) {
-        alert(`Ingrese un número válido de comensales para: ${fechaInvalida}`)
-        return
-      }
+      return
     }
 
     setCalculando(true)
@@ -655,9 +598,8 @@ export default function ModuloCompras() {
 
     try {
       for (const item of programacion) {
-        const personasDia = usarMismaCantidad
-          ? cantidadPersonas
-          : (comensalesPorFecha[item.fecha_texto] ?? cantidadPersonas)
+        const personasDia = comensalesDe(item.fecha, item.tipo)
+        if (personasDia <= 0) continue
 
         const recetaPlato = recetas.filter(r => r.plato_id === item.plato_id)
 
@@ -745,7 +687,7 @@ const exportarAExcel = async () => {
       // Subtítulo (Fechas)
       wsRequerimiento.mergeCells(`A3:${ultimaColumnaReq}3`)
       const cellSubtitle = wsRequerimiento.getCell('A3')
-      cellSubtitle.value = `Periodo programado: ${fechaInicio} al ${fechaFin}`
+      cellSubtitle.value = `Periodo programado: ${formatearFechaLegible(fechaInicio)} al ${formatearFechaLegible(fechaFin)}`
       cellSubtitle.font = { name: 'Arial', size: 11, italic: true, color: { argb: COLOR_OSCURO } }
       cellSubtitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_FONDO_GRIS } }
       cellSubtitle.alignment = { vertical: 'middle', horizontal: 'center' }
@@ -892,14 +834,14 @@ const exportarAExcel = async () => {
 
       const resumenDatos = [
         ['Sede Asignada', sedeInfo?.nombre || 'No especificada'],
-        ['Rango de Fechas', `${fechaInicio} al ${fechaFin}`],
-        ['Días de Operación', programacion.length > 0 ? [...new Set(programacion.map(p => p.fecha_texto))].length : 0],
-        ['Comensales por día', usarMismaCantidad ? cantidadPersonas : 'Variable (ver detalle)'],
-        ['Total Comensales (Periodo)', totalComensalesDias],
+        ['Rango de Fechas', `${formatearFechaLegible(fechaInicio)} al ${formatearFechaLegible(fechaFin)}`],
+        ['Días de Operación', totalDias],
+        ['Promedio de Comensales por día', promedioComensalesDia],
+        ['Total Comensales (Periodo)', totalComensalesRango],
         ...(rol === "gerencia" ? [
           ['Costo Total Estimado', costoTotalGeneral],
           ['Costo Promedio por Día', totalDias > 0 ? costoTotalGeneral / totalDias : 0],
-          ['Costo Promedio por Comensal', totalComensalesDias > 0 ? costoTotalGeneral / totalComensalesDias : 0]
+          ['Costo Promedio por Comensal', totalComensalesRango > 0 ? costoTotalGeneral / totalComensalesRango : 0]
         ] : [])
       ]
 
@@ -981,25 +923,32 @@ const exportarAExcel = async () => {
       // ==========================================
       // HOJA 3: COMENSALES POR DÍA (Opcional)
       // ==========================================
-      if (!usarMismaCantidad) {
+      if (fechasOrdenadas.length > 0) {
         const wsComensales = wb.addWorksheet('Comensales por día')
-        
-        const rowHeaderCom = wsComensales.addRow(['Fecha de Servicio', 'Cantidad de Comensales'])
+
+        const rowHeaderCom = wsComensales.addRow(['Fecha de Servicio', 'Tipo de Menú', 'Comensales'])
         rowHeaderCom.eachCell((cell) => {
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_OSCURO } }
           cell.font = { bold: true, color: { argb: 'FFFFFFFF' } }
           cell.alignment = { horizontal: 'center' }
         })
 
-        const fechasOrdenadasExcel = Object.keys(comensalesPorFecha).sort((a, b) => compararFechasCronologico(a, b))
-        
-        fechasOrdenadasExcel.forEach((fecha) => {
-          const row = wsComensales.addRow([fecha, comensalesPorFecha[fecha] || 0])
-          row.getCell(2).alignment = { horizontal: 'center' }
-          row.getCell(2).font = { bold: true, color: { argb: COLOR_NARANJA } }
+        // Una fila por fecha y tipo, que es como se registran los comensales.
+        fechasOrdenadas.forEach((fecha) => {
+          const tiposDelDia = [...new Set((programacionPorFecha[fecha] || []).map(p => p.tipo))].sort()
+
+          tiposDelDia.forEach((tipo) => {
+            const row = wsComensales.addRow([
+              formatearFechaLegible(fecha),
+              tipo,
+              comensalesPorFechaTipo[`${fecha}|${tipo}`] ?? 0,
+            ])
+            row.getCell(3).alignment = { horizontal: 'center' }
+            row.getCell(3).font = { bold: true, color: { argb: COLOR_NARANJA } }
+          })
         })
-        
-        wsComensales.columns = [{ width: 25 }, { width: 25 }]
+
+        wsComensales.columns = [{ width: 32 }, { width: 18 }, { width: 16 }]
       }
 
       // 4. Generar y descargar el archivo
@@ -1017,16 +966,12 @@ const exportarAExcel = async () => {
 
   // ─── AGRUPAR Y ORDENAR FECHAS ───
   const programacionPorFecha = programacion.reduce((acc, item) => {
-    if (!acc[item.fecha_texto]) acc[item.fecha_texto] = []
-    acc[item.fecha_texto].push(item)
+    if (!acc[item.fecha]) acc[item.fecha] = []
+    acc[item.fecha].push(item)
     return acc
   }, {} as Record<string, ProgramacionItem[]>)
 
-  const fechasOrdenadas = Object.keys(programacionPorFecha).sort((a, b) => 
-    compararFechasCronologico(a, b)
-  )
-
-  const fechasComensalesOrdenadas = Object.keys(comensalesPorFecha).sort((a, b) =>
+  const fechasOrdenadas = Object.keys(programacionPorFecha).sort((a, b) =>
     compararFechasCronologico(a, b)
   )
 
@@ -1035,13 +980,26 @@ const exportarAExcel = async () => {
   const costoTotalGeneral = insumosRequeridos.reduce((acc, curr) => acc + (curr.costo_total || 0), 0)
   const sedeInfo = sedes.find(s => s.id === sedeSeleccionada)
 
-  const totalComensalesDias = usarMismaCantidad
-    ? cantidadPersonas * totalDias
-    : Object.keys(programacionPorFecha).reduce(
-        (acc, fecha) => acc + (comensalesPorFecha[fecha] ?? 0), 0
-      )
+  // Pares fecha+tipo realmente programados: sobre esos se leen los comensales.
+  const paresFechaTipo = [...new Set(programacion.map(p => `${p.fecha}|${p.tipo}`))]
 
-  const promedioComensalesDia = totalDias > 0 ? Math.round(totalComensalesDias / totalDias) : 0
+  const totalComensalesRango = paresFechaTipo.reduce(
+    (acc, clave) => acc + (comensalesPorFechaTipo[clave] ?? 0),
+    0
+  )
+
+  const paresSinComensales = paresFechaTipo.filter(
+    clave => (comensalesPorFechaTipo[clave] ?? 0) <= 0
+  )
+
+  /** Comensales sumados de un día (todos sus tipos). */
+  const comensalesDelDia = (fecha: string): number =>
+    [...new Set((programacionPorFecha[fecha] || []).map(p => p.tipo))].reduce(
+      (acc, tipo) => acc + (comensalesPorFechaTipo[`${fecha}|${tipo}`] ?? 0),
+      0
+    )
+
+  const promedioComensalesDia = totalDias > 0 ? Math.round(totalComensalesRango / totalDias) : 0
 
   if (verificandoAcceso) {
     return (
@@ -1134,7 +1092,7 @@ const exportarAExcel = async () => {
                 setFechaFin("")
                 setProgramacion([])
                 setInsumosRequeridos([])
-                setComensalesPorFecha({})
+                setComensalesPorFechaTipo({})
               }}
               className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
             >
@@ -1146,19 +1104,22 @@ const exportarAExcel = async () => {
           <div>
             <label className="block text-sm font-medium text-[#2B2B2B] mb-1">
               <Users className="inline w-4 h-4 mr-2 text-[#F37F21]" />
-              Comensales por día {!usarMismaCantidad && <span className="text-[10px] text-[#9A9A93] font-normal">(valor por defecto)</span>}
+              Comensales del rango
             </label>
-            <input
-              type="number"
-              value={cantidadPersonas}
-              onChange={(e) => {
-                const valor = parseInt(e.target.value) || 0
-                setCantidadPersonas(valor)
-                setInsumosRequeridos([])
-              }}
-              min="1"
-              className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
-            />
+            <div className="w-full rounded-lg border border-[#E7E7E2] bg-[#FAFAF7] px-4 py-2.5">
+              {totalDias === 0 ? (
+                <span className="text-sm text-[#9A9A93]">Carga una programación</span>
+              ) : (
+                <>
+                  <p className="text-sm font-bold text-[#2B2B2B]">
+                    {totalComensalesRango} en total
+                  </p>
+                  <p className="text-xs text-[#6B6B65]">
+                    {promedioComensalesDia} en promedio por día
+                  </p>
+                </>
+              )}
+            </div>
           </div>
 
           <div className="flex items-end">
@@ -1177,39 +1138,30 @@ const exportarAExcel = async () => {
           </div>
         </div>
 
-        {/* ─── Checkbox de comensales variables ─── */}
-        <div className="mb-6">
-          <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={usarMismaCantidad}
-              onChange={(e) => {
-                const checked = e.target.checked
-                setUsarMismaCantidad(checked)
-                setInsumosRequeridos([])
-                if (!checked) {
-                  const fechasUnicasProgramadas = [...new Set(programacion.map(p => p.fecha_texto))]
-                  setComensalesPorFecha(prev => {
-                    const actualizado = { ...prev }
-                    fechasUnicasProgramadas.forEach(fecha => {
-                      if (!actualizado[fecha]) actualizado[fecha] = cantidadPersonas
-                    })
-                    return actualizado
-                  })
-                }
-              }}
-              className="w-4 h-4 rounded border-[#E7E7E2] text-[#8CC63F] focus:ring-[#8CC63F]"
-            />
-            <span className="text-sm text-[#2B2B2B]">
-              Usar la misma cantidad de comensales todos los días
-            </span>
-          </label>
-          {!usarMismaCantidad && (
-            <p className="text-xs text-[#9A9A93] mt-1 ml-6">
-              Desactivado: podrás definir la cantidad de comensales para cada fecha una vez cargada la programación.
-            </p>
-          )}
-        </div>
+        {/* Aviso cuando falta registrar comensales en el rango */}
+        {paresSinComensales.length > 0 && (
+          <div className="mb-6 flex items-start gap-3 rounded-lg border border-[#F37F21]/30 bg-[#FFF7ED] p-4">
+            <Users className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#F37F21]" />
+            <div className="text-sm">
+              <p className="font-bold text-[#2B2B2B]">
+                {paresSinComensales.length}{' '}
+                {paresSinComensales.length === 1
+                  ? 'combinación de día y tipo no tiene comensales'
+                  : 'combinaciones de día y tipo no tienen comensales'}
+              </p>
+              <p className="mt-0.5 text-[#6B6B65]">
+                No sumarán al requerimiento. Regístralos en{' '}
+                <Link
+                  href="/dashboard/menus/editar"
+                  className="font-semibold text-[#F37F21] underline"
+                >
+                  Menús › Editar programación
+                </Link>
+                .
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Selector de rango */}
         {sedeSeleccionada && (
@@ -1225,7 +1177,7 @@ const exportarAExcel = async () => {
                 setFechaFin(fin)
                 setProgramacion([])
                 setInsumosRequeridos([])
-                setComensalesPorFecha({})
+                setComensalesPorFechaTipo({})
               }}
               fechaInicio={fechaInicio}
               fechaFin={fechaFin}
@@ -1233,7 +1185,7 @@ const exportarAExcel = async () => {
             {fechaInicio && fechaFin && (
               <div className="mt-3 p-2 rounded-lg bg-[#8CC63F]/10 border border-[#8CC63F]/20">
                 <p className="text-sm text-[#8CC63F]">
-                  ✓ Rango seleccionado: <strong>{fechaInicio}</strong> al <strong>{fechaFin}</strong>
+                  ✓ Rango seleccionado: <strong className="capitalize">{formatearFechaLegible(fechaInicio)}</strong> al <strong className="capitalize">{formatearFechaLegible(fechaFin)}</strong>
                 </p>
               </div>
             )}
@@ -1246,7 +1198,7 @@ const exportarAExcel = async () => {
             <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3" style={{ background: '#2B2B2B' }}>
               <h2 className="text-white font-bold text-sm flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
-                Programación del {fechaInicio} al {fechaFin}
+                <span className="capitalize">Programación del {formatearFechaLegible(fechaInicio)} al {formatearFechaLegible(fechaFin)}</span>
               </h2>
               <span className="text-white/70 text-xs">
                 {totalDias} días · {totalPlatos} platos
@@ -1259,8 +1211,8 @@ const exportarAExcel = async () => {
                   const items = programacionPorFecha[fecha]
                   return (
                     <div key={fecha} className="min-w-[220px] max-w-[280px] flex-shrink-0 border-r border-[#E7E7E2] pr-6 last:border-r-0 last:pr-0">
-                      <h3 className="text-sm font-bold text-[#F37F21] mb-3 sticky left-0 bg-white py-1">
-                        {fecha}
+                      <h3 className="text-sm font-bold text-[#F37F21] mb-3 sticky left-0 bg-white py-1 capitalize">
+                        {formatearFechaLegible(fecha)}
                       </h3>
                       {Object.entries(
                         items.reduce((acc, item) => {
@@ -1306,7 +1258,7 @@ const exportarAExcel = async () => {
             <div className="px-4 sm:px-6 py-3 border-t border-[#E7E7E2] bg-[#F5F5F0] flex flex-col sm:flex-row flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-[#6B6B65] flex items-center gap-2">
                 <Users className="w-3 h-3" />
-                {totalDias} días · {totalPlatos} platos · {usarMismaCantidad ? `${cantidadPersonas} comensales/día` : `${totalComensalesDias} comensales en total (variable por día)`}
+                {totalDias} días · {totalPlatos} platos · {totalComensalesRango} comensales en total
               </p>
               <button
                 onClick={calcularRequerimientoRango}
@@ -1324,8 +1276,8 @@ const exportarAExcel = async () => {
           </div>
         )}
 
-        {/* ─── Panel de comensales por día ─── */}
-        {!usarMismaCantidad && programacion.length > 0 && (
+        {/* ─── Comensales por día (solo lectura: vienen de la programación) ─── */}
+        {programacion.length > 0 && (
           <div className="mb-6 rounded-lg border border-[#E7E7E2] bg-white overflow-hidden shadow-sm">
             <div className="px-4 sm:px-6 py-3 border-b border-[#E7E7E2]" style={{ background: '#F5F5F0' }}>
               <h3 className="text-sm font-bold text-[#2B2B2B] flex items-center gap-2">
@@ -1333,28 +1285,45 @@ const exportarAExcel = async () => {
                 Comensales por día
               </h3>
               <p className="text-xs text-[#9A9A93] mt-0.5">
-                Define cuántos comensales hubo (o habrá) cada día antes de calcular el requerimiento.
+                Registrados junto con la programación. Para cambiarlos, edita la programación.
               </p>
             </div>
             <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {fechasComensalesOrdenadas.map((fecha) => (
-                <div key={fecha} className="flex flex-col gap-1">
-                  <label className="text-xs font-medium text-[#6B6B65] truncate" title={fecha}>
-                    {fecha}
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={comensalesPorFecha[fecha] ?? cantidadPersonas}
-                    onChange={(e) => actualizarComensalesFecha(fecha, parseInt(e.target.value) || 0)}
-                    className="w-full rounded-lg border border-[#E7E7E2] px-3 py-2 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
-                  />
-                </div>
-              ))}
+              {fechasOrdenadas.map((fecha) => {
+                const total = comensalesDelDia(fecha)
+                const tiposDelDia = [...new Set((programacionPorFecha[fecha] || []).map(p => p.tipo))]
+
+                return (
+                  <div
+                    key={fecha}
+                    className="rounded-lg border border-[#E7E7E2] px-3 py-2"
+                    style={{ background: total > 0 ? '#FFFFFF' : '#FFF7ED' }}
+                  >
+                    <p className="text-xs font-medium text-[#6B6B65] capitalize truncate" title={formatearFechaLegible(fecha)}>
+                      {formatearFechaLegible(fecha)}
+                    </p>
+                    <p className="text-lg font-bold text-[#2B2B2B]">{total}</p>
+                    <div className="flex flex-wrap gap-x-2 gap-y-0.5">
+                      {tiposDelDia.map(tipo => {
+                        const n = comensalesPorFechaTipo[`${fecha}|${tipo}`] ?? 0
+                        return (
+                          <span
+                            key={tipo}
+                            className="text-[10px]"
+                            style={{ color: n > 0 ? '#6B6B65' : '#C4554D' }}
+                          >
+                            {tipo}: <strong>{n}</strong>
+                          </span>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
             </div>
             <div className="px-4 sm:px-6 py-2 border-t border-[#E7E7E2] bg-[#F5FBF0]">
               <p className="text-xs text-[#6B6B65]">
-                Total: <strong className="text-[#2B2B2B]">{totalComensalesDias} comensales</strong>
+                Total: <strong className="text-[#2B2B2B]">{totalComensalesRango} comensales</strong>
                 <span className="ml-3">Promedio/día: <strong className="text-[#2B2B2B]">{promedioComensalesDia}</strong></span>
               </p>
             </div>
@@ -1371,7 +1340,7 @@ const exportarAExcel = async () => {
                   {rol === "gerencia" ? "Requerimiento de Insumos y Costos" : "Requerimiento de Insumos"}
                 </h2>
                 <p className="text-white/60 text-xs mt-0.5">
-                  {totalDias} días ({fechaInicio} al {fechaFin})
+                  <span className="capitalize">{totalDias} días ({formatearFechaLegible(fechaInicio)} al {formatearFechaLegible(fechaFin)})</span>
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-4">
@@ -1452,7 +1421,7 @@ const exportarAExcel = async () => {
                       · Costo por día: <strong className="text-[#2B2B2B]">{formatearMoneda(costoTotalGeneral / totalDias)}</strong>
                     </span>
                     <span className="ml-4">
-                      · Costo por comensal: <strong className="text-[#2B2B2B]">{formatearMoneda(totalComensalesDias > 0 ? costoTotalGeneral / totalComensalesDias : 0)}</strong>
+                      · Costo por comensal: <strong className="text-[#2B2B2B]">{formatearMoneda(totalComensalesRango > 0 ? costoTotalGeneral / totalComensalesRango : 0)}</strong>
                     </span>
                   </>
                 )}

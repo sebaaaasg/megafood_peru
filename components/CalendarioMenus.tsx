@@ -56,11 +56,12 @@ export default function CalendarioProgramacion({
       try {
         const { data } = await supabase
           .from("planificacion_detalles")
-          .select("fecha_texto")
+          .select("fecha")
           .eq("sede_id", sedeId)
 
         if (data) {
-          setFechasProgramadas(new Set(data.map((f: any) => f.fecha_texto)))
+          // La columna `fecha` es de tipo date: llega ya como yyyy-mm-dd.
+          setFechasProgramadas(new Set(data.map((f: { fecha: string }) => f.fecha)))
         }
       } catch (error) {
         console.error("Error al cargar fechas programadas:", error)
@@ -79,16 +80,9 @@ export default function CalendarioProgramacion({
     return `${y}-${m}-${d}`
   }
 
-  // Fecha -> texto largo en español, mismo formato que fecha_texto en BD
-  const aTextoBD = (fecha: Date): string => {
-    const dias = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
-    const meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
-    return `${dias[fecha.getDay()]}, ${fecha.getDate()} de ${meses[fecha.getMonth()]} de ${fecha.getFullYear()}`
-  }
-
   // Verificar si una fecha ya tiene programación (solo para el aviso ×)
   const tieneProgramacion = (fecha: Date): boolean => {
-    return fechasProgramadas.has(aTextoBD(fecha))
+    return fechasProgramadas.has(aISO(fecha))
   }
 
   // Obtener días del mes

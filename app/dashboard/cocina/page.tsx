@@ -29,7 +29,8 @@ interface Sede {
 
 interface ProgramacionItem {
   id: number
-  fecha_texto: string
+  /** Columna `fecha` (date) de planificacion_detalles: yyyy-mm-dd. */
+  fecha: string
   tipo: string
   categoria: string
   plato_id: string
@@ -94,6 +95,18 @@ const formatearCantidad = (cantidad: number, unidad: string): { cantidad: number
   return { cantidad, unidad }
 }
 
+// yyyy-mm-dd -> "miércoles, 12 de agosto de 2026"
+// El sufijo T00:00:00 fuerza interpretación local y evita el desfase de un día.
+const formatearFechaLegible = (fechaISO: string): string => {
+  if (!fechaISO) return ""
+  return new Date(fechaISO + 'T00:00:00').toLocaleDateString('es-ES', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
 // Función para redondear cantidades
 const redondearCantidad = (cantidad: number): number => {
   if (cantidad === 0) return 0
@@ -112,7 +125,9 @@ export default function RequerimientoCocina() {
   const [fechaSeleccionada, setFechaSeleccionada] = useState("")
   const [programacion, setProgramacion] = useState<ProgramacionItem[]>([])
   const [cargando, setCargando] = useState(false)
-  const [cantidadPersonas, setCantidadPersonas] = useState<number>(100)
+  // Comensales reales por tipo de menú, leídos de planificacion_comensales.
+  // Sustituyen al antiguo campo manual "N° de personas".
+  const [comensalesPorTipo, setComensalesPorTipo] = useState<Record<string, number>>({})
   const [insumosRequeridos, setInsumosRequeridos] = useState<InsumoRequerido[]>([])
   const [calculando, setCalculando] = useState(false)
   const [recetas, setRecetas] = useState<Receta[]>([])
@@ -121,6 +136,15 @@ export default function RequerimientoCocina() {
   // Estados para los botones de exportación
   const [exportando, setExportando] = useState(false)
   const [exportandoSolo, setExportandoSolo] = useState(false)
+
+  // Tipos de menú programados ese día y sus comensales.
+  const tiposPresentes = [...new Set(programacion.map(p => p.tipo))]
+  const totalComensales = tiposPresentes.reduce(
+    (acc, t) => acc + (comensalesPorTipo[t] ?? 0),
+    0
+  )
+  const tiposSinComensales = tiposPresentes.filter(t => (comensalesPorTipo[t] ?? 0) <= 0)
+  const fechaLegible = formatearFechaLegible(fechaSeleccionada)
 
   useEffect(() => {
     cargarDatosIniciales()
@@ -157,11 +181,26 @@ export default function RequerimientoCocina() {
     
     setCargando(true)
     try {
+      // El calendario emite yyyy-mm-dd, que es justo el formato de la columna
+      // `fecha` (date). Antes se comparaba contra fecha_texto y nunca coincidía.
       const { data } = await supabase
         .from("planificacion_detalles")
-        .select("id, fecha_texto, tipo, categoria, plato_id")
+        .select("id, fecha, tipo, categoria, plato_id")
         .eq("sede_id", sedeSeleccionada)
-        .eq("fecha_texto", fechaSeleccionada)
+        .eq("fecha", fechaSeleccionada)
+
+      // Comensales de esa fecha, por tipo de menú.
+      const { data: comData } = await supabase
+        .from("planificacion_comensales")
+        .select("tipo, comensales")
+        .eq("sede_id", sedeSeleccionada)
+        .eq("fecha", fechaSeleccionada)
+
+      const mapaComensales: Record<string, number> = {}
+      comData?.forEach((c: { tipo: string; comensales: number }) => {
+        mapaComensales[c.tipo] = c.comensales
+      })
+      setComensalesPorTipo(mapaComensales)
 
       if (data && data.length > 0) {
         const platoIds = [...new Set(data.map(p => p.plato_id))]
@@ -191,26 +230,35 @@ export default function RequerimientoCocina() {
     }
   }
 
+  /** Comensales registrados para un tipo de menú (0 si no hay registro). */
+  const comensalesDe = (tipo: string): number => comensalesPorTipo[tipo] ?? 0
+
   const calcularRequerimiento = async () => {
     if (programacion.length === 0) {
       alert("Primero seleccione una fecha con programación")
       return
     }
-    if (cantidadPersonas <= 0) {
-      alert("Ingrese un número válido de personas")
+    if (totalComensales <= 0) {
+      alert(
+        "No hay comensales registrados para esta fecha.\n\n" +
+        "Regístralos en Menús › Editar programación antes de calcular el requerimiento."
+      )
       return
     }
 
     setCalculando(true)
-    
+
     try {
       const mapaInsumos = new Map<string, InsumoRequerido>()
 
       for (const item of programacion) {
+        const comensales = comensalesDe(item.tipo)
+        if (comensales <= 0) continue
+
         const recetaPlato = recetas.filter(r => r.plato_id === item.plato_id)
-        
+
         for (const receta of recetaPlato) {
-          const cantidadTotal = receta.cantidad * cantidadPersonas
+          const cantidadTotal = receta.cantidad * comensales
           const insumo = insumos.find(i => i.id === receta.insumo_id)
           
           if (!insumo) continue
@@ -280,8 +328,13 @@ const exportarAExcel = async () => {
 
       const resumenDatos: any[][] = [
         ['Sede Asignada', sedeInfo?.nombre || 'No especificada'],
-        ['Fecha de Programación', fechaSeleccionada],
-        ['N° de Personas (Comensales)', cantidadPersonas]
+        ['Fecha de Programación', fechaLegible],
+        ['Total de Comensales', totalComensales],
+        // Desglose por tipo, que es como se registran ahora los comensales.
+        ...tiposPresentes.map(t => [
+          `  Comensales · ${TIPOS_MENU.find(x => x.value === t)?.label || t}`,
+          comensalesDe(t)
+        ])
       ]
 
       resumenDatos.forEach(dato => {
@@ -331,10 +384,10 @@ const exportarAExcel = async () => {
         
         insumosPlato.forEach(receta => {
           const insumo = insumos.find(i => i.id === receta.insumo_id)
-          const cantidadTotal = receta.cantidad * cantidadPersonas
+          const cantidadTotal = receta.cantidad * comensalesDe(item.tipo)
           const { cantidad: cF, unidad: uF } = formatearCantidad(cantidadTotal, insumo?.unidad || 'unid')
           const cantidadFinal = redondearCantidad(cF)
-          
+
           const rowData: any[] = [
             item.plato_nombre,
             item.categoria,
@@ -403,7 +456,7 @@ const exportarSoloInsumos = async () => {
 
       ws.mergeCells('A1:D2')
       const cellTitle = ws.getCell('A1')
-      cellTitle.value = `INSUMOS REQUERIDOS - ${fechaSeleccionada}`
+      cellTitle.value = `INSUMOS REQUERIDOS - ${fechaLegible}`
       cellTitle.font = { name: 'Arial', size: 14, bold: true, color: { argb: 'FFFFFFFF' } }
       cellTitle.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: COLOR_OSCURO } }
       cellTitle.alignment = { vertical: 'middle', horizontal: 'center' }
@@ -428,7 +481,7 @@ const exportarSoloInsumos = async () => {
         insumosPlato.forEach(receta => {
           const insumo = insumos.find(i => i.id === receta.insumo_id)
           const { cantidad: cF, unidad: uF } = formatearCantidad(
-            receta.cantidad * cantidadPersonas, 
+            receta.cantidad * comensalesDe(item.tipo),
             insumo?.unidad || 'unid'
           )
           
@@ -591,27 +644,73 @@ const exportarSoloInsumos = async () => {
               fechaSeleccionada={fechaSeleccionada}
             />
             {fechaSeleccionada && (
-              <p className="text-xs text-[#8CC63F] mt-1">
-                ✓ Fecha seleccionada: {fechaSeleccionada}
+              <p className="text-xs text-[#8CC63F] mt-1 capitalize">
+                ✓ {fechaLegible}
               </p>
             )}
           </div>
 
-          {/* Número de personas */}
+          {/* Comensales: ya no se escriben aquí, vienen de la programación */}
           <div>
             <label className="block text-sm font-medium text-[#2B2B2B] mb-1">
               <Users className="inline w-4 h-4 mr-2 text-[#8CC63F]" />
-              N° de personas
+              Comensales programados
             </label>
-            <input
-              type="number"
-              value={cantidadPersonas}
-              onChange={(e) => setCantidadPersonas(parseInt(e.target.value) || 0)}
-              min="1"
-              className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
-            />
+            <div className="w-full rounded-lg border border-[#E7E7E2] bg-[#FAFAF7] px-4 py-2.5">
+              {tiposPresentes.length === 0 ? (
+                <span className="text-sm text-[#9A9A93]">
+                  Selecciona una fecha con programación
+                </span>
+              ) : (
+                <>
+                  <p className="text-sm font-bold text-[#2B2B2B]">
+                    {totalComensales} en total
+                  </p>
+                  <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
+                    {tiposPresentes.map(t => {
+                      const info = TIPOS_MENU.find(x => x.value === t)
+                      const n = comensalesDe(t)
+                      return (
+                        <span
+                          key={t}
+                          className="text-xs"
+                          style={{ color: n > 0 ? info?.color || '#6B6B65' : '#C4554D' }}
+                        >
+                          {info?.icon} {info?.label || t}: <strong>{n}</strong>
+                        </span>
+                      )
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Aviso cuando faltan comensales para algún tipo programado */}
+        {tiposSinComensales.length > 0 && (
+          <div className="mb-6 flex items-start gap-3 rounded-lg border border-[#F37F21]/30 bg-[#FFF7ED] p-4">
+            <Users className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#F37F21]" />
+            <div className="text-sm">
+              <p className="font-bold text-[#2B2B2B]">
+                Faltan comensales para{' '}
+                {tiposSinComensales
+                  .map(t => TIPOS_MENU.find(x => x.value === t)?.label || t)
+                  .join(', ')}
+              </p>
+              <p className="mt-0.5 text-[#6B6B65]">
+                Esos tipos no sumarán al requerimiento. Regístralos en{' '}
+                <Link
+                  href="/dashboard/menus/editar"
+                  className="font-semibold text-[#F37F21] underline"
+                >
+                  Menús › Editar programación
+                </Link>
+                .
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Botón calcular */}
         {fechaSeleccionada && (
@@ -631,7 +730,7 @@ const exportarSoloInsumos = async () => {
                 ) : (
                   <Calculator className="w-5 h-5" />
                 )}
-                {calculando ? "Calculando..." : `Calcular requerimiento para ${cantidadPersonas} personas`}
+                {calculando ? "Calculando..." : `Calcular requerimiento para ${totalComensales} comensales`}
               </button>
             ) : (
               <div className="text-center py-8 rounded-lg border border-[#F37F21]/20 bg-[#F37F21]/5">
@@ -651,7 +750,7 @@ const exportarSoloInsumos = async () => {
               <div className="px-5 py-4" style={{ background: '#2B2B2B' }}>
                 <h2 className="text-white font-bold text-sm flex items-center gap-2">
                   <UtensilsCrossed className="w-4 h-4" />
-                  Menú del {fechaSeleccionada}
+                  <span className="capitalize">Menú del {fechaLegible}</span>
                 </h2>
               </div>
               <div className="p-5">
@@ -687,7 +786,7 @@ const exportarSoloInsumos = async () => {
                 <div className="mt-4 pt-3 border-t border-[#E7E7E2]">
                   <p className="text-xs text-[#6B6B65] flex items-center gap-2">
                     <Users className="w-3 h-3" />
-                    Total: {totalPlatos} platos · {cantidadPersonas} comensales
+                    Total: {totalPlatos} platos · {totalComensales} comensales
                   </p>
                 </div>
               </div>
@@ -726,7 +825,7 @@ const exportarSoloInsumos = async () => {
                             <div>
                               <p className="text-sm font-medium text-[#2B2B2B]">{insumo.insumo_nombre}</p>
                               <p className="text-[10px] text-[#9A9A93]">
-                                {insumo.cantidad_porcion.toFixed(3)} {insumo.unidad} × {cantidadPersonas} pers.
+                                {insumo.cantidad_porcion.toFixed(3)} {insumo.unidad} por comensal
                               </p>
                             </div>
                             <p className="text-sm font-bold text-[#F37F21]">

@@ -13,7 +13,8 @@ import {
   Eye,
   RefreshCw,
   X,
-  CheckCircle
+  CheckCircle,
+  Users
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import CalendarioProgramacion from '@/components/CalendarioMenus'
@@ -32,7 +33,7 @@ interface Sede {
 
 interface ProgramacionExistente {
   id: number
-  fecha_texto: string
+  fecha: string
   tipo: string
   categoria: string
   plato_id: string
@@ -82,6 +83,8 @@ export default function ProgramacionManual() {
   const [fechaBloqueada, setFechaBloqueada]       = useState(false)
   const [mostrandoConfirmacion, setMostrandoConfirmacion] = useState(false)
   const [numGuarniciones, setNumGuarniciones]     = useState(1)
+  // Comensales por tipo de menú, en texto mientras se edita el input.
+  const [comensalesPorTipo, setComensalesPorTipo] = useState<Record<string, string>>({})
 
   const formatearFechaISO = (fechaISO: string): string => {
     if (!fechaISO) return ""
@@ -126,12 +129,14 @@ export default function ProgramacionManual() {
     setFechaBloqueada(false)
     setProgramacionExistente([])
     setSeleccionesPorTipo(EMPTY_SEL_POR_TIPO())
+    setComensalesPorTipo({})
 
-    const fechaFormateada = formatearFechaISO(fechaSeleccionada)
+    // `fecha` es una columna date: se consulta con el ISO tal cual lo emite el
+    // calendario (yyyy-mm-dd), no con el texto largo en español.
     const { data } = await supabase
       .from("planificacion_detalles")
-      .select("id, fecha_texto, tipo, categoria, plato_id")
-      .eq("fecha_texto", fechaFormateada)
+      .select("id, fecha, tipo, categoria, plato_id")
+      .eq("fecha", fechaSeleccionada)
       .eq("sede_id", sedeSeleccionada)
 
     if (data && data.length > 0) {
@@ -149,6 +154,22 @@ export default function ProgramacionManual() {
         }
       })
       setSeleccionesPorTipo(nuevasSelecciones)
+
+      // Comensales ya registrados para esa fecha (solo lectura: la fecha
+      // queda bloqueada y se edita desde /menus/editar).
+      const { data: comData } = await supabase
+        .from("planificacion_comensales")
+        .select("tipo, comensales")
+        .eq("fecha", fechaSeleccionada)
+        .eq("sede_id", sedeSeleccionada)
+
+      if (comData) {
+        const mapa: Record<string, string> = {}
+        comData.forEach((c: { tipo: string; comensales: number }) => {
+          mapa[c.tipo] = String(c.comensales)
+        })
+        setComensalesPorTipo(mapa)
+      }
     }
     setVerificando(false)
   }
@@ -184,19 +205,21 @@ export default function ProgramacionManual() {
   const guardarProgramacion = async () => {
     setCargando(true)
     try {
-      const fechaFormateada = formatearFechaISO(fechaSeleccionada)
       const registros: any[] = []
+      // Tipos que realmente se van a guardar: solo esos llevan comensales.
+      const tiposGuardados = new Set<string>()
 
       for (const [tipo, selecciones] of Object.entries(seleccionesPorTipo)) {
         for (const [categoria, platoId] of Object.entries(selecciones)) {
           if (!platoId) continue
           registros.push({
-            fecha_texto: fechaFormateada,
+            fecha: fechaSeleccionada,
             sede_id:     sedeSeleccionada,
             tipo,
             categoria,
             plato_id:    platoId,
           })
+          tiposGuardados.add(tipo)
         }
       }
 
@@ -208,10 +231,29 @@ export default function ProgramacionManual() {
       const { error } = await supabase.from("planificacion_detalles").insert(registros)
       if (error) throw error
 
+      // Comensales por tipo. Cocina y Compras calculan el requerimiento a
+      // partir de esta tabla, así que se guarda junto con la programación.
+      const registrosComensales = [...tiposGuardados]
+        .map(tipo => ({
+          fecha: fechaSeleccionada,
+          sede_id: sedeSeleccionada,
+          tipo,
+          comensales: parseInt(comensalesPorTipo[tipo] || "0", 10) || 0,
+        }))
+        .filter(r => r.comensales > 0)
+
+      if (registrosComensales.length > 0) {
+        const { error: errorComensales } = await supabase
+          .from("planificacion_comensales")
+          .upsert(registrosComensales, { onConflict: "fecha,sede_id,tipo" })
+        if (errorComensales) throw errorComensales
+      }
+
       alert(`✅ Programación guardada exitosamente (${registros.length} platos)`)
       setFechaSeleccionada("")
       setTipoMenu("estandar")
       setSeleccionesPorTipo(EMPTY_SEL_POR_TIPO())
+      setComensalesPorTipo({})
       setProgramacionExistente([])
       setFechaBloqueada(false)
       setNumGuarniciones(1)
@@ -444,6 +486,35 @@ export default function ProgramacionManual() {
                   <span className="text-sm font-bold text-[#2B2B2B]">
                     Configurando: <span style={{ color: tipoActual.color }}>{tipoActual.label}</span>
                   </span>
+                </div>
+
+                {/* Comensales del tipo. Cocina y Compras calculan el
+                    requerimiento de insumos a partir de este número. */}
+                <div className="mb-5 rounded-lg border border-[#E7E7E2] bg-[#FAFAF7] p-4">
+                  <label
+                    htmlFor={`comensales-${tipoMenu}`}
+                    className="mb-1.5 flex items-center gap-2 text-sm font-medium text-[#2B2B2B]"
+                  >
+                    <Users className="h-4 w-4" style={{ color: tipoActual.color }} />
+                    Comensales de {tipoActual.label}
+                  </label>
+                  <input
+                    id={`comensales-${tipoMenu}`}
+                    type="number"
+                    min="0"
+                    inputMode="numeric"
+                    disabled={fechaBloqueada}
+                    value={comensalesPorTipo[tipoMenu] ?? ""}
+                    onChange={e =>
+                      setComensalesPorTipo(prev => ({ ...prev, [tipoMenu]: e.target.value }))
+                    }
+                    placeholder="0"
+                    className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none transition focus:border-transparent focus:ring-2 focus:ring-[#8CC63F] disabled:bg-gray-100 disabled:text-[#9A9A93]"
+                  />
+                  <p className="mt-1.5 text-xs text-[#6B6B65]">
+                    Si lo dejas en 0, este tipo se guarda sin comensales y no sumará
+                    al requerimiento de Cocina ni de Compras.
+                  </p>
                 </div>
 
                 <div className="space-y-4">
