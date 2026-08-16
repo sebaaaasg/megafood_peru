@@ -34,11 +34,11 @@ interface PlatosClientProps {
 }
 
 // ─── Constantes ────────────────────────────────────────
-type CategoriaKey = "ENTRADA" | "CÁRNICO" | "GUARNICIÓN" | "POSTRE" | "BEBIBLE" | "SALSA"
+type CategoriaKey = "ENTRADA" | "FONDO" | "GUARNICIÓN" | "POSTRE" | "BEBIBLE" | "SALSA"
 
 const CATS: { key: CategoriaKey; label: string; color: string; bg: string; icon: any }[] = [
   { key: "ENTRADA",    label: "Entrada",    color: "#2d5a1e", bg: "#eaf3de", icon: Soup },
-  { key: "CÁRNICO",    label: "Cárnico",    color: "#991b1b", bg: "#fef2f2", icon: Drumstick },
+  { key: "FONDO",      label: "Fondo",      color: "#991b1b", bg: "#fef2f2", icon: Drumstick },
   { key: "GUARNICIÓN", label: "Guarnición", color: "#c2410c", bg: "#fff7ed", icon: Wheat },
   { key: "POSTRE",     label: "Postre",     color: "#6d28d9", bg: "#f5f3ff", icon: CakeSlice },
   { key: "BEBIBLE",    label: "Bebible",    color: "#1e40af", bg: "#eff6ff", icon: CupSoda },
@@ -51,13 +51,13 @@ const SUBCATS_ENTRADA = [
 ]
 
 const CAT_ALIAS: Record<string, CategoriaKey> = {
-  "CARNICO": "CÁRNICO",
+  "CARNICO": "FONDO",
+  "FONDO": "FONDO",
   "GUARNICION": "GUARNICIÓN",
   "ENTRADA": "ENTRADA",
   "POSTRE": "POSTRE",
   "BEBIBLE": "BEBIBLE",
   "SALSA": "SALSA",
-  "CÁRNICO": "CÁRNICO",
   "GUARNICIÓN": "GUARNICIÓN",
 }
 
@@ -921,7 +921,7 @@ export default function PlatosClient({
                       <tbody className="text-gray-500">
                         <tr>
                           <td className="pr-3 py-0.5">AJI DE GALLINA</td>
-                          <td className="pr-3">CÁRNICO</td>
+                          <td className="pr-3">FONDO</td>
                           <td className="pr-3"></td>
                           <td className="pr-3">Lima - Centro</td>
                           <td className="pr-3">POLLO ENTERO</td>

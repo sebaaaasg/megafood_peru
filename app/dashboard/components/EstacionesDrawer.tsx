@@ -6,7 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { IconPanel, IconCerrar } from './NucleoIcons'
-import { estacionesVisibles, P, TONOS } from './estaciones'
+import { estacionesVisibles, P, TONOS, BLOBS } from './estaciones'
 
 /**
  * Panel lateral de estaciones. Es controlado: quien lo usa decide cuándo
@@ -65,7 +65,7 @@ export default function EstacionesDrawer({
         className={`fixed inset-0 z-[60] backdrop-blur-[2px] transition-opacity duration-300 ${
           abierto ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
-        style={{ background: 'rgba(32,30,29,0.45)' }}
+        style={{ background: 'rgba(44,44,36,0.42)' }}
       />
 
       <aside
@@ -76,44 +76,57 @@ export default function EstacionesDrawer({
         className={`fixed inset-y-0 left-0 z-[70] flex w-[300px] max-w-[86vw] flex-col shadow-2xl transition-transform duration-300 ease-out ${
           abierto ? 'translate-x-0' : '-translate-x-full'
         }`}
-        style={{ background: P.n100, borderRadius: '0 32px 32px 0' }}
+        style={{
+          background: P.bg,
+          borderRadius: '0 2.5rem 2.5rem 0',
+          fontFamily: 'var(--font-nunito), system-ui, sans-serif',
+        }}
       >
         {/* Cabecera */}
-        <div
-          className="relative shrink-0 overflow-hidden"
-          style={{ background: P.a900, borderRadius: '0 32px 0 0' }}
-        >
-          <div
-            className="absolute inset-0 opacity-50"
-            style={{
-              backgroundImage:
-                `repeating-linear-gradient(135deg, ${P.a800} 0 22px, transparent 22px 44px), repeating-linear-gradient(45deg, ${P.a800} 0 22px, transparent 22px 44px)`,
-              backgroundSize: '62px 62px',
-            }}
+        <div className="relative shrink-0 overflow-hidden" style={{ borderRadius: '0 2.5rem 0 0' }}>
+          {/* Halos orgánicos, en lugar del tramado del diseño anterior */}
+          <span
+            className="pointer-events-none absolute"
+            style={{ left: -80, top: -90, width: 260, height: 260, background: 'rgba(140,198,63,0.35)', filter: 'blur(50px)', borderRadius: BLOBS[0] }}
             aria-hidden="true"
           />
+          <span
+            className="pointer-events-none absolute"
+            style={{ right: -70, top: -40, width: 200, height: 200, background: 'rgba(243,127,33,0.28)', filter: 'blur(50px)', borderRadius: BLOBS[1] }}
+            aria-hidden="true"
+          />
+
           <div className="relative flex items-start justify-between gap-3 px-5 pb-6 pt-5">
             <div>
-              <div className="flex items-center gap-2.5">
-                <Image
-                  src="/megafood.png"
-                  alt=""
-                  width={34}
-                  height={34}
-                  className="object-contain"
-                  style={{ width: 34, height: 34 }}
-                />
-                <span className="text-xl leading-none" style={{ fontFamily: 'var(--font-caprasimo)', color: P.n100 }}>
-                  Megafood <span style={{ color: P.a400 }}>Perú</span>
+              <Link
+                href="/dashboard"
+                aria-label="Ir al panel principal"
+                className="flex items-center gap-2.5 transition-transform hover:scale-[1.02] focus:outline-none focus:ring-2"
+              >
+                <span
+                  className="flex h-[42px] w-[42px] shrink-0 items-center justify-center overflow-hidden rounded-full"
+                  style={{ background: P.verde }}
+                >
+                  <Image
+                    src="/megafood3.png"
+                    alt=""
+                    width={34}
+                    height={34}
+                    className="object-contain"
+                    style={{ width: 34, height: 34 }}
+                  />
                 </span>
-              </div>
+                <span style={{ fontFamily: 'var(--font-fraunces), serif', fontWeight: 700, fontSize: 18, color: P.tinta }}>
+                  Megafood <span style={{ color: P.piedra }}>Perú</span>
+                </span>
+              </Link>
               <p
                 className="mt-3 text-[10px] font-extrabold uppercase"
-                style={{ letterSpacing: '0.16em', color: P.a300 }}
+                style={{ letterSpacing: '0.16em', color: '#4A5F2A' }}
               >
                 Estaciones operativas
               </p>
-              <p className="mt-1 text-xs" style={{ color: P.n300 }}>
+              <p className="mt-1 text-xs" style={{ color: P.tintaSuave }}>
                 👋 {displayName}
               </p>
             </div>
@@ -121,8 +134,8 @@ export default function EstacionesDrawer({
             <button
               onClick={onCerrar}
               aria-label="Cerrar menú"
-              className="shrink-0 rounded-lg p-1.5 transition hover:bg-white/10 focus:outline-none focus:ring-2"
-              style={{ color: P.n300 }}
+              className="shrink-0 rounded-full p-1.5 transition hover:bg-black/5 focus:outline-none focus:ring-2"
+              style={{ color: P.tintaSuave }}
             >
               <IconCerrar style={{ width: 18, height: 18 }} />
             </button>
@@ -132,7 +145,7 @@ export default function EstacionesDrawer({
         {/* Estaciones */}
         <nav className="flex-1 overflow-y-auto px-3 py-4">
           {visibles.length === 0 ? (
-            <p className="px-3 py-8 text-center text-sm" style={{ color: P.n600 }}>
+            <p className="px-3 py-8 text-center text-sm" style={{ color: P.tintaSuave }}>
               No tienes estaciones asignadas.
               <br />
               Contacta a un administrador.
@@ -161,40 +174,40 @@ export default function EstacionesDrawer({
                     <Link
                       href={est.href}
                       aria-current={activa ? 'page' : undefined}
-                      className="group relative flex items-center gap-3 overflow-hidden rounded-2xl px-3 py-2.5 transition-all duration-200 hover:translate-x-0.5 focus:outline-none focus:ring-2"
-                      style={{ background: activa ? t.pill : 'transparent' }}
+                      className="group relative flex items-center gap-3 overflow-hidden px-3 py-2.5 transition-all duration-200 hover:translate-x-0.5 focus:outline-none focus:ring-2"
+                      style={{ background: activa ? t.suave : 'transparent', borderRadius: 9999 }}
                     >
                       <span
-                        className="absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full transition-all duration-200"
-                        style={{ width: 3, height: activa ? 26 : 0, background: t.chip }}
-                        aria-hidden="true"
-                      />
-
-                      <span
-                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center transition-transform duration-200 group-hover:scale-110"
                         style={{
-                          background: activa ? t.chip : t.halo,
-                          color: activa ? t.onChip : t.onPill,
+                          // Cada estación toma una forma de blob distinta.
+                          borderRadius: BLOBS[i % BLOBS.length],
+                          background: activa ? t.solido : t.suave,
+                          color: activa ? t.sobreSolido : t.tinta,
                         }}
                       >
-                        <Icon filled={activa} style={{ width: 20, height: 20 }} />
+                        <Icon filled={activa} style={{ width: 20, height: 20 }} strokeWidth={2} />
                       </span>
 
                       <span className="min-w-0 flex-1">
                         <span
-                          className="block truncate text-[15px] font-bold leading-tight"
-                          style={{ color: activa ? t.onPill : P.text }}
+                          className="block truncate text-[15px] leading-tight"
+                          style={{
+                            fontFamily: 'var(--font-fraunces), serif',
+                            fontWeight: 700,
+                            color: activa ? t.tinta : P.tinta,
+                          }}
                         >
                           {est.label}
                         </span>
-                        <span className="block truncate text-[11px] leading-tight" style={{ color: P.n600 }}>
+                        <span className="block truncate text-[11px] leading-tight" style={{ color: P.tintaSuave }}>
                           {est.hint}
                         </span>
                       </span>
 
                       <span
                         className="shrink-0 text-[10px] font-extrabold"
-                        style={{ letterSpacing: '0.14em', color: activa ? t.link : P.n400 }}
+                        style={{ letterSpacing: '0.14em', color: activa ? t.tinta : P.tintaSuave }}
                       >
                         {est.n}
                       </span>
@@ -207,15 +220,15 @@ export default function EstacionesDrawer({
         </nav>
 
         {/* Pie */}
-        <div className="shrink-0 px-3 py-3" style={{ borderTop: `1px solid ${P.n300}` }}>
+        <div className="shrink-0 px-3 py-3" style={{ borderTop: `1px solid ${P.borde}` }}>
           <Link
             href="/dashboard"
-            className="flex items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors focus:outline-none focus:ring-2"
-            style={{ color: P.n700 }}
+            className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-black/[0.03] focus:outline-none focus:ring-2"
+            style={{ color: P.tintaMedia, borderRadius: 9999 }}
           >
             <span
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
-              style={{ background: P.n200 }}
+              className="flex h-10 w-10 shrink-0 items-center justify-center"
+              style={{ background: 'rgba(107,107,101,0.14)', borderRadius: BLOBS[3] }}
             >
               <IconPanel style={{ width: 18, height: 18 }} />
             </span>

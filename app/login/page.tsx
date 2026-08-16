@@ -57,7 +57,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-4">
             <Image
-              src="/megafood.png"
+              src="/megafood3.png"
               alt="MegaFood Logo"
               width={80}
               height={80}

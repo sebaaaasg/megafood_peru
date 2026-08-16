@@ -16,7 +16,7 @@ import {
   type IconProps,
 } from './NucleoIcons'
 
-export type Tone = 'terracota' | 'oliva'
+export type Tone = 'verde' | 'naranja'
 
 export interface Estacion {
   id: string
@@ -29,12 +29,12 @@ export interface Estacion {
 }
 
 export const ESTACIONES: Estacion[] = [
-  { id: 'usuarios', n: '01', label: 'Usuarios', hint: 'Roles y accesos por local', href: '/dashboard/usuarios', icon: IconUsuarios, tone: 'oliva'     },
-  { id: 'insumos',  n: '02', label: 'Insumos',  hint: 'Catálogo e inventario',     href: '/dashboard/insumos',  icon: IconInsumos,  tone: 'terracota' },
-  { id: 'platos',   n: '03', label: 'Platos',   hint: 'Recetas y componentes',     href: '/dashboard/platos',   icon: IconPlatos,   tone: 'oliva'     },
-  { id: 'menus',    n: '04', label: 'Menús',    hint: 'Programación por semana',   href: '/dashboard/menus',    icon: IconMenus,    tone: 'terracota' },
-  { id: 'cocina',   n: '05', label: 'Cocina',   hint: 'Requerimiento diario',      href: '/dashboard/cocina',   icon: IconCocina,   tone: 'oliva'     },
-  { id: 'compra',   n: '06', label: 'Compras',  hint: 'Órdenes a proveedores',     href: '/dashboard/compras',  icon: IconCompras,  tone: 'terracota' },
+  { id: 'usuarios', n: '01', label: 'Usuarios', hint: 'Roles y accesos por local', href: '/dashboard/usuarios', icon: IconUsuarios, tone: 'verde'   },
+  { id: 'insumos',  n: '02', label: 'Insumos',  hint: 'Catálogo e inventario',     href: '/dashboard/insumos',  icon: IconInsumos,  tone: 'naranja' },
+  { id: 'platos',   n: '03', label: 'Platos',   hint: 'Recetas y componentes',     href: '/dashboard/platos',   icon: IconPlatos,   tone: 'verde'   },
+  { id: 'menus',    n: '04', label: 'Menús',    hint: 'Programación por semana',   href: '/dashboard/menus',    icon: IconMenus,    tone: 'naranja' },
+  { id: 'cocina',   n: '05', label: 'Cocina',   hint: 'Requerimiento diario',      href: '/dashboard/cocina',   icon: IconCocina,   tone: 'verde'   },
+  { id: 'compra',   n: '06', label: 'Compras',  hint: 'Órdenes a proveedores',     href: '/dashboard/compras',  icon: IconCompras,  tone: 'naranja' },
 ]
 
 const ROLE_STATIONS: Record<string, string[] | '*'> = {
@@ -53,32 +53,44 @@ export function estacionesVisibles(role: string | null): Estacion[] {
 }
 
 // ─────────────────────────────────────────────
-// Paleta "organic": crema, terracota y oliva.
-// Tomada de los valores del diseño aprobado del panel.
+// Paleta del diseño "Orgánico", la misma que usa /insumos.
+// Crema de fondo, verde y naranja de marca, tintas cálidas.
 // ─────────────────────────────────────────────
 export const P = {
-  bg: '#f5ead8',
-  surface: '#ebddc5',
-  text: '#201e1d',
-
-  // Terracota
-  a100: '#fff2eb', a200: '#ffe1d0', a300: '#ffc6a5', a400: '#f6a06b',
-  a500: '#d67f48', a: '#c67139', a600: '#b2622d', a700: '#8c491a',
-  a800: '#643312', a900: '#402310',
-
-  // Oliva
-  b100: '#f0fae1', b200: '#e1eecc', b300: '#ccdbb2', b400: '#aebf92',
-  b500: '#8fa073', b: '#7a8a5e', b600: '#728157', b700: '#56633f',
-  b800: '#3d472b', b900: '#272e1b',
-
-  // Neutros
-  n100: '#f9f4ed', n200: '#eee7db', n300: '#dcd3c4', n400: '#c0b6a5',
-  n500: '#a19786', n600: '#82796a', n700: '#645c50', n800: '#474238',
-  n900: '#2e2b25',
+  bg: '#FDFCF8',
+  card: '#FEFEFA',
+  tinta: '#2C2C24',
+  tintaMedia: '#4A4A40',
+  tintaSuave: '#78786C',
+  borde: '#DED8CF',
+  verde: '#8CC63F',
+  naranja: '#F37F21',
+  piedra: '#6B6B65',
+  /** Naranja del botón de menú, un punto más cálido que el de marca. */
+  naranjaBoton: '#F4823A',
 } as const
 
-/** Colores por tono, para las tarjetas y el rail. */
-export const TONOS: Record<Tone, { chip: string; onChip: string; halo: string; pill: string; onPill: string; link: string }> = {
-  terracota: { chip: P.a,    onChip: P.n100, halo: P.a200, pill: P.a200, onPill: P.a800, link: P.a700 },
-  oliva:     { chip: P.b600, onChip: P.n100, halo: P.b200, pill: P.b200, onPill: P.b800, link: P.b700 },
+/** Radios orgánicos que se alternan para que nada quede simétrico. */
+export const RADIOS = [
+  '2rem 2rem 2rem 4rem',
+  '4rem 2rem 2rem 2rem',
+  '2rem 4rem 2rem 2rem',
+  '2rem 2rem 4rem 2rem',
+  '4rem 2rem 4rem 2rem',
+] as const
+
+/** Formas de blob para los chips de icono y los halos de fondo. */
+export const BLOBS = [
+  '60% 40% 30% 70% / 60% 30% 70% 40%',
+  '30% 70% 70% 30% / 30% 30% 70% 70%',
+  '70% 30% 50% 50% / 40% 60% 40% 60%',
+  '50% 50% 30% 70% / 60% 40% 60% 40%',
+  '40% 60% 60% 40% / 50% 50% 50% 50%',
+  '60% 40% 70% 30% / 40% 60% 40% 60%',
+] as const
+
+/** Colores por tono, para las tarjetas del panel y el drawer. */
+export const TONOS: Record<Tone, { solido: string; suave: string; tinta: string; sobreSolido: string }> = {
+  verde:   { solido: '#8CC63F', suave: 'rgba(140,198,63,0.18)', tinta: '#4A5F2A', sobreSolido: '#24310F' },
+  naranja: { solido: '#F37F21', suave: 'rgba(243,127,33,0.16)', tinta: '#A85F17', sobreSolido: '#FFFFFF' },
 }

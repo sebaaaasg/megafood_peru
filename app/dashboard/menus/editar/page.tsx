@@ -64,14 +64,14 @@ const TIPOS_MENU = [
   { value: "evento", label: "Evento", color: "#F37F21", bg: "#FFF7ED", icon: "🎯" },
 ]
 
-const CATS_BASE = ["ENTRADA", "CÁRNICO"]
+const CATS_BASE = ["ENTRADA", "FONDO"]
 const CATS_GUARNIC = ["GUARNICIÓN 01", "GUARNICIÓN 02", "GUARNICIÓN 03"]
 const CATS_EXTRA = ["POSTRE", "BEBIBLE", "SALSA"]
 const TODAS_CATS = [...CATS_BASE, ...CATS_GUARNIC, ...CATS_EXTRA]
 
 const CAT_COLORS: Record<string, { color: string; bg: string }> = {
   "ENTRADA":       { color: "#2d5a1e", bg: "#eaf3de" },
-  "CÁRNICO":       { color: "#991b1b", bg: "#fef2f2" },
+  "FONDO":       { color: "#991b1b", bg: "#fef2f2" },
   "GUARNICIÓN 01": { color: "#c2410c", bg: "#fff7ed" },
   "GUARNICIÓN 02": { color: "#c2410c", bg: "#fff7ed" },
   "GUARNICIÓN 03": { color: "#c2410c", bg: "#fff7ed" },
@@ -543,8 +543,8 @@ export default function EditarProgramacion() {
   const sedeInfo = sedes.find(s => s.id === sedeSeleccionada)
 
   return (
-    <div className="min-h-screen w-full" style={{ background: '#FFFFFF' }}>
-      <header className="relative overflow-hidden" style={{ background: '#2B2B2B' }}>
+    <div className="min-h-screen w-full mf-grain" style={{ background: '#FDFCF8' }}>
+      <header className="relative overflow-hidden" style={{ background: '#2C2C24' }}>
         <div
           className="absolute inset-0 opacity-[0.06]"
           style={{
@@ -593,29 +593,32 @@ export default function EditarProgramacion() {
       <main className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
         
         {/* ═══ PANEL DE FILTROS ═══ */}
-        <div className="mb-6 rounded-lg border border-[#E7E7E2] bg-white shadow-sm overflow-visible">
+        <div
+          className="mb-6 border border-[#DED8CF] bg-[#FEFEFA] shadow-sm overflow-visible"
+          style={{ borderRadius: '1.5rem 1.5rem 1.5rem 2.5rem' }}
+        >
           <button
             onClick={() => setMostrarFiltros(!mostrarFiltros)}
-            className="w-full flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-[#F5F5F0] transition rounded-t-lg"
+            className="w-full flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-[#F5F5F0] transition rounded-t-[1.5rem]"
           >
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-[#F37F21]" />
-              <span className="font-bold text-[#2B2B2B] text-sm">Filtros de búsqueda</span>
+              <span className="font-bold text-[#2C2C24] text-sm">Filtros de búsqueda</span>
               {(rangoFechas.inicio || rangoFechas.fin || sedeSeleccionada) && (
                 <span className="text-xs bg-[#8CC63F]/10 text-[#8CC63F] px-2 py-0.5 rounded-full font-medium">
                   Activos
                 </span>
               )}
             </div>
-            {mostrarFiltros ? <ChevronUp size={18} className="text-[#6B6B65]" /> : <ChevronDown size={18} className="text-[#6B6B65]" />}
+            {mostrarFiltros ? <ChevronUp size={18} className="text-[#78786C]" /> : <ChevronDown size={18} className="text-[#78786C]" />}
           </button>
 
           {mostrarFiltros && (
-            <div className="px-4 sm:px-6 py-4 border-t border-[#E7E7E2]">
+            <div className="px-4 sm:px-6 py-4 border-t border-[#DED8CF]">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
                 <div>
-                  <label className="block text-sm font-medium text-[#2B2B2B] mb-2">
+                  <label className="block text-sm font-medium text-[#2C2C24] mb-2">
                     <Building className="inline w-4 h-4 mr-2 text-[#8CC63F]" />
                     Sede
                   </label>
@@ -629,7 +632,7 @@ export default function EditarProgramacion() {
                       setComensalesActual([])
                       setComensalesEditados([])
                     }}
-                    className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
+                    className="w-full rounded-lg border border-[#DED8CF] px-4 py-2.5 text-sm text-[#2C2C24] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
                   >
                     <option value="">Seleccionar sede</option>
                     {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
@@ -637,7 +640,7 @@ export default function EditarProgramacion() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-[#2B2B2B] mb-2">
+                  <label className="block text-sm font-medium text-[#2C2C24] mb-2">
                     <Calendar className="inline w-4 h-4 mr-2 text-[#F37F21]" />
                     Rango de fechas
                   </label>
@@ -654,7 +657,7 @@ export default function EditarProgramacion() {
                       fechaSeleccionada={rangoFechas}
                     />
                   ) : (
-                    <div className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#9A9A93] bg-gray-50">
+                    <div className="w-full rounded-lg border border-[#DED8CF] px-4 py-2.5 text-sm text-[#9A9A93] bg-[#F5F5F0]">
                       Selecciona una sede primero
                     </div>
                   )}
@@ -667,12 +670,12 @@ export default function EditarProgramacion() {
 
                 <div className="flex items-end gap-2">
                   {sedeSeleccionada && rangoFechas.inicio && rangoFechas.fin && (
-                    <div className="w-full p-3 bg-[#F5FBF0] rounded-lg border border-[#8CC63F]/20">
-                      <p className="text-sm text-[#2B2B2B]">
+                    <div className="w-full p-3 bg-[#F5FBF0] rounded-[1.5rem_1.5rem_1.5rem_2.5rem] border border-[#8CC63F]/20">
+                      <p className="text-sm text-[#2C2C24]">
                         <span className="font-semibold">{sedeInfo?.nombre}</span>
-                        <span className="text-[#6B6B65]"> · {totalDias} días</span>
+                        <span className="text-[#78786C]"> · {totalDias} días</span>
                       </p>
-                      <p className="text-xs text-[#6B6B65]">
+                      <p className="text-xs text-[#78786C]">
                         {totalPlatos} platos · {tiposPresentes.length} tipos
                       </p>
                     </div>
@@ -684,16 +687,16 @@ export default function EditarProgramacion() {
         </div>
 
         {!sedeSeleccionada && (
-          <div className="text-center py-12 bg-[#F5F5F0] rounded-lg border border-[#E7E7E2]">
+          <div className="text-center py-12 bg-[#F5F5F0] border border-[#DED8CF] rounded-[2rem_2rem_2rem_4rem]">
             <Building className="w-12 h-12 text-[#9A9A93] mx-auto mb-3" />
-            <p className="text-[#6B6B65]">Selecciona una sede para comenzar</p>
+            <p className="text-[#78786C]">Selecciona una sede para comenzar</p>
           </div>
         )}
 
         {sedeSeleccionada && (!rangoFechas.inicio || !rangoFechas.fin) && (
-          <div className="text-center py-12 bg-[#F5F5F0] rounded-lg border border-[#E7E7E2]">
+          <div className="text-center py-12 bg-[#F5F5F0] border border-[#DED8CF] rounded-[2rem_2rem_2rem_4rem]">
             <Calendar className="w-12 h-12 text-[#9A9A93] mx-auto mb-3" />
-            <p className="text-[#6B6B65]">Selecciona un rango de fechas en el calendario</p>
+            <p className="text-[#78786C]">Selecciona un rango de fechas en el calendario</p>
           </div>
         )}
 
@@ -704,9 +707,9 @@ export default function EditarProgramacion() {
         )}
 
         {!cargando && sedeSeleccionada && rangoFechas.inicio && rangoFechas.fin && programacionEditada.length === 0 && (
-          <div className="text-center py-12 bg-[#F5F5F0] rounded-lg border border-[#E7E7E2]">
+          <div className="text-center py-12 bg-[#F5F5F0] border border-[#DED8CF] rounded-[2rem_2rem_2rem_4rem]">
             <Calendar className="w-12 h-12 text-[#9A9A93] mx-auto mb-3" />
-            <p className="text-[#6B6B65]">No hay programación en este rango de fechas</p>
+            <p className="text-[#78786C]">No hay programación en este rango de fechas</p>
             <p className="text-xs text-[#9A9A93] mt-1">Intenta con otro rango o sede</p>
           </div>
         )}
@@ -716,11 +719,11 @@ export default function EditarProgramacion() {
             {/* Resultados */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
               <div>
-                <h2 className="text-lg font-bold text-[#2B2B2B] flex items-center gap-2">
+                <h2 className="text-lg font-bold text-[#2C2C24] flex items-center gap-2">
                   <Eye className="w-5 h-5 text-[#8CC63F]" />
                   Resultados
                 </h2>
-                <p className="text-sm text-[#6B6B65] mt-0.5">
+                <p className="text-sm text-[#78786C] mt-0.5">
                   {totalDias} {totalDias === 1 ? 'día' : 'días'} · {totalPlatos} platos · {tiposPresentes.length} tipos de menú
                 </p>
               </div>
@@ -753,14 +756,14 @@ export default function EditarProgramacion() {
             <div className="flex flex-col sm:flex-row gap-3">
               <button
                 onClick={cancelarCambios}
-                className="flex-1 py-3 rounded-lg border border-[#E7E7E2] text-[#6B6B65] font-medium hover:bg-gray-50 transition"
+                className="flex-1 py-3 rounded-lg border border-[#DED8CF] text-[#78786C] font-medium hover:bg-[#F5F5F0] transition"
               >
                 Cancelar cambios
               </button>
               <button
                 onClick={guardarTodosCambios}
                 disabled={guardando}
-                className="flex-1 py-3 rounded-lg bg-[#2B2B2B] text-white font-medium hover:bg-[#3B3B3B] transition disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 py-3 rounded-lg bg-[#2C2C24] text-white font-medium hover:bg-[#3B3B3B] transition disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {guardando ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -772,14 +775,14 @@ export default function EditarProgramacion() {
             </div>
 
             {/* Footer de estadísticas */}
-            <div className="rounded-lg border border-[#E7E7E2] bg-white p-4 flex flex-wrap justify-between items-center gap-2">
-              <p className="text-xs text-[#6B6B65] flex items-center gap-2">
+            <div className="rounded-[1.5rem_2.5rem_1.5rem_1.5rem] border border-[#DED8CF] bg-[#FEFEFA] p-4 flex flex-wrap justify-between items-center gap-2">
+              <p className="text-xs text-[#78786C] flex items-center gap-2">
                 <Calendar className="w-3 h-3" />
-                Rango: <strong className="text-[#2B2B2B]">{formatearFechaLegible(rangoFechas.inicio)}</strong>
-                <span className="text-[#6B6B65]">al</span>
-                <strong className="text-[#2B2B2B]">{formatearFechaLegible(rangoFechas.fin)}</strong>
+                Rango: <strong className="text-[#2C2C24]">{formatearFechaLegible(rangoFechas.inicio)}</strong>
+                <span className="text-[#78786C]">al</span>
+                <strong className="text-[#2C2C24]">{formatearFechaLegible(rangoFechas.fin)}</strong>
               </p>
-              <div className="flex items-center gap-2 text-xs text-[#6B6B65]">
+              <div className="flex items-center gap-2 text-xs text-[#78786C]">
                 <span>Tipos: </span>
                 <div className="flex gap-1">
                   {tiposPresentes.map((tipo) => {
@@ -820,23 +823,23 @@ export default function EditarProgramacion() {
       {/* Modal para comensales */}
       {mostrandoModalComensales && comensalEditando && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-xl">
+          <div className="bg-[#FEFEFA] rounded-2xl max-w-sm w-full p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-[#2B2B2B]">Editar comensales</h3>
+              <h3 className="text-xl font-bold text-[#2C2C24]">Editar comensales</h3>
               <button onClick={() => setMostrandoModalComensales(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="w-6 h-6" />
               </button>
             </div>
             
             <div className="mb-4">
-              <p className="text-sm text-[#6B6B65] mb-1">
-                Tipo: <span className="font-bold text-[#2B2B2B]">{comensalEditando.tipo}</span>
+              <p className="text-sm text-[#78786C] mb-1">
+                Tipo: <span className="font-bold text-[#2C2C24]">{comensalEditando.tipo}</span>
               </p>
-              <p className="text-sm text-[#6B6B65] mb-3">
-                Fecha: <span className="font-bold text-[#2B2B2B]">{formatearFechaLegible(comensalEditando.fecha)}</span>
+              <p className="text-sm text-[#78786C] mb-3">
+                Fecha: <span className="font-bold text-[#2C2C24]">{formatearFechaLegible(comensalEditando.fecha)}</span>
               </p>
               
-              <label className="block text-sm font-medium text-[#2B2B2B] mb-1">
+              <label className="block text-sm font-medium text-[#2C2C24] mb-1">
                 Cantidad de comensales
               </label>
               <input
@@ -844,7 +847,7 @@ export default function EditarProgramacion() {
                 min="0"
                 value={nuevoValorComensales}
                 onChange={(e) => setNuevoValorComensales(e.target.value)}
-                className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
+                className="w-full rounded-lg border border-[#DED8CF] px-4 py-2.5 text-sm text-[#2C2C24] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
                 placeholder="0"
               />
             </div>
@@ -852,7 +855,7 @@ export default function EditarProgramacion() {
             <div className="flex gap-3">
               <button 
                 onClick={() => setMostrandoModalComensales(false)} 
-                className="flex-1 py-2.5 rounded-lg border border-[#E7E7E2] text-[#6B6B65] font-medium hover:bg-gray-50 transition"
+                className="flex-1 py-2.5 rounded-lg border border-[#DED8CF] text-[#78786C] font-medium hover:bg-[#F5F5F0] transition"
               >
                 Cancelar
               </button>
@@ -870,9 +873,9 @@ export default function EditarProgramacion() {
       {/* Modal para agregar plato */}
       {mostrandoModalAgregar && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+          <div className="bg-[#FEFEFA] rounded-2xl max-w-md w-full p-6 shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-[#2B2B2B]">Agregar plato</h3>
+              <h3 className="text-xl font-bold text-[#2C2C24]">Agregar plato</h3>
               <button onClick={() => setMostrandoModalAgregar(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="w-6 h-6" />
               </button>
@@ -880,13 +883,13 @@ export default function EditarProgramacion() {
             
             {/* Selector de tipo */}
             <div className="mb-4">
-              <label className="block text-sm font-medium text-[#2B2B2B] mb-1">
+              <label className="block text-sm font-medium text-[#2C2C24] mb-1">
                 Tipo de menú
               </label>
               <select
                 value={tipoEditando || ""}
                 onChange={(e) => setTipoEditando(e.target.value)}
-                className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
+                className="w-full rounded-lg border border-[#DED8CF] px-4 py-2.5 text-sm text-[#2C2C24] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
               >
                 <option value="">Seleccionar tipo</option>
                 {TIPOS_MENU.map(tipo => (
@@ -898,7 +901,7 @@ export default function EditarProgramacion() {
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium text-[#2B2B2B] mb-1">
+              <label className="block text-sm font-medium text-[#2C2C24] mb-1">
                 Categoría
               </label>
               <select
@@ -907,7 +910,7 @@ export default function EditarProgramacion() {
                   setNuevaCategoria(e.target.value)
                   setNuevoPlato("")
                 }}
-                className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
+                className="w-full rounded-lg border border-[#DED8CF] px-4 py-2.5 text-sm text-[#2C2C24] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
               >
                 <option value="">Seleccionar categoría</option>
                 {TODAS_CATS.map(cat => (
@@ -918,13 +921,13 @@ export default function EditarProgramacion() {
 
             {nuevaCategoria && (
               <div className="mb-4">
-                <label className="block text-sm font-medium text-[#2B2B2B] mb-1">
+                <label className="block text-sm font-medium text-[#2C2C24] mb-1">
                   Plato
                 </label>
                 <select
                   value={nuevoPlato}
                   onChange={(e) => setNuevoPlato(e.target.value)}
-                  className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
+                  className="w-full rounded-lg border border-[#DED8CF] px-4 py-2.5 text-sm text-[#2C2C24] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
                 >
                   <option value="">Seleccionar plato</option>
                   {getPlatosPorCategoria(nuevaCategoria).map(p => (
@@ -937,7 +940,7 @@ export default function EditarProgramacion() {
             <div className="flex gap-3">
               <button 
                 onClick={() => setMostrandoModalAgregar(false)} 
-                className="flex-1 py-2.5 rounded-lg border border-[#E7E7E2] text-[#6B6B65] font-medium hover:bg-gray-50 transition"
+                className="flex-1 py-2.5 rounded-lg border border-[#DED8CF] text-[#78786C] font-medium hover:bg-[#F5F5F0] transition"
               >
                 Cancelar
               </button>
@@ -956,24 +959,24 @@ export default function EditarProgramacion() {
       {/* Modal de confirmación de repetición */}
       {mostrandoModalRepeticion && platoRepetidoInfo && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl">
+          <div className="bg-[#FEFEFA] rounded-2xl max-w-lg w-full p-6 shadow-xl">
             <div className="flex items-start gap-3 mb-4">
               <AlertCircle className="w-6 h-6 text-[#F37F21] flex-shrink-0 mt-1" />
               <div>
-                <h3 className="text-xl font-bold text-[#2B2B2B] mb-1">Plato repetido en el rango</h3>
-                <p className="text-sm text-[#6B6B65]">
-                  El plato <span className="font-bold text-[#2B2B2B]">{platoRepetidoInfo.platoNombre}</span> 
+                <h3 className="text-xl font-bold text-[#2C2C24] mb-1">Plato repetido en el rango</h3>
+                <p className="text-sm text-[#78786C]">
+                  El plato <span className="font-bold text-[#2C2C24]">{platoRepetidoInfo.platoNombre}</span> 
                    ya está programado en las siguientes fechas:
                 </p>
                 <ul className="mt-2 space-y-1">
                   {platoRepetidoInfo.fechasRepetidas.map((fecha, idx) => (
-                    <li key={idx} className="text-sm text-[#6B6B65] flex items-center gap-2">
+                    <li key={idx} className="text-sm text-[#78786C] flex items-center gap-2">
                       <span className="w-1.5 h-1.5 rounded-full bg-[#F37F21]" />
                       {formatearFechaLegible(fecha)}
                     </li>
                   ))}
                 </ul>
-                <p className="mt-3 text-sm font-medium text-[#2B2B2B]">
+                <p className="mt-3 text-sm font-medium text-[#2C2C24]">
                   ¿Aún así quieres repetir este plato?
                 </p>
               </div>
@@ -985,7 +988,7 @@ export default function EditarProgramacion() {
                   setMostrandoModalRepeticion(false)
                   setPlatoRepetidoInfo(null)
                 }}
-                className="flex-1 py-2.5 rounded-lg border border-[#E7E7E2] text-[#6B6B65] font-medium hover:bg-gray-50 transition"
+                className="flex-1 py-2.5 rounded-lg border border-[#DED8CF] text-[#78786C] font-medium hover:bg-[#F5F5F0] transition"
               >
                 Cancelar
               </button>
@@ -1006,7 +1009,7 @@ export default function EditarProgramacion() {
         </div>
       )}
 
-      <footer style={{ borderTop: '1.5px solid #EFEFE9' }} className="mt-8">
+      <footer style={{ borderTop: '1.5px solid #DED8CF' }} className="mt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p style={{ fontSize: '0.8rem', color: '#9A9A93' }}>
             © 2026 MegaFood · Editar programación por rango

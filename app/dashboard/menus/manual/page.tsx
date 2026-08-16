@@ -51,7 +51,7 @@ const TIPOS_MENU = [
   { value: "evento", label: "Evento", color: "#F37F21", bg: "#FFF7ED", icon: "🎯" },
 ]
 
-const CATS_BASE    = ["ENTRADA", "CÁRNICO"]
+const CATS_BASE    = ["ENTRADA", "FONDO"]
 const CATS_GUARNIC = ["GUARNICIÓN 01", "GUARNICIÓN 02", "GUARNICIÓN 03"]
 const CATS_EXTRA   = ["POSTRE", "BEBIBLE", "SALSA"]
 const TODAS_CATS   = [...CATS_BASE, ...CATS_GUARNIC, ...CATS_EXTRA]
@@ -191,11 +191,11 @@ export default function ProgramacionManual() {
 
     const tieneAlgunaSeleccion = TIPOS_MENU.some(tipo => {
       const selecciones = seleccionesPorTipo[tipo.value]
-      return selecciones["ENTRADA"] && selecciones["CÁRNICO"] && selecciones["GUARNICIÓN 01"]
+      return selecciones["ENTRADA"] && selecciones["FONDO"] && selecciones["GUARNICIÓN 01"]
     })
 
     if (!tieneAlgunaSeleccion) {
-      alert("Debes configurar al menos un tipo de menú completo (ENTRADA, CÁRNICO y GUARNICIÓN 01)")
+      alert("Debes configurar al menos un tipo de menú completo (ENTRADA, FONDO y GUARNICIÓN 01)")
       return
     }
 
@@ -302,7 +302,7 @@ export default function ProgramacionManual() {
 
   const CAT_COLORS: Record<string, { color: string; bg: string }> = {
     "ENTRADA":       { color: "#2d5a1e", bg: "#eaf3de" },
-    "CÁRNICO":       { color: "#991b1b", bg: "#fef2f2" },
+    "FONDO":         { color: "#991b1b", bg: "#fef2f2" },
     "GUARNICIÓN 01": { color: "#c2410c", bg: "#fff7ed" },
     "GUARNICIÓN 02": { color: "#c2410c", bg: "#fff7ed" },
     "GUARNICIÓN 03": { color: "#c2410c", bg: "#fff7ed" },

@@ -6,7 +6,7 @@ import { Users } from 'lucide-react'
 
 // ─── Constantes compartidas ───
 export const CATEGORIAS_ORDEN = [
-  "ENTRADA", "CÁRNICO", 
+  "ENTRADA", "FONDO", 
   "GUARNICIÓN 01", "GUARNICIÓN 02", "GUARNICIÓN 03", 
   "POSTRE", "BEBIBLE", "SALSA"
 ]

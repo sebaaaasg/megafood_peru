@@ -70,7 +70,7 @@ const TIPOS_MENU = [
 
 const CAT_COLORS: Record<string, { color: string; bg: string }> = {
   "ENTRADA":       { color: "#2d5a1e", bg: "#eaf3de" },
-  "CÁRNICO":       { color: "#991b1b", bg: "#fef2f2" },
+  "FONDO":         { color: "#991b1b", bg: "#fef2f2" },
   "GUARNICIÓN 01": { color: "#c2410c", bg: "#fff7ed" },
   "GUARNICIÓN 02": { color: "#c2410c", bg: "#fff7ed" },
   "GUARNICIÓN 03": { color: "#c2410c", bg: "#fff7ed" },

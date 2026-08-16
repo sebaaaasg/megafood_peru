@@ -28,20 +28,18 @@ export default function SidebarNav({
         aria-label="Abrir menú de estaciones"
         aria-expanded={abierto}
         aria-controls="drawer-estaciones"
-        className="group relative flex h-11 w-11 items-center justify-center rounded-2xl border shadow-[0_6px_20px_-10px_rgba(46,43,37,0.45)] backdrop-blur-md transition-all hover:brightness-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2"
+        className="group relative flex h-11 w-11 items-center justify-center rounded-full text-white shadow-[0_4px_20px_-2px_rgba(107,107,101,0.35)] transition-transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2"
         style={{
-          background: 'rgba(249,244,237,0.9)',
-          borderColor: P.n300,
-          color: P.a900,
+          background: P.naranjaBoton,
           // @ts-expect-error -- variables CSS del anillo de foco
-          '--tw-ring-color': P.a,
+          '--tw-ring-color': P.naranja,
           '--tw-ring-offset-color': P.bg,
         }}
       >
-        <IconMenuBurger style={{ width: 22, height: 22 }} />
+        <IconMenuBurger style={{ width: 22, height: 22 }} strokeWidth={2} />
         <span
           className="absolute -right-0.5 -top-0.5 h-2 w-2 scale-50 rounded-full opacity-0 transition-all duration-200 group-hover:scale-100 group-hover:opacity-100"
-          style={{ background: P.b600 }}
+          style={{ background: P.verde }}
           aria-hidden="true"
         />
       </button>

@@ -25,6 +25,12 @@ export default function CalendarioProgramacionRango({
   const [fechaFinSeleccionada, setFechaFinSeleccionada] = useState<string | null>(null)
   const calendarRef = useRef<HTMLDivElement>(null)
 
+  // Mantener la selección interna sincronizada si el padre limpia o cambia el rango
+  useEffect(() => {
+    setFechaInicioSeleccionada(fechaSeleccionada?.inicio || null)
+    setFechaFinSeleccionada(fechaSeleccionada?.fin || null)
+  }, [fechaSeleccionada?.inicio, fechaSeleccionada?.fin])
+
   // Cerrar al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -128,32 +134,25 @@ export default function CalendarioProgramacionRango({
     
     const fechaISO = obtenerISO(fecha)
     
-    if (!fechaInicioSeleccionada) {
-      // Primera selección
+    if (!fechaInicioSeleccionada || fechaFinSeleccionada) {
+      // Primera selección de un rango nuevo (o reinicio si ya había uno completo)
       setFechaInicioSeleccionada(fechaISO)
       setFechaFinSeleccionada(null)
-    } else if (!fechaFinSeleccionada) {
-      // Segunda selección - asegurar que inicio <= fin
-      if (fechaISO < fechaInicioSeleccionada) {
-        setFechaFinSeleccionada(fechaInicioSeleccionada)
-        setFechaInicioSeleccionada(fechaISO)
-      } else {
-        setFechaFinSeleccionada(fechaISO)
-      }
-      
-      // Emitir el rango completo
-      const inicio = fechaISO < fechaInicioSeleccionada ? fechaISO : fechaInicioSeleccionada
-      const fin = fechaISO > fechaInicioSeleccionada ? fechaISO : fechaInicioSeleccionada
-      
-      // Cerrar el calendario después de seleccionar el rango
-      setTimeout(() => {
-        setAbierto(false)
-      }, 300)
-    } else {
-      // Si ya hay un rango seleccionado, reiniciar
-      setFechaInicioSeleccionada(fechaISO)
-      setFechaFinSeleccionada(null)
+      return
     }
+
+    // Segunda selección - asegurar que inicio <= fin y aplicar de inmediato
+    const inicio = fechaISO < fechaInicioSeleccionada ? fechaISO : fechaInicioSeleccionada
+    const fin = fechaISO < fechaInicioSeleccionada ? fechaInicioSeleccionada : fechaISO
+
+    setFechaInicioSeleccionada(inicio)
+    setFechaFinSeleccionada(fin)
+    onFechaSeleccionada({ inicio, fin })
+
+    // Cerrar el calendario poco después para que se vea el rango marcado
+    setTimeout(() => {
+      setAbierto(false)
+    }, 300)
   }
 
   // Limpiar selección
@@ -170,17 +169,17 @@ export default function CalendarioProgramacionRango({
       <div
         onClick={() => setAbierto(!abierto)}
         className={`
-          w-full rounded-lg border px-4 py-2.5 text-sm cursor-pointer 
+          w-full rounded-full border px-4 py-2.5 text-sm cursor-pointer
           flex justify-between items-center transition-all
           ${fechaSeleccionada?.inicio && fechaSeleccionada?.fin
-            ? 'border-[#8CC63F] bg-[#F5FBF0] text-[#2B2B2B]' 
-            : 'border-[#E7E7E2] bg-white text-[#6B6B65] hover:border-[#8CC63F]/50'
+            ? 'border-[#8CC63F] bg-[#F5FBF0] text-[#2C2C24]' 
+            : 'border-[#DED8CF] bg-[#FEFEFA] text-[#78786C] hover:border-[#8CC63F]/50'
           }
         `}
       >
         <div className="flex items-center gap-2">
           <CalendarRange className={`w-4 h-4 ${fechaSeleccionada?.inicio && fechaSeleccionada?.fin ? 'text-[#8CC63F]' : 'text-[#9A9A93]'}`} />
-          <span className={fechaSeleccionada?.inicio && fechaSeleccionada?.fin ? "text-[#2B2B2B]" : "text-[#6B6B65]"}>
+          <span className={fechaSeleccionada?.inicio && fechaSeleccionada?.fin ? "text-[#2C2C24]" : "text-[#78786C]"}>
             {obtenerTextoMostrado()}
           </span>
         </div>
@@ -191,21 +190,24 @@ export default function CalendarioProgramacionRango({
                 e.stopPropagation()
                 limpiarSeleccion()
               }}
-              className="p-0.5 text-[#6B6B65] hover:text-red-500 transition"
+              className="p-0.5 text-[#78786C] hover:text-red-500 transition"
             >
               <X className="w-4 h-4" />
             </button>
           )}
           <ChevronRight 
-            className={`w-4 h-4 text-[#6B6B65] transition-transform duration-200 ${abierto ? 'rotate-90' : ''}`} 
+            className={`w-4 h-4 text-[#78786C] transition-transform duration-200 ${abierto ? 'rotate-90' : ''}`} 
           />
         </div>
       </div>
 
       {/* Calendario desplegable */}
       {abierto && (
-        <div className="absolute top-full left-0 mt-2 bg-white rounded-lg border border-[#E7E7E2] shadow-xl z-50 w-72 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#E7E7E2]" style={{ background: '#2B2B2B' }}>
+        <div
+          className="absolute top-full left-0 mt-2 bg-[#FEFEFA] border border-[#DED8CF] shadow-xl z-50 w-72 overflow-hidden"
+          style={{ borderRadius: '1.5rem 1.5rem 1.5rem 2.5rem' }}
+        >
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#DED8CF]" style={{ background: '#2C2C24' }}>
             <button 
               onClick={() => setMesActual(new Date(mesActual.getFullYear(), mesActual.getMonth() - 1, 1))}
               className="p-1 text-white/60 hover:text-white transition"
@@ -259,10 +261,10 @@ export default function CalendarioProgramacionRango({
                     h-9 text-sm rounded-lg transition-all relative
                     ${!esValida ? 'invisible' : ''}
                     ${tieneProg && !estaEnRangoSeleccionado && !esInicioRango && !esFinRango
-                      ? 'hover:bg-[#8CC63F]/10 text-[#2B2B2B] hover:scale-[1.05]' 
+                      ? 'hover:bg-[#8CC63F]/10 text-[#2C2C24] hover:scale-[1.05]' 
                       : ''
                     }
-                    ${estaEnRangoSeleccionado ? 'bg-[#8CC63F]/20 text-[#2B2B2B]' : ''}
+                    ${estaEnRangoSeleccionado ? 'bg-[#8CC63F]/20 text-[#2C2C24]' : ''}
                     ${esInicioRango || esFinRango ? 'bg-[#8CC63F] text-white shadow-md' : ''}
                     ${!tieneProg && esValida ? 'text-[#D1D5DB] cursor-not-allowed' : ''}
                   `}
@@ -278,38 +280,30 @@ export default function CalendarioProgramacionRango({
             })}
           </div>
 
-          <div className="border-t border-[#E7E7E2] px-3 py-2 flex justify-between items-center text-xs">
+          <div className="border-t border-[#DED8CF] px-3 py-2 flex justify-between items-center text-xs">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-[#8CC63F]" />
-                <span className="text-[#6B6B65]">Programado</span>
+                <span className="text-[#78786C]">Programado</span>
               </div>
               <div className="flex items-center gap-1">
                 <span className="w-2 h-2 rounded-full bg-[#8CC63F]/20" />
-                <span className="text-[#6B6B65]">Rango</span>
+                <span className="text-[#78786C]">Rango</span>
               </div>
             </div>
-            <div className="flex gap-2">
-              <button 
-                onClick={() => setMesActual(new Date())} 
+            <div className="flex items-center gap-2">
+              {!fechaInicioSeleccionada && (
+                <span className="text-[#9A9A93]">Toca dos días para aplicar el rango</span>
+              )}
+              {fechaInicioSeleccionada && !fechaFinSeleccionada && (
+                <span className="text-[#9A9A93]">Elige el día final</span>
+              )}
+              <button
+                onClick={() => setMesActual(new Date())}
                 className="text-[#8CC63F] font-medium hover:underline"
               >
                 Hoy
               </button>
-              {fechaInicioSeleccionada && fechaFinSeleccionada && (
-                <button
-                  onClick={() => {
-                    onFechaSeleccionada({
-                      inicio: fechaInicioSeleccionada,
-                      fin: fechaFinSeleccionada
-                    })
-                    setAbierto(false)
-                  }}
-                  className="bg-[#8CC63F] text-white px-2 py-1 rounded hover:bg-[#7AB835] transition"
-                >
-                  Aplicar
-                </button>
-              )}
             </div>
           </div>
         </div>

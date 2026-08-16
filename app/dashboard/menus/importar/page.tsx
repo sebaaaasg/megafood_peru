@@ -23,7 +23,7 @@ import MenusNav from '@/app/dashboard/menus/components/MenusNav'
 // ─────────────────────────────────────────────
 // Constantes
 // ─────────────────────────────────────────────
-const CATEGORIAS_ORDEN = ["ENTRADA", "CÁRNICO", "GUARNICIÓN 01", "GUARNICIÓN 02", "GUARNICIÓN 03", "POSTRE", "BEBIBLE", "SALSA"]
+const CATEGORIAS_ORDEN = ["ENTRADA", "FONDO", "GUARNICIÓN 01", "GUARNICIÓN 02", "GUARNICIÓN 03", "POSTRE", "BEBIBLE", "SALSA"]
 const TIPOS_ORDEN = ["estandar", "dieta", "especial", "evento"]
 
 // ─────────────────────────────────────────────

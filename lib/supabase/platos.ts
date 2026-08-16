@@ -1,6 +1,6 @@
 import { createClient } from './server'
 
-export type Categoria = "ENTRADA" | "CÁRNICO" | "GUARNICIÓN" | "POSTRE" | "BEBIBLE" | "SALSA"
+export type Categoria = "ENTRADA" | "FONDO" | "GUARNICIÓN" | "POSTRE" | "BEBIBLE" | "SALSA"
 
 export interface Insumo {
   id: string

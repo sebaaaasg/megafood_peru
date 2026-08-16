@@ -8,10 +8,11 @@ import UserChip from './UserChip'
 /**
  * Píldoras flotantes de navegación y sesión.
  *
- * Se ocultan en /dashboard: el panel principal trae su propio rail lateral
- * (con la hamburguesa dentro) y su propia cabecera con el chip de usuario,
- * así que aquí duplicarían ambos controles.
+ * Se ocultan en las rutas que ya traen su propia barra con hamburguesa y
+ * usuario (el panel principal y su rail lateral, o la píldora superior del
+ * diseño de Insumos); ahí duplicarían ambos controles.
  */
+const RUTAS_CON_CHROME_PROPIO = ['/dashboard', '/dashboard/insumos']
 export default function DashboardChrome({
   role,
   displayName,
@@ -21,7 +22,8 @@ export default function DashboardChrome({
 }) {
   const pathname = usePathname()
 
-  if (pathname === '/dashboard' || pathname === '/dashboard/') return null
+  const normalizada = pathname.replace(/\/$/, '')
+  if (RUTAS_CON_CHROME_PROPIO.includes(normalizada)) return null
 
   return (
     <div className="pointer-events-none sticky top-0 z-50 h-0">
