@@ -128,17 +128,17 @@ export default function CalendarioProgramacion({
       <div
         onClick={() => setAbierto(!abierto)}
         className={`
-          w-full rounded-lg border px-4 py-2.5 text-sm cursor-pointer 
+          w-full  border px-4 py-2.5 text-sm cursor-pointer 
           flex justify-between items-center transition-all capitalize
           ${fechaSeleccionada 
-            ? 'border-[#8CC63F] bg-[#F5FBF0] text-[#2B2B2B]' 
+            ? 'border-[#8CC63F] bg-[#F5FBF0] text-[#201E1D]' 
             : 'border-[#E7E7E2] bg-white text-[#6B6B65] hover:border-[#8CC63F]/50'
           }
         `}
       >
         <div className="flex items-center gap-2">
           <Calendar className={`w-4 h-4 ${fechaSeleccionada ? 'text-[#8CC63F]' : 'text-[#9A9A93]'}`} />
-          <span className={fechaSeleccionada ? "text-[#2B2B2B]" : "text-[#6B6B65]"}>
+          <span className={fechaSeleccionada ? "text-[#201E1D]" : "text-[#6B6B65]"}>
             {fechaMostrada}
           </span>
         </div>
@@ -163,9 +163,9 @@ export default function CalendarioProgramacion({
 
       {/* Calendario desplegable */}
       {abierto && (
-        <div className="absolute top-full left-0 mt-2 bg-white rounded-lg border border-[#E7E7E2] shadow-xl z-50 w-72 overflow-hidden">
+        <div className="absolute top-full left-0 mt-2 bg-white  border border-[#E7E7E2]  z-50 w-72 overflow-hidden">
           {/* Cabecera */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#E7E7E2]" style={{ background: '#2B2B2B' }}>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#E7E7E2]" style={{ background: '#201E1D' }}>
             <button 
               type="button"
               onClick={() => setMesActual(new Date(mesActual.getFullYear(), mesActual.getMonth() - 1, 1))}
@@ -188,7 +188,7 @@ export default function CalendarioProgramacion({
           {/* Loading */}
           {cargando && (
             <div className="flex justify-center py-2">
-              <div className="w-4 h-4 border-2 border-[#8CC63F] border-t-transparent rounded-full animate-spin" />
+              <div className="w-4 h-4 border-2 border-[#8CC63F] border-t-transparent  animate-spin" />
             </div>
           )}
 
@@ -221,10 +221,10 @@ export default function CalendarioProgramacion({
                   }}
                   disabled={!esValida}
                   className={`
-                    h-9 text-sm rounded-lg transition-all relative
+                    h-9 text-sm  transition-all relative
                     ${!esValida ? 'invisible' : ''}
                     ${esValida && !esSeleccionada && !tieneProg 
-                      ? 'hover:bg-[#8CC63F]/10 text-[#2B2B2B] hover:scale-[1.05]' 
+                      ? 'hover:bg-[#8CC63F]/10 text-[#201E1D] hover:scale-[1.05]' 
                       : ''
                     }
                     ${esValida && !esSeleccionada && tieneProg
@@ -232,7 +232,7 @@ export default function CalendarioProgramacion({
                       : ''
                     }
                     ${esSeleccionada 
-                      ? 'bg-[#8CC63F] text-white shadow-md hover:bg-[#7AB835]' 
+                      ? 'bg-[#8CC63F] text-white  hover:bg-[#7AB835]' 
                       : ''
                     }
                     ${hoy && !esSeleccionada && !tieneProg
@@ -247,12 +247,12 @@ export default function CalendarioProgramacion({
                 >
                   {esValida ? (fecha as Date).getDate() : ''}
                   {esSeleccionada && (
-                    <Check className="absolute -top-1 -right-1 w-3 h-3 text-white bg-[#F37F21] rounded-full p-0.5" />
+                    <Check className="absolute -top-1 -right-1 w-3 h-3 text-white bg-[#F37F21]  p-0.5" />
                   )}
                   {tieneProg && (
                     <X
                       strokeWidth={3}
-                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 text-white bg-red-500 rounded-full p-0.5"
+                      className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 text-white bg-red-500  p-0.5"
                     />
                   )}
                 </button>
@@ -264,19 +264,19 @@ export default function CalendarioProgramacion({
           <div className="border-t border-[#E7E7E2] px-3 py-2 flex justify-between items-center text-xs">
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-red-500 flex items-center justify-center">
+                <span className="w-2.5 h-2.5  bg-red-500 flex items-center justify-center">
                   <X strokeWidth={4} className="w-1.5 h-1.5 text-white" />
                 </span>
                 <span className="text-[#6B6B65]">Ocupado</span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#8CC63F] flex items-center justify-center">
+                <span className="w-2.5 h-2.5  bg-[#8CC63F] flex items-center justify-center">
                   <Check strokeWidth={4} className="w-1.5 h-1.5 text-white" />
                 </span>
                 <span className="text-[#6B6B65]">Seleccionado</span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full border-2 border-[#8CC63F]/50 flex items-center justify-center" />
+                <span className="w-2.5 h-2.5  border-2 border-[#8CC63F]/50 flex items-center justify-center" />
                 <span className="text-[#6B6B65]">Hoy</span>
               </div>
             </div>

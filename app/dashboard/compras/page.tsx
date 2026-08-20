@@ -59,6 +59,10 @@ interface Receta {
   cantidad: number
 }
 
+const ARCHIVO = 'var(--font-archivo), system-ui, sans-serif'
+const OSCURO = '#201E1D'
+const FONDO = '#E7E7E2'
+
 type RolUsuario = "gerencia" | "compras"
 
 const TIPOS_MENU = [
@@ -241,16 +245,16 @@ const DateRangeSelector = ({
         <div className="flex items-center justify-between px-2 py-2 border-b border-[#E7E7E2]">
           <button
             onClick={() => setMes(new Date(mes.getFullYear(), mes.getMonth() - 1, 1))}
-            className="p-1 text-[#6B6B65] hover:text-[#2B2B2B] transition"
+            className="p-1 text-[#6B6B65] hover:text-[#201E1D] transition"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <span className="text-sm font-medium text-[#2B2B2B] capitalize">
+          <span className="text-sm font-medium text-[#201E1D] capitalize">
             {nombreMes} {año}
           </span>
           <button
             onClick={() => setMes(new Date(mes.getFullYear(), mes.getMonth() + 1, 1))}
-            className="p-1 text-[#6B6B65] hover:text-[#2B2B2B] transition"
+            className="p-1 text-[#6B6B65] hover:text-[#201E1D] transition"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -277,9 +281,9 @@ const DateRangeSelector = ({
                 }}
                 disabled={!esValida || !tieneProg}
                 className={`
-                  h-7 text-xs rounded transition-all
+                  h-7 text-xs transition-all
                   ${!esValida ? 'invisible' : ''}
-                  ${tieneProg && !esSeleccionada ? 'hover:bg-[#8CC63F]/10 text-[#2B2B2B]' : ''}
+                  ${tieneProg && !esSeleccionada ? 'hover:bg-[#8CC63F]/10 text-[#201E1D]' : ''}
                   ${esSeleccionada ? 'bg-[#8CC63F] text-white' : ''}
                   ${!tieneProg && esValida ? 'text-[#D1D5DB] cursor-not-allowed' : ''}
                 `}
@@ -306,9 +310,9 @@ const DateRangeSelector = ({
               setMostrarCalendarioFin(false)
             }}
             className={`
-              w-full rounded-lg border px-4 py-2.5 text-sm text-left transition-all
+              w-full border px-4 py-2.5 text-sm text-left transition-all
               ${fechaInicio
-                ? 'border-[#8CC63F] bg-[#F5FBF0] text-[#2B2B2B]'
+                ? 'border-[#8CC63F] bg-[#F5FBF0] text-[#201E1D]'
                 : 'border-[#E7E7E2] bg-white text-[#6B6B65] hover:border-[#8CC63F]/50'
               }
             `}
@@ -316,7 +320,7 @@ const DateRangeSelector = ({
             <span className="capitalize">{formatearFechaLegible(fechaInicio) || "Seleccionar inicio"}</span>
           </button>
           {mostrarCalendarioInicio && (
-            <div className="absolute top-full left-0 mt-2 bg-white rounded-lg border border-[#E7E7E2] shadow-xl z-50 w-64">
+            <div className="absolute top-full left-0 mt-2 bg-white border border-[#E7E7E2] z-50 w-64">
               <CalendarioMini
                 mes={mesActualInicio}
                 setMes={setMesActualInicio}
@@ -329,7 +333,7 @@ const DateRangeSelector = ({
               <div className="border-t border-[#E7E7E2] p-2 flex justify-end">
                 <button
                   onClick={() => setMostrarCalendarioInicio(false)}
-                  className="text-xs text-[#6B6B65] hover:text-[#2B2B2B] transition"
+                  className="text-xs text-[#6B6B65] hover:text-[#201E1D] transition"
                 >
                   Cerrar
                 </button>
@@ -350,9 +354,9 @@ const DateRangeSelector = ({
               setMostrarCalendarioInicio(false)
             }}
             className={`
-              w-full rounded-lg border px-4 py-2.5 text-sm text-left transition-all
+              w-full border px-4 py-2.5 text-sm text-left transition-all
               ${fechaFin
-                ? 'border-[#8CC63F] bg-[#F5FBF0] text-[#2B2B2B]'
+                ? 'border-[#8CC63F] bg-[#F5FBF0] text-[#201E1D]'
                 : 'border-[#E7E7E2] bg-white text-[#6B6B65] hover:border-[#8CC63F]/50'
               }
             `}
@@ -360,7 +364,7 @@ const DateRangeSelector = ({
             <span className="capitalize">{formatearFechaLegible(fechaFin) || "Seleccionar fin"}</span>
           </button>
           {mostrarCalendarioFin && (
-            <div className="absolute top-full left-0 mt-2 bg-white rounded-lg border border-[#E7E7E2] shadow-xl z-50 w-64">
+            <div className="absolute top-full left-0 mt-2 bg-white border border-[#E7E7E2] z-50 w-64">
               <CalendarioMini
                 mes={mesActualFin}
                 setMes={setMesActualFin}
@@ -399,7 +403,7 @@ const DateRangeSelector = ({
               <div className="border-t border-[#E7E7E2] p-2 flex justify-end">
                 <button
                   onClick={() => setMostrarCalendarioFin(false)}
-                  className="text-xs text-[#6B6B65] hover:text-[#2B2B2B] transition"
+                  className="text-xs text-[#6B6B65] hover:text-[#201E1D] transition"
                 >
                   Cerrar
                 </button>
@@ -1003,7 +1007,7 @@ const exportarAExcel = async () => {
 
   if (verificandoAcceso) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#FFFFFF' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ background: FONDO, fontFamily: ARCHIVO }}>
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-[#8CC63F] mx-auto mb-4" />
           <p className="text-[#6B6B65] font-medium">Verificando accesos de seguridad...</p>
@@ -1013,64 +1017,39 @@ const exportarAExcel = async () => {
   }
 
   return (
-    <div className="min-h-screen w-full" style={{ background: '#FFFFFF' }}>
-      {/* Header estilo MegaFood */}
-      <header className="relative overflow-hidden" style={{ background: '#1E5631' }}>
-        <div
-          className="absolute inset-0 opacity-[0.06]"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(135deg, #FFFFFF 0px, #FFFFFF 1px, transparent 1px, transparent 14px)",
-          }}
-          aria-hidden="true"
-        />
-        <div
-          className="absolute left-0 top-0 bottom-0"
-          style={{ width: '6px', background: '#F37F21' }}
-          aria-hidden="true"
-        />
-        <div
-          className="absolute left-[6px] top-0 bottom-0"
-          style={{ width: '6px', background: '#8CC63F' }}
-          aria-hidden="true"
-        />
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 pt-20 pb-6 sm:pt-24 sm:pb-10">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-3 mb-1 sm:mb-2">
-                <span
-                  className="uppercase font-mono text-[10px] sm:text-xs"
-                  style={{
-                    fontWeight: 700,
-                    letterSpacing: '0.18em',
-                    color: '#8CC63F',
-                  }}
-                >
-                  Módulo de gestión
-                </span>
-              </div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight leading-tight">
-                <span style={{ color: '#FFFFFF' }}>Módulo de</span>
-                <span style={{ color: '#F37F21' }} className="capitalize">
-                  {rol === "gerencia" ? " Gerencia" : " Compras"}
-                </span>
-              </h1>
-              <p className="mt-1 sm:mt-2 text-sm sm:text-base" style={{ color: '#C9C9C3' }}>
-                {rol === "gerencia"
-                  ? "📊 Gestión completa con costos y análisis financiero"
-                  : "🛒 Lista de compras sin información de precios"}
-              </p>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-              <Link
-                href="/dashboard"
-                className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition text-sm sm:text-base w-full sm:w-auto"
-              >
-                <ArrowLeft size={18} />
-                Panel
-              </Link>
-            </div>
+    <div className="min-h-screen w-full" style={{ background: FONDO, color: OSCURO, fontFamily: ARCHIVO }}>
+      {/* Hero brutalista: el trigger de estaciones flotante ya lo pone DashboardChrome. */}
+      <header className="flex border-b-2" style={{ borderColor: OSCURO }}>
+        <div className="w-2 shrink-0" style={{ background: '#F37F21' }} aria-hidden="true" />
+        <div className="flex flex-1 flex-col gap-4 px-4 py-8 sm:flex-row sm:items-end sm:justify-between sm:px-8 sm:py-10">
+          <div>
+            <span
+              className="uppercase text-[10px] sm:text-xs font-extrabold"
+              style={{ letterSpacing: '0.18em', color: '#8CC63F' }}
+            >
+              Módulo de gestión
+            </span>
+            <h1 className="mt-2 text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight leading-tight">
+              <span>Módulo de</span>
+              <span style={{ color: '#F37F21' }} className="capitalize">
+                {rol === "gerencia" ? " Gerencia" : " Compras"}
+              </span>
+            </h1>
+            <p className="mt-1 sm:mt-2 text-sm sm:text-base" style={{ color: '#6B6B65' }}>
+              {rol === "gerencia"
+                ? "Gestión completa con costos y análisis financiero"
+                : "Lista de compras sin información de precios"}
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+            <Link
+              href="/dashboard"
+              className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 border-2 font-extrabold uppercase text-xs tracking-wide transition-colors hover:bg-[#201E1D] hover:text-white text-sm sm:text-base w-full sm:w-auto"
+              style={{ borderColor: OSCURO }}
+            >
+              <ArrowLeft size={18} />
+              Panel
+            </Link>
           </div>
         </div>
       </header>
@@ -1080,7 +1059,7 @@ const exportarAExcel = async () => {
         {/* Filtros */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-2">
           <div>
-            <label className="block text-sm font-medium text-[#2B2B2B] mb-1">
+            <label className="block text-sm font-medium text-[#201E1D] mb-1">
               <Building className="inline w-4 h-4 mr-2 text-[#8CC63F]" />
               Sede
             </label>
@@ -1094,7 +1073,7 @@ const exportarAExcel = async () => {
                 setInsumosRequeridos([])
                 setComensalesPorFechaTipo({})
               }}
-              className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
+              className="w-full border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#201E1D] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
             >
               <option value="">Seleccionar sede</option>
               {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
@@ -1102,16 +1081,16 @@ const exportarAExcel = async () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-[#2B2B2B] mb-1">
+            <label className="block text-sm font-medium text-[#201E1D] mb-1">
               <Users className="inline w-4 h-4 mr-2 text-[#F37F21]" />
               Comensales del rango
             </label>
-            <div className="w-full rounded-lg border border-[#E7E7E2] bg-[#FAFAF7] px-4 py-2.5">
+            <div className="w-full border border-[#E7E7E2] bg-[#FAFAF7] px-4 py-2.5">
               {totalDias === 0 ? (
                 <span className="text-sm text-[#9A9A93]">Carga una programación</span>
               ) : (
                 <>
-                  <p className="text-sm font-bold text-[#2B2B2B]">
+                  <p className="text-sm font-bold text-[#201E1D]">
                     {totalComensalesRango} en total
                   </p>
                   <p className="text-xs text-[#6B6B65]">
@@ -1126,7 +1105,7 @@ const exportarAExcel = async () => {
             <button
               onClick={cargarProgramacionRango}
               disabled={cargando || !sedeSeleccionada || !fechaInicio || !fechaFin}
-              className="w-full py-2.5 rounded-lg bg-[#2B2B2B] text-white font-medium hover:bg-[#3B3B3B] transition disabled:opacity-50 flex items-center justify-center gap-2"
+              className="w-full py-2.5 bg-[#201E1D] text-white font-medium hover:bg-[#3B3B3B] transition disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {cargando ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -1140,10 +1119,10 @@ const exportarAExcel = async () => {
 
         {/* Aviso cuando falta registrar comensales en el rango */}
         {paresSinComensales.length > 0 && (
-          <div className="mb-6 flex items-start gap-3 rounded-lg border border-[#F37F21]/30 bg-[#FFF7ED] p-4">
+          <div className="mb-6 flex items-start gap-3 border border-[#F37F21]/30 bg-[#FFF7ED] p-4">
             <Users className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#F37F21]" />
             <div className="text-sm">
-              <p className="font-bold text-[#2B2B2B]">
+              <p className="font-bold text-[#201E1D]">
                 {paresSinComensales.length}{' '}
                 {paresSinComensales.length === 1
                   ? 'combinación de día y tipo no tiene comensales'
@@ -1165,8 +1144,8 @@ const exportarAExcel = async () => {
 
         {/* Selector de rango */}
         {sedeSeleccionada && (
-          <div className="mb-6 p-4 rounded-lg border border-[#E7E7E2] bg-white shadow-sm">
-            <label className="block text-sm font-medium text-[#2B2B2B] mb-3">
+          <div className="mb-6 p-4 border border-[#E7E7E2] bg-white">
+            <label className="block text-sm font-medium text-[#201E1D] mb-3">
               <Calendar className="inline w-4 h-4 mr-2 text-[#F37F21]" />
               Rango de fechas
             </label>
@@ -1183,7 +1162,7 @@ const exportarAExcel = async () => {
               fechaFin={fechaFin}
             />
             {fechaInicio && fechaFin && (
-              <div className="mt-3 p-2 rounded-lg bg-[#8CC63F]/10 border border-[#8CC63F]/20">
+              <div className="mt-3 p-2 bg-[#8CC63F]/10 border border-[#8CC63F]/20">
                 <p className="text-sm text-[#8CC63F]">
                   ✓ Rango seleccionado: <strong className="capitalize">{formatearFechaLegible(fechaInicio)}</strong> al <strong className="capitalize">{formatearFechaLegible(fechaFin)}</strong>
                 </p>
@@ -1194,8 +1173,8 @@ const exportarAExcel = async () => {
 
         {/* Programación cargada */}
         {programacion.length > 0 && (
-          <div className="mb-6 rounded-lg border border-[#E7E7E2] bg-white overflow-hidden shadow-sm">
-            <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3" style={{ background: '#2B2B2B' }}>
+          <div className="mb-6 border border-[#E7E7E2] bg-white overflow-hidden" style={{ borderTop: '4px solid #F37F21' }}>
+            <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3" style={{ background: '#201E1D' }}>
               <h2 className="text-white font-bold text-sm flex items-center gap-2">
                 <Calendar className="w-4 h-4" />
                 <span className="capitalize">Programación del {formatearFechaLegible(fechaInicio)} al {formatearFechaLegible(fechaFin)}</span>
@@ -1226,7 +1205,7 @@ const exportarAExcel = async () => {
                           <div key={tipo} className="mb-3 last:mb-0">
                             <div className="flex items-center gap-2 mb-1">
                               <span
-                                className="text-[10px] font-bold rounded-full px-2 py-0.5"
+                                className="text-[10px] font-bold px-2 py-0.5"
                                 style={{ background: tipoInfo?.bg, color: tipoInfo?.color }}
                               >
                                 {tipoInfo?.icon} {tipoInfo?.label}
@@ -1237,11 +1216,11 @@ const exportarAExcel = async () => {
                               {itemsPorTipo.map((item) => {
                                 const catColor = CAT_COLORS[item.categoria] || { color: "#555", bg: "#f5f5f5" }
                                 return (
-                                  <div key={item.id} className="p-1.5 rounded" style={{ background: catColor.bg }}>
+                                  <div key={item.id} className="p-1.5" style={{ background: catColor.bg }}>
                                     <span className="text-[9px] font-bold uppercase block" style={{ color: catColor.color }}>
                                       {item.categoria}
                                     </span>
-                                    <span className="text-xs font-medium text-[#2B2B2B]">{item.plato_nombre}</span>
+                                    <span className="text-xs font-medium text-[#201E1D]">{item.plato_nombre}</span>
                                   </div>
                                 )
                               })}
@@ -1263,7 +1242,7 @@ const exportarAExcel = async () => {
               <button
                 onClick={calcularRequerimientoRango}
                 disabled={calculando}
-                className="w-full sm:w-auto px-5 py-2 rounded-lg bg-[#F37F21] text-white font-medium hover:bg-[#C4600F] transition disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-5 py-2 bg-[#F37F21] text-white font-medium hover:bg-[#C4600F] transition disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {calculando ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -1278,9 +1257,9 @@ const exportarAExcel = async () => {
 
         {/* ─── Comensales por día (solo lectura: vienen de la programación) ─── */}
         {programacion.length > 0 && (
-          <div className="mb-6 rounded-lg border border-[#E7E7E2] bg-white overflow-hidden shadow-sm">
+          <div className="mb-6 border border-[#E7E7E2] bg-white overflow-hidden" style={{ borderTop: '4px solid #8CC63F' }}>
             <div className="px-4 sm:px-6 py-3 border-b border-[#E7E7E2]" style={{ background: '#F5F5F0' }}>
-              <h3 className="text-sm font-bold text-[#2B2B2B] flex items-center gap-2">
+              <h3 className="text-sm font-bold text-[#201E1D] flex items-center gap-2">
                 <Users className="w-4 h-4 text-[#F37F21]" />
                 Comensales por día
               </h3>
@@ -1296,13 +1275,13 @@ const exportarAExcel = async () => {
                 return (
                   <div
                     key={fecha}
-                    className="rounded-lg border border-[#E7E7E2] px-3 py-2"
+                    className="border border-[#E7E7E2] px-3 py-2"
                     style={{ background: total > 0 ? '#FFFFFF' : '#FFF7ED' }}
                   >
                     <p className="text-xs font-medium text-[#6B6B65] capitalize truncate" title={formatearFechaLegible(fecha)}>
                       {formatearFechaLegible(fecha)}
                     </p>
-                    <p className="text-lg font-bold text-[#2B2B2B]">{total}</p>
+                    <p className="text-lg font-bold text-[#201E1D]">{total}</p>
                     <div className="flex flex-wrap gap-x-2 gap-y-0.5">
                       {tiposDelDia.map(tipo => {
                         const n = comensalesPorFechaTipo[`${fecha}|${tipo}`] ?? 0
@@ -1323,8 +1302,8 @@ const exportarAExcel = async () => {
             </div>
             <div className="px-4 sm:px-6 py-2 border-t border-[#E7E7E2] bg-[#F5FBF0]">
               <p className="text-xs text-[#6B6B65]">
-                Total: <strong className="text-[#2B2B2B]">{totalComensalesRango} comensales</strong>
-                <span className="ml-3">Promedio/día: <strong className="text-[#2B2B2B]">{promedioComensalesDia}</strong></span>
+                Total: <strong className="text-[#201E1D]">{totalComensalesRango} comensales</strong>
+                <span className="ml-3">Promedio/día: <strong className="text-[#201E1D]">{promedioComensalesDia}</strong></span>
               </p>
             </div>
           </div>
@@ -1332,8 +1311,8 @@ const exportarAExcel = async () => {
 
         {/* Requerimiento de insumos */}
         {insumosRequeridos.length > 0 && (
-          <div className="rounded-lg border border-[#E7E7E2] bg-white overflow-hidden shadow-sm">
-            <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3" style={{ background: '#2B2B2B' }}>
+          <div className="border border-[#E7E7E2] bg-white overflow-hidden" style={{ borderTop: '4px solid #201E1D' }}>
+            <div className="px-4 sm:px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3" style={{ background: '#201E1D' }}>
               <div>
                 <h2 className="text-white font-bold text-sm flex items-center gap-2">
                   <Package className="w-4 h-4" />
@@ -1354,7 +1333,7 @@ const exportarAExcel = async () => {
                 <button
                   onClick={exportarAExcel}
                   disabled={exportando}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#8CC63F] text-[#1F3A0A] font-medium hover:bg-[#7AB835] transition disabled:opacity-50 text-sm"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#8CC63F] text-[#1F3A0A] font-medium hover:bg-[#7AB835] transition disabled:opacity-50 text-sm"
                 >
                   {exportando ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -1389,7 +1368,7 @@ const exportarAExcel = async () => {
 
                     return (
                       <tr key={insumo.insumo_id} className="hover:bg-[#F5FBF0] transition">
-                        <td className="px-4 sm:px-6 py-3 font-medium text-[#2B2B2B]">{insumo.insumo_nombre}</td>
+                        <td className="px-4 sm:px-6 py-3 font-medium text-[#201E1D]">{insumo.insumo_nombre}</td>
                         <td className="px-4 sm:px-6 py-3 text-[#6B6B65]">
                           {formateadoPorcion.display}
                         </td>
@@ -1400,7 +1379,7 @@ const exportarAExcel = async () => {
                         {rol === "gerencia" && (
                           <>
                             <td className="px-4 sm:px-6 py-3">{formatearMoneda(insumo.precio_unitario || 0)}</td>
-                            <td className="px-4 sm:px-6 py-3 font-semibold text-[#2B2B2B]">
+                            <td className="px-4 sm:px-6 py-3 font-semibold text-[#201E1D]">
                               {formatearMoneda(insumo.costo_total || 0)}
                             </td>
                           </>
@@ -1414,14 +1393,14 @@ const exportarAExcel = async () => {
 
             <div className="px-4 sm:px-6 py-3 bg-[#F5FBF0] border-t border-[#E7E7E2]">
               <p className="text-xs text-[#6B6B65]">
-                Total de insumos: <strong className="text-[#2B2B2B]">{insumosRequeridos.length} items</strong>
+                Total de insumos: <strong className="text-[#201E1D]">{insumosRequeridos.length} items</strong>
                 {rol === "gerencia" && (
                   <>
                     <span className="ml-4">
-                      · Costo por día: <strong className="text-[#2B2B2B]">{formatearMoneda(costoTotalGeneral / totalDias)}</strong>
+                      · Costo por día: <strong className="text-[#201E1D]">{formatearMoneda(costoTotalGeneral / totalDias)}</strong>
                     </span>
                     <span className="ml-4">
-                      · Costo por comensal: <strong className="text-[#2B2B2B]">{formatearMoneda(totalComensalesRango > 0 ? costoTotalGeneral / totalComensalesRango : 0)}</strong>
+                      · Costo por comensal: <strong className="text-[#201E1D]">{formatearMoneda(totalComensalesRango > 0 ? costoTotalGeneral / totalComensalesRango : 0)}</strong>
                     </span>
                   </>
                 )}
@@ -1432,14 +1411,14 @@ const exportarAExcel = async () => {
 
         {/* Estados vacíos */}
         {programacion.length === 0 && fechaInicio && fechaFin && !cargando && (
-          <div className="text-center py-12 bg-[#F5F5F0] rounded-lg border border-[#E7E7E2]">
+          <div className="text-center py-12 bg-[#F5F5F0] border border-[#E7E7E2]">
             <Calendar className="w-12 h-12 text-[#9A9A93] mx-auto mb-3" />
             <p className="text-[#6B6B65]">No hay programación en el rango seleccionado</p>
           </div>
         )}
 
         {!sedeSeleccionada && (
-          <div className="text-center py-12 bg-[#F5F5F0] rounded-lg border border-[#E7E7E2]">
+          <div className="text-center py-12 bg-[#F5F5F0] border border-[#E7E7E2]">
             <Building className="w-12 h-12 text-[#9A9A93] mx-auto mb-3" />
             <p className="text-[#6B6B65]">Seleccione una sede para comenzar</p>
           </div>

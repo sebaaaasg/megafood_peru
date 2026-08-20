@@ -127,20 +127,20 @@ export default function TablaProgramacionMenu({
 
   return (
     <div className={className}>
-      {titulo && <h3 className="font-bold text-[#2C2C24] mb-3">{titulo}</h3>}
+      {titulo && <h3 className="font-bold text-[#201E1D] mb-3">{titulo}</h3>}
       
-      <div className="bg-[#FEFEFA] rounded-lg border border-[#DED8CF] shadow-sm overflow-hidden">
+      <div className="bg-[#FFFFFF]  border border-[#E7E7E2]  overflow-hidden">
         <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
           <table className="border-collapse text-xs w-full">
             <thead>
               <tr>
-                <th className="sticky left-0 top-0 z-30 bg-[#2C2C24] text-white text-left px-3 py-2.5 font-bold min-w-[150px]">
+                <th className="sticky left-0 top-0 z-30 bg-[#201E1D] text-white text-left px-3 py-2.5 font-bold min-w-[150px]">
                   Categoría
                 </th>
                 {tablaMenu.dias.map((fecha, i) => (
                   <th
                     key={i}
-                    className="sticky top-0 z-20 bg-[#2C2C24] text-white text-left px-3 py-2.5 font-semibold min-w-[190px] whitespace-nowrap border-l border-white/10"
+                    className="sticky top-0 z-20 bg-[#201E1D] text-white text-left px-3 py-2.5 font-semibold min-w-[190px] whitespace-nowrap border-l border-white/10"
                   >
                     {fecha}
                   </th>
@@ -200,7 +200,7 @@ export default function TablaProgramacionMenu({
                                   key={di}
                                   className={`
                                     px-3 py-2
-                                    text-[#2C2C24]
+                                    text-[#201E1D]
                                     border-l
                                     ${style.border}
                                     whitespace-nowrap
@@ -258,7 +258,7 @@ export default function TablaProgramacionMenu({
                               key={di}
                               className={`
                                 px-3 py-2 font-bold text-[#F37F21] 
-                                border-l border-[#DED8CF] whitespace-nowrap
+                                border-l border-[#E7E7E2] whitespace-nowrap
                                 ${tieneValor ? 'group' : ''}
                               `}
                             >

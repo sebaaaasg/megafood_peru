@@ -13,7 +13,7 @@ import {
   type Estacion,
 } from "@/app/dashboard/components/estaciones";
 
-const SERIF = 'var(--font-fraunces), serif'
+const ARCHIVO = 'var(--font-archivo), system-ui, sans-serif'
 const OSCURO = '#201E1D'
 const FONDO = '#E7E7E2'
 
@@ -109,7 +109,7 @@ export default function MainMenu() {
     return (
       <div
         className="flex min-h-screen w-full items-center justify-center"
-        style={{ background: FONDO, fontFamily: 'var(--font-nunito), system-ui, sans-serif' }}
+        style={{ background: FONDO, fontFamily: ARCHIVO }}
       >
         <div className="flex flex-col items-center gap-4">
           <div
@@ -139,7 +139,7 @@ export default function MainMenu() {
   return (
     <div
       className="relative flex min-h-screen flex-col"
-      style={{ background: FONDO, color: OSCURO, fontFamily: 'var(--font-nunito), system-ui, sans-serif' }}
+      style={{ background: FONDO, color: OSCURO, fontFamily: ARCHIVO }}
     >
       <EstacionesDrawer
         abierto={menuAbierto}

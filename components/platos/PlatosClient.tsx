@@ -24,6 +24,12 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { Plato, Insumo, Sede, Categoria, RecetaLinea } from '@/lib/supabase/platos'
 import * as XLSX from 'xlsx'
+import BarraSuperior from '@/app/dashboard/components/BarraSuperior'
+import EstacionesDrawer from '@/app/dashboard/components/EstacionesDrawer'
+
+const ARCHIVO = 'var(--font-archivo), system-ui, sans-serif'
+const OSCURO = '#201E1D'
+const FONDO = '#E7E7E2'
 
 // ─── Interfaces ────────────────────────────────────────
 interface PlatosClientProps {
@@ -136,6 +142,27 @@ export default function PlatosClient({
   const [platosImport, setPlatosImport] = useState<any[]>([])
   const [erroresImport, setErroresImport] = useState<string[]>([])
   const importInputRef = useRef<HTMLInputElement>(null)
+
+  // Sesión, para el drawer de estaciones y el chip de usuario.
+  const [userRole, setUserRole] = useState<string | null>(null)
+  const [displayName, setDisplayName] = useState('Usuario')
+  const [menuAbierto, setMenuAbierto] = useState(false)
+
+  useEffect(() => {
+    const cargarSesion = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, full_name')
+        .eq('id', user.id)
+        .single()
+      setUserRole(profile?.role ?? null)
+      const nombreSesion = profile?.full_name || user.email?.split('@')[0] || 'Usuario'
+      setDisplayName(nombreSesion.charAt(0).toUpperCase() + nombreSesion.slice(1))
+    }
+    cargarSesion()
+  }, [supabase])
 
   // Establecer sede activa inicial
   useEffect(() => {
@@ -541,98 +568,99 @@ export default function PlatosClient({
 
   // ── Render ──
   return (
-    <div className="min-h-screen w-full" style={{ background: '#FFFFFF' }}>
+ <div className="min-h-screen w-full" style={{ background: FONDO, color: OSCURO, fontFamily: ARCHIVO }}>
       {loading && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 flex items-center gap-3">
-            <Loader2 className="w-6 h-6 animate-spin text-[#8CC63F]" />
-            <span className="text-gray-700">Procesando...</span>
+ <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+ <div className="bg-white p-6 flex items-center gap-3">
+ <Loader2 className="w-6 h-6 animate-spin text-[#8CC63F]" />
+ <span className="text-gray-700">Procesando...</span>
           </div>
         </div>
       )}
 
-      {/* Header responsive */}
-      <header className="relative overflow-hidden" style={{ background: '#2B2B2B' }}>
-        <div className="absolute inset-0 opacity-[0.06]" style={{
-          backgroundImage: "repeating-linear-gradient(135deg, #FFFFFF 0px, #FFFFFF 1px, transparent 1px, transparent 14px)"
-        }} aria-hidden="true" />
-        <div className="absolute left-0 top-0 bottom-0" style={{ width: '6px', background: '#F37F21' }} aria-hidden="true" />
-        <div className="absolute left-[6px] top-0 bottom-0" style={{ width: '6px', background: '#8CC63F' }} aria-hidden="true" />
+      <EstacionesDrawer
+        abierto={menuAbierto}
+        onCerrar={() => setMenuAbierto(false)}
+        role={userRole}
+        displayName={displayName}
+      />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 pt-20 pb-6 sm:pt-24 sm:pb-10">
-          {/* Contenedor flexible - columna en móvil, fila en desktop */}
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-6">
-            
-            {/* Lado izquierdo - Texto */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-3 mb-1 sm:mb-2">
-                <span className="uppercase font-mono text-[10px] sm:text-xs" style={{ fontWeight: 700, letterSpacing: '0.18em', color: '#8CC63F' }}>
-                  Módulo de gestión
-                </span>
+      <BarraSuperior
+        displayName={displayName}
+        menuAbierto={menuAbierto}
+        onAbrirMenu={() => setMenuAbierto(true)}
+      />
+
+      {/* Encabezado */}
+      <div className="flex border-b-2" style={{ borderColor: '#6B6B65' }}>
+        <div className="w-2 shrink-0" style={{ background: '#F37F21' }} aria-hidden="true" />
+        <div className="flex-1 px-4 py-10 sm:px-8 sm:py-14">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
+            <div className="min-w-0">
+              <div className="mb-3 text-[10px] font-extrabold" style={{ letterSpacing: '0.2em', color: '#6B6B65' }}>
+                MÓDULO DE GESTIÓN
               </div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight leading-tight">
-                <span style={{ color: '#FFFFFF' }}>Catálogo de</span>
-                <br className="sm:hidden" />
-                <span style={{ color: '#F37F21' }}> Platos</span>
+              <h1 className="text-[34px] sm:text-[46px]" style={{ margin: 0, lineHeight: 0.98, letterSpacing: '-0.03em', fontWeight: 800 }}>
+                Catálogo de <span style={{ color: '#F37F21' }}>Platos</span>
               </h1>
-              <p className="mt-1 sm:mt-2 text-sm sm:text-base" style={{ color: '#C9C9C3' }}>
+              <p className="mt-3 text-sm sm:text-base" style={{ color: '#6B6B65' }}>
                 Gestiona tus platos y sus recetas por sede.
               </p>
             </div>
 
-            {/* Lado derecho - Botones apilados en móvil */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row gap-2.5 w-full sm:w-auto">
               <button
                 onClick={() => setModalImport(true)}
-                className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 bg-[#F37F21]/10 text-[#F37F21] rounded-lg font-semibold hover:bg-[#F37F21]/20 transition text-sm sm:text-base w-full sm:w-auto"
+                className="flex items-center justify-center gap-2 px-5 py-2.5 text-[13px] font-extrabold uppercase w-full sm:w-auto"
+                style={{ background: '#fff', color: OSCURO, border: `2px solid ${OSCURO}`, letterSpacing: '0.06em' }}
               >
-                <FileSpreadsheet size={18} />
+                <FileSpreadsheet size={16} />
                 Importar Excel
               </button>
               <Link
                 href="/dashboard"
-                className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition text-sm sm:text-base w-full sm:w-auto"
+                className="flex items-center justify-center gap-2 px-5 py-2.5 text-[13px] font-extrabold uppercase w-full sm:w-auto"
+                style={{ background: OSCURO, color: '#fff', letterSpacing: '0.06em' }}
               >
-                <ArrowLeft size={18} />
+                <ArrowLeft size={16} />
                 Panel
               </Link>
             </div>
-
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Contenido */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
+ <main className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
         {/* Selector de sede */}
-        <div className="mb-7 rounded-2xl border border-[#E7E7E2] bg-white shadow-[0_2px_12px_rgba(43,43,43,0.04)] overflow-hidden">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#8CC63F]/10 text-[#2d5a1e]"><MapPin size={19} /></div>
+ <div className="mb-7 border border-[#E7E7E2] bg-white overflow-hidden" style={{ borderLeft: '4px solid #8CC63F' }}>
+ <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4">
+ <div className="flex items-center gap-3">
+ <div className="flex h-10 w-10 items-center justify-center bg-[#8CC63F]/10 text-[#2d5a1e]"><MapPin size={19} /></div>
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#9A9A93]">Sede activa</p>
-                <p className="mt-0.5 text-sm font-bold text-[#2B2B2B]">Gestionando catálogo y recetas</p>
+ <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#9A9A93]">Sede activa</p>
+ <p className="mt-0.5 text-sm font-bold text-[#201E1D]">Gestionando catálogo y recetas</p>
               </div>
             </div>
-            <div className="relative min-w-[230px]">
-              <select value={sedeActiva} onChange={e => setSedeActiva(e.target.value)} className="w-full appearance-none rounded-xl border border-[#E7E7E2] bg-[#F8F8F5] px-4 py-2.5 pr-10 text-sm font-semibold text-[#2B2B2B] outline-none transition focus:border-[#8CC63F] focus:bg-white focus:ring-4 focus:ring-[#8CC63F]/10">
+ <div className="relative min-w-[230px]">
+ <select value={sedeActiva} onChange={e => setSedeActiva(e.target.value)} className="w-full appearance-none border border-[#E7E7E2] bg-[#F8F8F5] px-4 py-2.5 pr-10 text-sm font-semibold text-[#201E1D] outline-none transition focus:border-[#8CC63F] focus:bg-white focus:ring-4 focus:ring-[#8CC63F]/10">
                 {sedes.map(s => (<option key={s.id} value={s.id}>{s.nombre}</option>))}
               </select>
-              <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#8A8A83]" />
+ <ChevronDown size={16} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[#8A8A83]" />
             </div>
           </div>
         </div>
 
         {/* Categorías */}
-        <div className="mb-7">
-          <div className="mb-3 flex items-end justify-between gap-3">
+ <div className="mb-7">
+ <div className="mb-3 flex items-end justify-between gap-3">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#9A9A93]">Categorías</p>
-              <p className="mt-1 text-sm text-[#6B6B65]">Selecciona el tipo de plato que deseas gestionar</p>
+ <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#9A9A93]">Categorías</p>
+ <p className="mt-1 text-sm text-[#6B6B65]">Selecciona el tipo de plato que deseas gestionar</p>
             </div>
-            <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-[#8A8A83]"> <span className="h-2 w-2 rounded-full bg-[#8CC63F]" />{platos.length} platos en total</div>
+ <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-[#8A8A83]"> <span className="h-2 w-2 bg-[#8CC63F]" />{platos.length} platos en total</div>
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-2">
+ <div className="flex gap-3 overflow-x-auto pb-2">
             {CATS.map(cat => {
               const isActive = catActiva === cat.key
               const count = platos.filter(p => p.categoria === cat.key).length
@@ -641,12 +669,12 @@ export default function PlatosClient({
                 <button
                   key={cat.key}
                   onClick={() => { setCatActiva(cat.key); setSubcategoria(""); setLineas([{ ...EMPTY_LINEA }]); setSearchTerm("") }}
-                  className={`group relative flex h-[116px] w-[154px] flex-shrink-0 flex-col items-center justify-center gap-1.5 rounded-2xl border-2 px-2 transition-all duration-200 ${isActive ? 'shadow-[0_5px_16px_rgba(43,43,43,0.14)] -translate-y-0.5' : 'hover:-translate-y-0.5 hover:shadow-sm'}`}
-                  style={{ background: isActive ? cat.color : cat.bg, color: isActive ? '#FFFFFF' : cat.color, borderColor: isActive ? '#FFFFFF' : `${cat.color}30`, boxShadow: isActive ? `0 5px 16px ${cat.color}22` : undefined }}
+ className="group relative flex h-[116px] w-[154px] flex-shrink-0 flex-col items-center justify-center gap-1.5 border-2 px-2 transition-colors duration-150"
+                  style={{ background: isActive ? cat.color : cat.bg, color: isActive ? '#FFFFFF' : cat.color, borderColor: isActive ? OSCURO : `${cat.color}30` }}
                 >
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: isActive ? 'rgba(255,255,255,0.13)' : 'rgba(255,255,255,0.68)' }}><Icon size={20} strokeWidth={2} /></span>
-                  <span className="text-[13px] font-extrabold uppercase tracking-wide">{cat.label}</span>
-                  <span className={`text-[11px] font-semibold ${isActive ? 'text-white/70' : 'text-[#8A8A83]'}`}>{count} {count === 1 ? 'plato' : 'platos'}</span>
+ <span className="flex h-10 w-10 items-center justify-center " style={{ background: isActive ? 'rgba(255,255,255,0.13)' : 'rgba(255,255,255,0.68)' }}><Icon size={20} strokeWidth={2} /></span>
+ <span className="text-[13px] font-extrabold uppercase tracking-wide">{cat.label}</span>
+ <span className={`text-[11px] font-semibold ${isActive ? 'text-white/70' : 'text-[#8A8A83]'}`}>{count} {count === 1 ? 'plato' : 'platos'}</span>
                 </button>
               )
             })}
@@ -654,27 +682,27 @@ export default function PlatosClient({
         </div>
 
         {/* 🔍 Buscador de platos */}
-        <div className="mb-6">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+ <div className="mb-6">
+ <div className="relative max-w-md">
+ <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
               placeholder="Buscar plato por nombre..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-10 py-2.5 border border-[#E7E7E2] rounded-lg focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent bg-white text-sm"
+ className="w-full pl-10 pr-10 py-2.5 border border-[#E7E7E2] focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent bg-white text-sm"
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+ className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 <X size={16} />
               </button>
             )}
           </div>
           {searchTerm && (
-            <p className="mt-2 text-sm text-[#6B6B65]">
+ <p className="mt-2 text-sm text-[#6B6B65]">
               {platosDeCat.length} resultado{platosDeCat.length !== 1 ? 's' : ''} encontrado{platosDeCat.length !== 1 ? 's' : ''}
             </p>
           )}
@@ -682,46 +710,46 @@ export default function PlatosClient({
 
         {/* Formulario nuevo plato */}
         {isAdmin && (
-          <form onSubmit={guardar} className="mb-7 overflow-hidden rounded-2xl border border-[#E7E7E2] bg-white shadow-[0_3px_16px_rgba(43,43,43,0.05)]">
-            <div className="border-b border-[#EFEFE9] bg-[#FAFAF7] px-6 py-4">
-              <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#9A9A93]">Crear nuevo</p>
-              <div className="mt-1 flex flex-wrap items-center gap-2">
-                <p className="text-base font-extrabold text-[#2B2B2B] flex items-center gap-2">
-                  <Plus size={17} className="text-[#8CC63F]" /> Nuevo plato
-              <span className="rounded-full px-2.5 py-0.5 text-xs font-bold" style={{ background: catActual.bg, color: catActual.color }}>
+ <form onSubmit={guardar} className="mb-7 overflow-hidden border border-[#E7E7E2] bg-white" style={{ borderTop: `4px solid ${catActual.color}` }}>
+ <div className="border-b border-[#EFEFE9] bg-[#FAFAF7] px-6 py-4">
+ <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#9A9A93]">Crear nuevo</p>
+ <div className="mt-1 flex flex-wrap items-center gap-2">
+ <p className="text-base font-extrabold text-[#201E1D] flex items-center gap-2">
+ <Plus size={17} className="text-[#8CC63F]" /> Nuevo plato
+ <span className=" px-2.5 py-0.5 text-xs font-bold" style={{ background: catActual.bg, color: catActual.color }}>
                 {catActual.label}
               </span>
-              <span className="rounded-full px-2.5 py-0.5 text-xs font-bold bg-indigo-50 text-indigo-600">
+ <span className=" px-2.5 py-0.5 text-xs font-bold bg-indigo-50 text-indigo-600">
                 {sedeActualNombre || "Sin sede"}
               </span>
                 </p>
               </div>
             </div>
 
-            <div className="p-6">
-            <div className="mb-4">
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Nombre del plato</label>
+ <div className="p-6">
+ <div className="mb-4">
+ <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Nombre del plato</label>
               <input
                 value={nombre}
                 onChange={e => setNombre(e.target.value)}
                 placeholder="Ej: AJI DE GALLINA"
-                className="w-full rounded-lg border border-[#E7E7E2] px-3 py-2 text-sm font-medium text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] uppercase"
+ className="w-full border border-[#E7E7E2] px-3 py-2 text-sm font-medium text-[#201E1D] outline-none focus:ring-2 focus:ring-[#8CC63F] uppercase"
                 required
               />
             </div>
 
             {catActiva === "ENTRADA" && (
-              <div className="mb-4">
-                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Subcategoría</label>
-                <div className="flex gap-2">
+ <div className="mb-4">
+ <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Subcategoría</label>
+ <div className="flex gap-2">
                   {SUBCATS_ENTRADA.map(s => (
                     <button
                       key={s.value}
                       type="button"
                       onClick={() => setSubcategoria(subcategoria === s.value ? "" : s.value)}
-                      className={`px-4 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+ className={`px-4 py-1.5 text-xs font-bold border transition-all ${
                         subcategoria === s.value
-                          ? "bg-[#2d5a1e] text-white border-[#2d5a1e] shadow-sm"
+                          ? "bg-[#2d5a1e] text-white border-[#2d5a1e] "
                           : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
                       }`}
                     >
@@ -732,19 +760,19 @@ export default function PlatosClient({
               </div>
             )}
 
-            <div className="mb-4">
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
+ <div className="mb-4">
+ <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
                 Insumos de la receta ({sedeActualNombre || "—"})
               </label>
-              <div className="space-y-2">
+ <div className="space-y-2">
                 {lineas.map((linea, i) => {
                   const insumoSel = insumos.find(ins => ins.id === linea.insumo_id)
                   return (
-                    <div key={i} className="flex gap-2 items-center flex-wrap sm:flex-nowrap">
+ <div key={i} className="flex gap-2 items-center flex-wrap sm:flex-nowrap">
                       <select
                         value={linea.insumo_id}
                         onChange={e => setLinea(i, "insumo_id", e.target.value)}
-                        className="flex-1 min-w-[120px] rounded-lg border border-[#E7E7E2] px-3 py-2 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F]"
+ className="flex-1 min-w-[120px] border border-[#E7E7E2] px-3 py-2 text-sm text-[#201E1D] outline-none focus:ring-2 focus:ring-[#8CC63F]"
                       >
                         <option value="">— Seleccionar insumo —</option>
                         {insumos.map(ins => (
@@ -756,17 +784,17 @@ export default function PlatosClient({
                         value={linea.cantidad || ""}
                         onChange={e => setLinea(i, "cantidad", parseFloat(e.target.value) || 0)}
                         placeholder="0"
-                        className="w-20 rounded-lg border border-[#E7E7E2] px-3 py-2 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F]"
+ className="w-20 border border-[#E7E7E2] px-3 py-2 text-sm text-[#201E1D] outline-none focus:ring-2 focus:ring-[#8CC63F]"
                         step="0.001"
                       />
-                      <span className="w-16 text-center text-xs font-bold text-gray-500">
+ <span className="w-16 text-center text-xs font-bold text-gray-500">
                         {insumoSel?.unidad ?? "—"}
                       </span>
                       {lineas.length > 1 && (
                         <button
                           type="button"
                           onClick={() => removeLinea(i)}
-                          className="text-red-400 hover:text-red-600 transition-colors p-1"
+ className="text-red-400 hover:text-red-600 transition-colors p-1"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -778,7 +806,7 @@ export default function PlatosClient({
               <button
                 type="button"
                 onClick={addLinea}
-                className="mt-2 flex items-center gap-1 text-xs font-bold rounded-lg px-3 py-1.5 border border-[#E7E7E2] text-gray-600 hover:bg-gray-50"
+ className="mt-2 flex items-center gap-1 text-xs font-bold px-3 py-1.5 border border-[#E7E7E2] text-gray-600 hover:bg-gray-50"
               >
                 <Plus size={14} /> Agregar insumo
               </button>
@@ -787,7 +815,7 @@ export default function PlatosClient({
             <button
               type="submit"
               disabled={loading || !sedeActiva}
-              className="px-4 py-2 rounded-lg text-white font-bold shadow-md disabled:opacity-50"
+ className="px-4 py-2 text-white font-bold disabled:opacity-50"
               style={{ background: catActual.color }}
             >
               {loading ? "Guardando..." : "Crear plato"}
@@ -797,26 +825,26 @@ export default function PlatosClient({
         )}
 
         {/* Lista de platos */}
-        <div className="mb-4 flex items-end justify-between gap-3">
+ <div className="mb-4 flex items-end justify-between gap-3">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#9A9A93]">Catálogo</p>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <h2 className="text-lg font-extrabold text-[#2B2B2B]">{catActual.label}</h2>
-              <span className="rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: catActual.bg, color: catActual.color }}>{platosDeCat.length} {platosDeCat.length === 1 ? "plato" : "platos"}</span>
+ <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#9A9A93]">Catálogo</p>
+ <div className="mt-1 flex flex-wrap items-center gap-2">
+ <h2 className="text-lg font-extrabold text-[#201E1D]">{catActual.label}</h2>
+ <span className=" px-2.5 py-1 text-[11px] font-bold" style={{ background: catActual.bg, color: catActual.color }}>{platosDeCat.length} {platosDeCat.length === 1 ? "plato" : "platos"}</span>
             </div>
           </div>
-          <span className="hidden sm:block text-xs font-semibold text-[#9A9A93]">{sedeActualNombre || "Sin sede"}</span>
+ <span className="hidden sm:block text-xs font-semibold text-[#9A9A93]">{sedeActualNombre || "Sin sede"}</span>
         </div>
 
         {platosDeCat.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-[#DCDCD5] bg-[#FAFAF7] py-12 text-center">
-            <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-xl border border-[#E7E7E2] bg-white text-[#9A9A93]">
+ <div className=" border border-dashed border-[#DCDCD5] bg-[#FAFAF7] py-12 text-center">
+ <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center border border-[#E7E7E2] bg-white text-[#9A9A93]">
               {searchTerm ? <Search size={19} /> : <Plus size={19} />}
             </div>
-            <p className="text-sm font-bold text-[#5F5F59]">
+ <p className="text-sm font-bold text-[#5F5F59]">
               {searchTerm ? "No se encontraron platos con ese nombre" : "Sin platos en esta categoría"}
             </p>
-            <p className="mt-1 text-xs text-[#9A9A93]">
+ <p className="mt-1 text-xs text-[#9A9A93]">
               {searchTerm ? "Prueba con otro término de búsqueda" : "Crea el primero usando el formulario superior."}
             </p>
           </div>
@@ -826,19 +854,20 @@ export default function PlatosClient({
             return (
               <div
                 key={plato.id}
-                className="group mb-3 flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 rounded-2xl border border-[#E7E7E2] bg-white px-4 sm:px-5 py-4 shadow-[0_2px_10px_rgba(43,43,43,0.035)] transition-all duration-200 hover:-translate-y-0.5 hover:border-[#DCDCD5] hover:shadow-[0_7px_18px_rgba(43,43,43,0.07)]"
+ className="group mb-3 flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 border border-[#E7E7E2] bg-white px-4 sm:px-5 py-4 transition-colors duration-150 hover:border-[#DCDCD5]"
+                style={{ borderLeft: `4px solid ${catActual.color}` }}
               >
-                <div className="flex-1 min-w-0">
-                  <div className="mb-1 flex items-center gap-2 flex-wrap">
-                    <span className="h-2 w-2 flex-shrink-0 rounded-full" style={{ background: catActual.color }} />
-                    <p className="text-sm font-extrabold text-[#2B2B2B]">{plato.nombre}</p>
+ <div className="flex-1 min-w-0">
+ <div className="mb-1 flex items-center gap-2 flex-wrap">
+ <span className="h-2 w-2 flex-shrink-0 " style={{ background: catActual.color }} />
+ <p className="text-sm font-extrabold text-[#201E1D]">{plato.nombre}</p>
                     {plato.subcategoria && (
-                      <span className="text-xs font-bold rounded-full px-2 py-0.5 bg-[#eaf3de] text-[#2d5a1e]">
+ <span className="text-xs font-bold px-2 py-0.5 bg-[#eaf3de] text-[#2d5a1e]">
                         {plato.subcategoria}
                       </span>
                     )}
                   </div>
-                  <p className="text-xs text-[#7A7A73] truncate mt-1">
+ <p className="text-xs text-[#7A7A73] truncate mt-1">
                     {recetaSede.length > 0
                       ? recetaSede
                           .map(r => `${r.insumos.nombre} (${r.cantidad} ${r.insumos.unidad})`)
@@ -847,17 +876,17 @@ export default function PlatosClient({
                   </p>
                 </div>
                 {isAdmin && (
-                  <div className="flex gap-1.5 flex-shrink-0 self-end sm:self-auto">
+ <div className="flex gap-1.5 flex-shrink-0 self-end sm:self-auto">
                     <button
                       onClick={() => abrirModalEdicion(plato)}
-                      className="flex items-center gap-1 text-xs font-bold rounded-lg px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
+ className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors"
                     >
                       <Edit size={14} />
                       {recetaSede.length > 0 ? "Editar" : "Definir"}
                     </button>
                     <button
                       onClick={() => borrar(plato.id, plato.nombre)}
-                      className="flex items-center gap-1 text-xs font-bold rounded-lg px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
+ className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
                     >
                       <Trash2 size={14} />
                       Eliminar
@@ -872,67 +901,67 @@ export default function PlatosClient({
 
       {/* ─── MODAL IMPORTAR EXCEL ─── */}
       {modalImport && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={cerrarModalImport} />
-          <div className="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
-              <div className="flex items-center gap-2">
-                <FileSpreadsheet className="text-xl text-green-700" />
-                <h2 className="text-lg font-extrabold text-gray-800">Importar platos desde Excel</h2>
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+ <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={cerrarModalImport} />
+ <div className="relative w-full max-w-2xl bg-white overflow-hidden max-h-[90vh] flex flex-col" style={{ borderTop: `4px solid ${OSCURO}` }}>
+ <div className="p-5 border-b border-gray-100 flex items-center justify-between flex-shrink-0">
+ <div className="flex items-center gap-2">
+ <FileSpreadsheet className="text-xl text-green-700" />
+ <h2 className="text-lg font-extrabold text-gray-800">Importar platos desde Excel</h2>
               </div>
-              <button onClick={cerrarModalImport} className="text-gray-400 hover:text-gray-600">
+ <button onClick={cerrarModalImport} className="text-gray-400 hover:text-gray-600">
                 <X size={24} />
               </button>
             </div>
 
             {importStep === "upload" && (
-              <div className="p-8 flex flex-col items-center gap-5 overflow-y-auto">
+ <div className="p-8 flex flex-col items-center gap-5 overflow-y-auto">
                 <div
-                  className="w-full border-2 border-dashed border-green-300 rounded-2xl p-10 flex flex-col items-center gap-3 cursor-pointer hover:bg-green-50 transition-colors"
+ className="w-full border-2 border-dashed border-green-300 p-10 flex flex-col items-center gap-3 cursor-pointer hover:bg-green-50 transition-colors"
                   onClick={() => importInputRef.current?.click()}
                   onDragOver={e => e.preventDefault()}
                   onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) handleImportFile(f); }}
                 >
-                  <span className="text-4xl">📊</span>
-                  <p className="text-sm font-bold text-gray-700">Arrastra tu plantilla .xlsx aquí</p>
-                  <p className="text-xs text-gray-400">o haz clic para seleccionar</p>
+ <span className="text-4xl">📊</span>
+ <p className="text-sm font-bold text-gray-700">Arrastra tu plantilla .xlsx aquí</p>
+ <p className="text-xs text-gray-400">o haz clic para seleccionar</p>
                   <input
                     ref={importInputRef}
                     type="file"
                     accept=".xlsx,.xls"
-                    className="hidden"
+ className="hidden"
                     onChange={e => { const f = e.target.files?.[0]; if (f) handleImportFile(f); }}
                   />
                 </div>
 
-                <div className="w-full rounded-xl bg-gray-50 border border-gray-200 p-4">
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
+ <div className="w-full bg-gray-50 border border-gray-200 p-4">
+ <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
                     Formato esperado (columnas requeridas)
                   </p>
-                  <div className="overflow-x-auto">
-                    <table className="text-xs w-full">
+ <div className="overflow-x-auto">
+ <table className="text-xs w-full">
                       <thead>
-                        <tr className="text-left">
+ <tr className="text-left">
                           {["NOMBRE_PLATO","CATEGORIA","SUBCATEGORIA","SEDE","INSUMO","CANTIDAD","UNIDAD"].map(h => (
-                            <th key={h} className="pr-3 py-1 font-bold text-gray-600 whitespace-nowrap">{h}</th>
+ <th key={h} className="pr-3 py-1 font-bold text-gray-600 whitespace-nowrap">{h}</th>
                           ))}
                         </tr>
                       </thead>
-                      <tbody className="text-gray-500">
+ <tbody className="text-gray-500">
                         <tr>
-                          <td className="pr-3 py-0.5">AJI DE GALLINA</td>
-                          <td className="pr-3">FONDO</td>
-                          <td className="pr-3"></td>
-                          <td className="pr-3">Lima - Centro</td>
-                          <td className="pr-3">POLLO ENTERO</td>
+ <td className="pr-3 py-0.5">AJI DE GALLINA</td>
+ <td className="pr-3">FONDO</td>
+ <td className="pr-3"></td>
+ <td className="pr-3">Lima - Centro</td>
+ <td className="pr-3">POLLO ENTERO</td>
                           <td>1.5</td>
-                          <td className="pr-3">KG</td>
+ <td className="pr-3">KG</td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
-                  <div className="mt-2 p-2 bg-green-50 rounded-lg border border-green-200">
-                    <p className="text-[10px] text-green-700 font-semibold">
+ <div className="mt-2 p-2 bg-green-50 border border-green-200">
+ <p className="text-[10px] text-green-700 font-semibold">
                       🔄 Conversión automática: ml ↔ L (÷1000 / ×1000), g ↔ kg (÷1000 / ×1000)
                     </p>
                   </div>
@@ -942,56 +971,56 @@ export default function PlatosClient({
 
             {importStep === "preview" && (
               <>
-                <div className="flex-1 overflow-y-auto p-5 space-y-3">
+ <div className="flex-1 overflow-y-auto p-5 space-y-3">
                   {erroresImport.length > 0 && (
-                    <div className="rounded-xl bg-red-50 border border-red-200 p-3">
-                      <p className="text-xs font-bold text-red-700 mb-1">⚠ {erroresImport.length} filas con avisos</p>
+ <div className=" bg-red-50 border border-red-200 p-3">
+ <p className="text-xs font-bold text-red-700 mb-1">⚠ {erroresImport.length} filas con avisos</p>
                     </div>
                   )}
-                  <div className="flex gap-3 flex-wrap">
-                    <div className="flex-1 rounded-xl bg-green-50 border border-green-200 p-3 text-center">
-                      <p className="text-2xl font-extrabold text-green-700">{platosImport.length}</p>
-                      <p className="text-xs text-green-600 font-bold">recetas detectadas</p>
+ <div className="flex gap-3 flex-wrap">
+ <div className="flex-1 bg-green-50 border border-green-200 p-3 text-center">
+ <p className="text-2xl font-extrabold text-green-700">{platosImport.length}</p>
+ <p className="text-xs text-green-600 font-bold">recetas detectadas</p>
                     </div>
                     {totalNoEncontrados > 0 && (
-                      <div className="flex-1 rounded-xl bg-amber-50 border border-amber-200 p-3 text-center">
-                        <p className="text-2xl font-extrabold text-amber-600">{totalNoEncontrados}</p>
-                        <p className="text-xs text-amber-600 font-bold">insumos no encontrados</p>
+ <div className="flex-1 bg-amber-50 border border-amber-200 p-3 text-center">
+ <p className="text-2xl font-extrabold text-amber-600">{totalNoEncontrados}</p>
+ <p className="text-xs text-amber-600 font-bold">insumos no encontrados</p>
                       </div>
                     )}
                   </div>
                   {totalNoEncontrados > 0 && (
-                    <div className="flex items-center justify-between rounded-xl bg-amber-50 border border-amber-200 px-4 py-2.5">
-                      <p className="text-xs text-amber-700 font-bold">Decide qué hacer con los insumos marcados</p>
+ <div className="flex items-center justify-between bg-amber-50 border border-amber-200 px-4 py-2.5">
+ <p className="text-xs text-amber-700 font-bold">Decide qué hacer con los insumos marcados</p>
                       <button
                         onClick={omitirTodosImport}
-                        className="text-xs font-bold rounded-lg px-3 py-1.5 bg-amber-100 text-amber-700 hover:bg-amber-200"
+ className="text-xs font-bold px-3 py-1.5 bg-amber-100 text-amber-700 hover:bg-amber-200"
                       >
                         Omitir todos
                       </button>
                     </div>
                   )}
                   {platosImport.map((plato, pi) => (
-                    <div key={pi} className="rounded-xl border border-gray-200 bg-gray-50 overflow-hidden">
-                      <div className="flex items-center gap-2 px-4 py-2.5 bg-white border-b border-gray-100 flex-wrap">
-                        <p className="text-sm font-bold text-gray-800 flex-1">{plato.nombre}</p>
-                        <span className="text-xs font-bold rounded-full px-2 py-0.5 bg-gray-100 text-gray-600">{plato.categoria}</span>
-                        <span className="text-xs font-bold rounded-full px-2 py-0.5 bg-indigo-100 text-indigo-700">{plato.sede_nombre}</span>
+ <div key={pi} className=" border border-gray-200 bg-gray-50 overflow-hidden">
+ <div className="flex items-center gap-2 px-4 py-2.5 bg-white border-b border-gray-100 flex-wrap">
+ <p className="text-sm font-bold text-gray-800 flex-1">{plato.nombre}</p>
+ <span className="text-xs font-bold px-2 py-0.5 bg-gray-100 text-gray-600">{plato.categoria}</span>
+ <span className="text-xs font-bold px-2 py-0.5 bg-indigo-100 text-indigo-700">{plato.sede_nombre}</span>
                       </div>
-                      <div className="divide-y divide-gray-100">
+ <div className="divide-y divide-gray-100">
                         {plato.lineas.map((l: any, li: number) => {
                           const omitir = plato.decisiones[l.insumo_nombre] === "omitir"
                           return (
-                            <div key={li} className={`flex items-center gap-2 px-4 py-2 text-xs ${omitir ? "opacity-40" : ""}`}>
+ <div key={li} className={`flex items-center gap-2 px-4 py-2 text-xs ${omitir ? "opacity-40" : ""}`}>
                               {l.estado === "ok" ? "✅" : "⚠️"}
-                              <span className={`flex-1 font-medium ${l.estado === "no_encontrado" ? "text-amber-700" : "text-gray-700"}`}>
+ <span className={`flex-1 font-medium ${l.estado === "no_encontrado" ? "text-amber-700" : "text-gray-700"}`}>
                                 {l.insumo_nombre}
                               </span>
-                              <span className="text-gray-500">{l.cantidad} {l.unidad_importada}</span>
+ <span className="text-gray-500">{l.cantidad} {l.unidad_importada}</span>
                               {l.estado === "no_encontrado" && (
                                 <button
                                   onClick={() => toggleDecisionImport(pi, l.insumo_nombre)}
-                                  className={`text-xs font-bold rounded-lg px-2.5 py-1 transition-all ${
+ className={`text-xs font-bold px-2.5 py-1 transition-all ${
                                     omitir ? "bg-gray-100 text-gray-400 hover:bg-amber-100 hover:text-amber-700" : "bg-amber-100 text-amber-700 hover:bg-gray-100 hover:text-gray-400"
                                   }`}
                                 >
@@ -1005,14 +1034,14 @@ export default function PlatosClient({
                     </div>
                   ))}
                 </div>
-                <div className="p-4 border-t border-gray-100 flex items-center justify-between gap-3 flex-shrink-0 bg-white">
-                  <button onClick={() => { setImportStep("upload"); setPlatosImport([]); setErroresImport([]) }} className="text-sm font-bold text-gray-500 hover:text-gray-700">
+ <div className="p-4 border-t border-gray-100 flex items-center justify-between gap-3 flex-shrink-0 bg-white">
+ <button onClick={() => { setImportStep("upload"); setPlatosImport([]); setErroresImport([]) }} className="text-sm font-bold text-gray-500 hover:text-gray-700">
                     ← Volver
                   </button>
                   <button
                     onClick={hayPendientes ? undefined : ejecutarImportacion}
                     disabled={platosImport.length === 0 || hayPendientes}
-                    className="px-4 py-2 rounded-xl text-white text-sm font-bold shadow-md disabled:opacity-50"
+ className="px-4 py-2 text-white text-sm font-bold disabled:opacity-50"
                     style={{ background: "#2d5a1e" }}
                   >
                     Importar {platosImport.length} recetas
@@ -1022,17 +1051,17 @@ export default function PlatosClient({
             )}
 
             {importStep === "importing" && (
-              <div className="p-10 flex flex-col items-center gap-5">
-                <Loader2 className="w-16 h-16 animate-spin text-green-600" />
-                <p className="text-sm font-bold text-gray-600">Importando platos...</p>
+ <div className="p-10 flex flex-col items-center gap-5">
+ <Loader2 className="w-16 h-16 animate-spin text-green-600" />
+ <p className="text-sm font-bold text-gray-600">Importando platos...</p>
               </div>
             )}
 
             {importStep === "done" && (
-              <div className="p-10 flex flex-col items-center gap-4">
-                <span className="text-5xl">🎉</span>
-                <p className="text-lg font-extrabold text-gray-800">¡Importación completada!</p>
-                <button onClick={cerrarModalImport} className="px-6 py-2.5 rounded-xl text-white font-bold shadow-md" style={{ background: "#2d5a1e" }}>
+ <div className="p-10 flex flex-col items-center gap-4">
+ <span className="text-5xl">🎉</span>
+ <p className="text-lg font-extrabold text-gray-800">¡Importación completada!</p>
+ <button onClick={cerrarModalImport} className="px-6 py-2.5 text-white font-bold " style={{ background: "#2d5a1e" }}>
                   Cerrar
                 </button>
               </div>
@@ -1043,40 +1072,40 @@ export default function PlatosClient({
 
       {/* ─── MODAL DE EDICIÓN ─── */}
       {modalAbierto && platoEditando && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setModalAbierto(false)} />
-          <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-xl font-bold text-gray-800">Editar {catActual.label.toLowerCase()}</h2>
-                <span className="rounded-full px-2.5 py-0.5 text-xs font-bold" style={{ background: catActual.bg, color: catActual.color }}>
+ <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+ <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setModalAbierto(false)} />
+ <div className="relative w-full max-w-lg bg-white overflow-hidden" style={{ borderTop: `4px solid ${catActual.color}` }}>
+ <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+ <div className="flex items-center gap-2 flex-wrap">
+ <h2 className="text-xl font-bold text-gray-800">Editar {catActual.label.toLowerCase()}</h2>
+ <span className=" px-2.5 py-0.5 text-xs font-bold" style={{ background: catActual.bg, color: catActual.color }}>
                   {platoEditando.nombre}
                 </span>
               </div>
-              <button onClick={() => setModalAbierto(false)} className="text-gray-400 hover:text-gray-600">
+ <button onClick={() => setModalAbierto(false)} className="text-gray-400 hover:text-gray-600">
                 <X size={24} />
               </button>
             </div>
-            <div className="p-6">
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Nombre del plato</label>
+ <div className="p-6">
+ <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Nombre del plato</label>
               <input
                 value={nombreEdit}
                 onChange={e => setNombreEdit(e.target.value)}
-                className="w-full rounded-lg border border-[#E7E7E2] px-3 py-2 text-sm font-medium text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] mb-4 uppercase"
+ className="w-full border border-[#E7E7E2] px-3 py-2 text-sm font-medium text-[#201E1D] outline-none focus:ring-2 focus:ring-[#8CC63F] mb-4 uppercase"
               />
 
               {platoEditando.categoria === "ENTRADA" && (
-                <div className="mb-4">
-                  <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Subcategoría</label>
-                  <div className="flex gap-2">
+ <div className="mb-4">
+ <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">Subcategoría</label>
+ <div className="flex gap-2">
                     {SUBCATS_ENTRADA.map(s => (
                       <button
                         key={s.value}
                         type="button"
                         onClick={() => setSubcategoriaEdit(subcategoriaEdit === s.value ? "" : s.value)}
-                        className={`px-4 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+ className={`px-4 py-1.5 text-xs font-bold border transition-all ${
                           subcategoriaEdit === s.value
-                            ? "bg-[#2d5a1e] text-white border-[#2d5a1e] shadow-sm"
+                            ? "bg-[#2d5a1e] text-white border-[#2d5a1e] "
                             : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
                         }`}
                       >
@@ -1087,18 +1116,18 @@ export default function PlatosClient({
                 </div>
               )}
 
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
+ <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">
                 Insumos de la receta ({sedeActualNombre})
               </label>
-              <div className="space-y-2 mb-4 max-h-80 overflow-y-auto">
+ <div className="space-y-2 mb-4 max-h-80 overflow-y-auto">
                 {lineasEdit.map((linea, i) => {
                   const insumoSel = insumos.find(ins => ins.id === linea.insumo_id)
                   return (
-                    <div key={i} className="flex gap-2 items-center flex-wrap sm:flex-nowrap">
+ <div key={i} className="flex gap-2 items-center flex-wrap sm:flex-nowrap">
                       <select
                         value={linea.insumo_id}
                         onChange={e => setLineaEdit(i, "insumo_id", e.target.value)}
-                        className="flex-1 min-w-[120px] rounded-lg border border-[#E7E7E2] px-3 py-2 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F]"
+ className="flex-1 min-w-[120px] border border-[#E7E7E2] px-3 py-2 text-sm text-[#201E1D] outline-none focus:ring-2 focus:ring-[#8CC63F]"
                       >
                         <option value="">— Seleccionar insumo —</option>
                         {insumos.map(ins => (
@@ -1109,10 +1138,10 @@ export default function PlatosClient({
                         type="number"
                         value={linea.cantidad || ""}
                         onChange={e => setLineaEdit(i, "cantidad", parseFloat(e.target.value) || 0)}
-                        className="w-20 rounded-lg border border-[#E7E7E2] px-3 py-2 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F]"
+ className="w-20 border border-[#E7E7E2] px-3 py-2 text-sm text-[#201E1D] outline-none focus:ring-2 focus:ring-[#8CC63F]"
                         step="0.001"
                       />
-                      <span className="w-16 text-center text-xs font-bold text-gray-500">{insumoSel?.unidad ?? "—"}</span>
+ <span className="w-16 text-center text-xs font-bold text-gray-500">{insumoSel?.unidad ?? "—"}</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -1123,7 +1152,7 @@ export default function PlatosClient({
                             removeLineaEdit(i)
                           }
                         }}
-                        className="text-red-400 hover:text-red-600 transition-colors p-1"
+ className="text-red-400 hover:text-red-600 transition-colors p-1"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -1134,16 +1163,16 @@ export default function PlatosClient({
               <button
                 type="button"
                 onClick={addLineaEdit}
-                className="mb-6 flex items-center gap-1 text-xs font-bold rounded-lg px-3 py-1.5 border border-[#E7E7E2] text-gray-600 hover:bg-gray-50"
+ className="mb-6 flex items-center gap-1 text-xs font-bold px-3 py-1.5 border border-[#E7E7E2] text-gray-600 hover:bg-gray-50"
               >
                 <Plus size={14} /> Agregar insumo
               </button>
 
-              <div className="flex gap-3 justify-end">
+ <div className="flex gap-3 justify-end">
                 <button
                   type="button"
                   onClick={() => setModalAbierto(false)}
-                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-600 font-bold hover:bg-gray-50"
+ className="px-4 py-2 border border-gray-300 text-gray-600 font-bold hover:bg-gray-50"
                 >
                   Cancelar
                 </button>
@@ -1151,7 +1180,7 @@ export default function PlatosClient({
                   type="button"
                   onClick={guardarEdicion}
                   disabled={saving}
-                  className="px-4 py-2 rounded-lg text-white font-bold shadow-md disabled:opacity-50"
+ className="px-4 py-2 text-white font-bold disabled:opacity-50"
                   style={{ background: catActual.color }}
                 >
                   {saving ? "Guardando..." : "Guardar cambios"}
@@ -1163,12 +1192,12 @@ export default function PlatosClient({
       )}
 
       {/* Footer */}
-      <footer style={{ borderTop: '1.5px solid #EFEFE9' }} className="mt-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between flex-wrap gap-2">
+ <footer style={{ borderTop: '1.5px solid #EFEFE9' }} className="mt-8">
+ <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex items-center justify-between flex-wrap gap-2">
           <p style={{ fontSize: '0.8rem', color: '#9A9A93' }}>
             © 2026 MegaFood · Catálogo de platos
           </p>
-          <div className="flex items-center gap-2">
+ <div className="flex items-center gap-2">
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#8CC63F', display: 'inline-block' }} />
             <span style={{ fontSize: '0.8rem', color: '#9A9A93', fontWeight: 600 }}>v1.0</span>
           </div>

@@ -20,6 +20,12 @@ import { createClient } from '@/lib/supabase/client'
 import CalendarioProgramacion from '@/components/CalendarioMenus'
 import MenusNav from '@/app/dashboard/menus/components/MenusNav'
 
+const ARCHIVO = 'var(--font-archivo), system-ui, sans-serif'
+const OSCURO = '#201E1D'
+const FONDO = '#E7E7E2'
+const PIEDRA = '#6B6B65'
+const AZUL = '#3B82F6'
+
 interface Plato {
   id: string
   nombre: string
@@ -320,65 +326,39 @@ export default function ProgramacionManual() {
   }, {} as Record<string, typeof resumenCompleto>)
 
   return (
-    <div className="min-h-screen w-full" style={{ background: '#FFFFFF' }}>
-      {/* Header estilo MegaFood */}
-      <header className="relative overflow-hidden" style={{ background: '#2B2B2B' }}>
-        <div
-          className="absolute inset-0 opacity-[0.06]"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(135deg, #FFFFFF 0px, #FFFFFF 1px, transparent 1px, transparent 14px)",
-          }}
-          aria-hidden="true"
-        />
-        <div
-          className="absolute left-0 top-0 bottom-0"
-          style={{ width: '6px', background: '#F37F21' }}
-          aria-hidden="true"
-        />
-        <div
-          className="absolute left-[6px] top-0 bottom-0"
-          style={{ width: '6px', background: '#8CC63F' }}
-          aria-hidden="true"
-        />
-
-        <div className="relative max-w-7xl mx-auto px-8 pt-24 pb-10">
-          <div className="flex items-start justify-between">
+    <div className="min-h-screen w-full" style={{ background: FONDO, color: OSCURO, fontFamily: ARCHIVO }}>
+      {/* ─── Encabezado ─── */}
+      <div className="flex border-b-2" style={{ borderColor: PIEDRA }}>
+        <div className="w-2 shrink-0" style={{ background: AZUL }} aria-hidden="true" />
+        <div className="flex-1 px-5 py-10 sm:px-8 sm:py-14">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <span
-                  className="uppercase font-mono text-xs"
-                  style={{
-                    fontWeight: 700,
-                    letterSpacing: '0.18em',
-                    color: '#8CC63F',
-                  }}
-                >
-                  Módulo de gestión
-                </span>
+              <div className="mb-4 text-[10px] font-extrabold" style={{ letterSpacing: '0.2em', color: PIEDRA }}>
+                PANEL DE LOGÍSTICA · MÓDULO DE GESTIÓN
               </div>
-              <h1 className="text-3xl font-black tracking-tight">
-                <span style={{ color: '#FFFFFF' }}>Programación</span>
-                <span style={{ color: '#F37F21' }}> Manual</span>
+              <h1
+                className="text-[36px] sm:text-[48px]"
+                style={{ margin: 0, lineHeight: 0.95, letterSpacing: '-0.035em', fontWeight: 800 }}
+              >
+                Programación <span style={{ color: AZUL }}>manual</span>
               </h1>
-              <p className="mt-2" style={{ color: '#C9C9C3', fontSize: '1rem' }}>
+              <p className="mt-3 max-w-xl text-[15px]" style={{ color: PIEDRA }}>
                 Configura todos los tipos de menú para la misma fecha.
               </p>
             </div>
-            <div className="flex gap-3">
-              <Link
-                href="/dashboard/menus"
-                className="flex items-center gap-2 px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition"
-              >
-                <ArrowLeft size={18} />
-                Volver
-              </Link>
-            </div>
+            <Link
+              href="/dashboard/menus"
+              className="flex min-h-[52px] items-center gap-2 px-4 py-2.5 text-[13px] font-extrabold uppercase transition-colors"
+              style={{ letterSpacing: '0.06em', border: `2px solid ${OSCURO}`, color: OSCURO }}
+            >
+              <ArrowLeft size={18} />
+              Volver
+            </Link>
           </div>
 
           <MenusNav />
         </div>
-      </header>
+      </div>
 
       {/* Contenido principal */}
       <main className="max-w-5xl mx-auto px-8 py-8">
@@ -393,7 +373,7 @@ export default function ProgramacionManual() {
               <select
                 value={sedeSeleccionada}
                 onChange={e => setSedeSeleccionada(e.target.value)}
-                className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
+                className="w-full  border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
                 required
               >
                 <option value="">Seleccionar sede</option>
@@ -424,7 +404,7 @@ export default function ProgramacionManual() {
 
           {/* Estado de verificación */}
           {verificando && (
-            <div className="flex items-center gap-3 p-4 rounded-lg bg-[#F5F5F0]">
+            <div className="flex items-center gap-3 p-4  bg-[#F5F5F0]">
               <Loader2 className="w-5 h-5 animate-spin text-[#8CC63F]" />
               <span className="text-sm text-[#6B6B65]">Verificando disponibilidad...</span>
             </div>
@@ -432,7 +412,7 @@ export default function ProgramacionManual() {
 
           {/* Fecha bloqueada */}
           {fechaBloqueada && !verificando && (
-            <div className="p-4 rounded-lg border border-red-200 bg-red-50">
+            <div className="p-4  border border-red-200 bg-red-50">
               <div className="flex items-center gap-2 mb-2">
                 <AlertCircle className="w-5 h-5 text-red-500" />
                 <p className="text-sm font-bold text-red-700">Esta fecha ya tiene programación</p>
@@ -460,9 +440,9 @@ export default function ProgramacionManual() {
                         type="button"
                         onClick={() => setTipoMenu(tipo.value)}
                         className={`
-                          flex items-center justify-center gap-2 rounded-lg py-3 px-2 text-sm font-bold transition-all
+                          flex items-center justify-center gap-2  py-3 px-2 text-sm font-bold transition-all
                           ${isActive 
-                            ? 'shadow-md ring-2 ring-offset-1 text-white' 
+                            ? ' ring-2 ring-offset-1 text-white' 
                             : 'opacity-80 hover:opacity-100 hover:scale-[1.02]'
                           }
                         `}
@@ -481,7 +461,7 @@ export default function ProgramacionManual() {
               </div>
 
               {/* Formulario del tipo seleccionado */}
-              <div className="rounded-lg border border-[#E7E7E2] bg-white p-6 shadow-sm">
+              <div className=" border border-[#E7E7E2] bg-white p-6 ">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="text-sm font-bold text-[#2B2B2B]">
                     Configurando: <span style={{ color: tipoActual.color }}>{tipoActual.label}</span>
@@ -490,7 +470,7 @@ export default function ProgramacionManual() {
 
                 {/* Comensales del tipo. Cocina y Compras calculan el
                     requerimiento de insumos a partir de este número. */}
-                <div className="mb-5 rounded-lg border border-[#E7E7E2] bg-[#FAFAF7] p-4">
+                <div className="mb-5  border border-[#E7E7E2] bg-[#FAFAF7] p-4">
                   <label
                     htmlFor={`comensales-${tipoMenu}`}
                     className="mb-1.5 flex items-center gap-2 text-sm font-medium text-[#2B2B2B]"
@@ -509,7 +489,7 @@ export default function ProgramacionManual() {
                       setComensalesPorTipo(prev => ({ ...prev, [tipoMenu]: e.target.value }))
                     }
                     placeholder="0"
-                    className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none transition focus:border-transparent focus:ring-2 focus:ring-[#8CC63F] disabled:bg-gray-100 disabled:text-[#9A9A93]"
+                    className="w-full  border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none transition focus:border-transparent focus:ring-2 focus:ring-[#8CC63F] disabled:bg-gray-100 disabled:text-[#9A9A93]"
                   />
                   <p className="mt-1.5 text-xs text-[#6B6B65]">
                     Si lo dejas en 0, este tipo se guarda sin comensales y no sumará
@@ -548,7 +528,7 @@ export default function ProgramacionManual() {
                                 [tipoMenu]: nuevas
                               }))
                             }}
-                            className={`w-8 h-8 rounded-lg text-sm font-bold transition-all border
+                            className={`w-8 h-8  text-sm font-bold transition-all border
                               ${numGuarniciones === n
                                 ? "bg-[#c2410c] text-white border-[#c2410c]"
                                 : "bg-white text-[#6B6B65] border-[#E7E7E2] hover:border-[#c2410c]"
@@ -588,7 +568,7 @@ export default function ProgramacionManual() {
 
               {/* Vista previa */}
               {resumenCompleto.length > 0 && (
-                <div className="rounded-lg border border-[#E7E7E2] bg-white p-6 shadow-sm">
+                <div className=" border border-[#E7E7E2] bg-white p-6 ">
                   <div className="flex items-center gap-2 mb-4">
                     <Eye className="w-5 h-5 text-[#6B6B65]" />
                     <p className="text-sm font-bold text-[#2B2B2B]">
@@ -605,7 +585,7 @@ export default function ProgramacionManual() {
                         <div key={tipo}>
                           <div className="flex items-center gap-2 mb-2">
                             <span
-                              className="text-xs font-bold rounded-full px-3 py-1"
+                              className="text-xs font-bold  px-3 py-1"
                               style={{ background: tipoInfo.bg, color: tipoInfo.color }}
                             >
                               {tipoInfo.icon} {tipoInfo.label}
@@ -620,7 +600,7 @@ export default function ProgramacionManual() {
                               return (
                                 <div
                                   key={categoria}
-                                  className="rounded-lg border p-3 min-w-[120px]"
+                                  className=" border p-3 min-w-[120px]"
                                   style={{ background: catColor.bg, borderColor: `${catColor.color}30` }}
                                 >
                                   <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: catColor.color }}>
@@ -650,7 +630,7 @@ export default function ProgramacionManual() {
                     setFechaBloqueada(false)
                     setNumGuarniciones(1)
                   }}
-                  className="flex-1 py-3 rounded-lg border border-[#E7E7E2] text-[#6B6B65] font-medium hover:bg-gray-50 transition"
+                  className="flex-1 py-3  border border-[#E7E7E2] text-[#6B6B65] font-medium hover:bg-gray-50 transition"
                 >
                   <RefreshCw className="inline w-4 h-4 mr-2" />
                   Limpiar todo
@@ -658,7 +638,7 @@ export default function ProgramacionManual() {
                 <button
                   type="submit"
                   disabled={cargando}
-                  className="flex-1 py-3 rounded-lg bg-[#2B2B2B] text-white font-medium hover:bg-[#3B3B3B] transition disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 py-3  bg-[#2B2B2B] text-white font-medium hover:bg-[#3B3B3B] transition disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {cargando ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -676,7 +656,7 @@ export default function ProgramacionManual() {
       {/* Modal de confirmación */}
       {mostrandoConfirmacion && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 max-h-[80vh] overflow-y-auto shadow-xl">
+          <div className="bg-white  max-w-2xl w-full p-6 max-h-[80vh] overflow-y-auto ">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-[#2B2B2B]">Confirmar guardado</h3>
               <button onClick={() => setMostrandoConfirmacion(false)} className="text-gray-400 hover:text-gray-600">
@@ -700,7 +680,7 @@ export default function ProgramacionManual() {
                   <div key={tipo}>
                     <div className="flex items-center gap-2 mb-2">
                       <span
-                        className="text-xs font-bold rounded-full px-3 py-1"
+                        className="text-xs font-bold  px-3 py-1"
                         style={{ background: tipoInfo.bg, color: tipoInfo.color }}
                       >
                         {tipoInfo.icon} {tipoInfo.label}
@@ -712,7 +692,7 @@ export default function ProgramacionManual() {
                         return (
                           <div
                             key={categoria}
-                            className="rounded-lg border p-2"
+                            className=" border p-2"
                             style={{ background: catColor.bg, borderColor: `${catColor.color}30` }}
                           >
                             <p className="text-[10px] font-bold uppercase" style={{ color: catColor.color }}>{categoria}</p>
@@ -729,14 +709,14 @@ export default function ProgramacionManual() {
             <div className="flex gap-3">
               <button 
                 onClick={() => setMostrandoConfirmacion(false)} 
-                className="flex-1 py-2.5 rounded-lg border border-[#E7E7E2] text-[#6B6B65] font-medium hover:bg-gray-50 transition"
+                className="flex-1 py-2.5  border border-[#E7E7E2] text-[#6B6B65] font-medium hover:bg-gray-50 transition"
               >
                 Cancelar
               </button>
               <button 
                 onClick={guardarProgramacion} 
                 disabled={cargando} 
-                className="flex-1 py-2.5 rounded-lg bg-[#8CC63F] text-[#1F3A0A] font-bold hover:bg-[#7AB835] transition disabled:opacity-50"
+                className="flex-1 py-2.5  bg-[#8CC63F] text-[#1F3A0A] font-bold hover:bg-[#7AB835] transition disabled:opacity-50"
               >
                 {cargando ? "Guardando..." : "Confirmar"}
               </button>
@@ -746,25 +726,16 @@ export default function ProgramacionManual() {
       )}
 
       {/* Footer */}
-      <footer style={{ borderTop: '1.5px solid #EFEFE9' }} className="mt-8">
-        <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between flex-wrap gap-2">
-          <p style={{ fontSize: '0.8rem', color: '#9A9A93' }}>
-            © 2026 MegaFood · Programación manual
+      <footer className="mt-8" style={{ borderTop: `2px solid ${OSCURO}` }}>
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 px-8 py-4">
+          <p className="text-[13px]" style={{ color: PIEDRA }}>
+            Megafood Perú · Programación manual · v1.0
           </p>
-          <div className="flex items-center gap-2">
-            <span
-              style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: '#8CC63F',
-                display: 'inline-block',
-              }}
-            />
-            <span style={{ fontSize: '0.8rem', color: '#9A9A93', fontWeight: 600 }}>
-              v1.0
-            </span>
-          </div>
+          <span className="flex gap-2" aria-hidden="true">
+            <span style={{ width: 26, height: 6, background: PIEDRA }} />
+            <span style={{ width: 26, height: 6, background: '#8CC63F' }} />
+            <span style={{ width: 26, height: 6, background: AZUL }} />
+          </span>
         </div>
       </footer>
     </div>
@@ -800,7 +771,7 @@ function SelectorCategoria({
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full rounded-lg border px-4 py-2.5 text-sm font-medium text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent transition"
+        className="w-full  border px-4 py-2.5 text-sm font-medium text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent transition"
         style={{ 
           borderColor: value ? `${color.color}60` : "#E7E7E2",
           background: value ? `${color.bg}` : "#FFFFFF"

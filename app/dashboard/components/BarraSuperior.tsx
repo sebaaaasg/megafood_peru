@@ -84,7 +84,7 @@ export default function BarraSuperior({
             priority
           />
         </span>
-        <span style={{ fontFamily: 'var(--font-fraunces), serif', fontWeight: 800, fontSize: 17, letterSpacing: '-0.01em' }}>
+        <span style={{ fontFamily: 'var(--font-archivo), system-ui, sans-serif', fontWeight: 800, fontSize: 17, letterSpacing: '-0.01em' }}>
           Megafood <span style={{ color: P.verde }}>Perú</span>
         </span>
       </Link>

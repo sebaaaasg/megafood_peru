@@ -20,6 +20,13 @@ import * as XLSX from 'xlsx'
 import TablaProgramacionMenu, { DiaProgramado } from '@/components/TablaProgramacionMenus'
 import MenusNav from '@/app/dashboard/menus/components/MenusNav'
 
+const ARCHIVO = 'var(--font-archivo), system-ui, sans-serif'
+const OSCURO = '#201E1D'
+const FONDO = '#E7E7E2'
+const PIEDRA = '#6B6B65'
+const VERDE = '#8CC63F'
+const NARANJA = '#F37F21'
+
 // ─────────────────────────────────────────────
 // Constantes
 // ─────────────────────────────────────────────
@@ -370,65 +377,39 @@ const formatearFechaExcel = (valor: any): string => {
   }, [platosProgramados])
 
   return (
-    <div className="min-h-screen w-full" style={{ background: '#FFFFFF' }}>
-      {/* Header estilo MegaFood */}
-      <header className="relative overflow-hidden" style={{ background: '#2B2B2B' }}>
-        <div
-          className="absolute inset-0 opacity-[0.06]"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(135deg, #FFFFFF 0px, #FFFFFF 1px, transparent 1px, transparent 14px)",
-          }}
-          aria-hidden="true"
-        />
-        <div
-          className="absolute left-0 top-0 bottom-0"
-          style={{ width: '6px', background: '#F37F21' }}
-          aria-hidden="true"
-        />
-        <div
-          className="absolute left-[6px] top-0 bottom-0"
-          style={{ width: '6px', background: '#8CC63F' }}
-          aria-hidden="true"
-        />
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 pt-20 pb-6 sm:pt-24 sm:pb-10">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+    <div className="min-h-screen w-full" style={{ background: FONDO, color: OSCURO, fontFamily: ARCHIVO }}>
+      {/* ─── Encabezado ─── */}
+      <div className="flex border-b-2" style={{ borderColor: PIEDRA }}>
+        <div className="w-2 shrink-0" style={{ background: VERDE }} aria-hidden="true" />
+        <div className="flex-1 px-5 py-10 sm:px-8 sm:py-14">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3 mb-1 sm:mb-2">
-                <span
-                  className="uppercase font-mono text-[10px] sm:text-xs"
-                  style={{
-                    fontWeight: 700,
-                    letterSpacing: '0.18em',
-                    color: '#8CC63F',
-                  }}
-                >
-                  Módulo de gestión
-                </span>
+              <div className="mb-4 text-[10px] font-extrabold" style={{ letterSpacing: '0.2em', color: PIEDRA }}>
+                PANEL DE LOGÍSTICA · MÓDULO DE GESTIÓN
               </div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight leading-tight">
-                <span style={{ color: '#FFFFFF' }}>Importar</span>
-                <span style={{ color: '#F37F21' }}> Programación</span>
+              <h1
+                className="text-[32px] sm:text-[44px]"
+                style={{ margin: 0, lineHeight: 0.95, letterSpacing: '-0.035em', fontWeight: 800 }}
+              >
+                Importar <span style={{ color: NARANJA }}>programación</span>
               </h1>
-              <p className="mt-1 sm:mt-2 text-sm sm:text-base" style={{ color: '#C9C9C3' }}>
+              <p className="mt-3 max-w-xl text-[15px]" style={{ color: PIEDRA }}>
                 Carga el archivo Excel de Gerencia para sincronizar el calendario.
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-              <Link
-                href="/dashboard/menus"
-                className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition text-sm sm:text-base w-full sm:w-auto"
-              >
-                <ArrowLeft size={18} />
-                Volver
-              </Link>
-            </div>
+            <Link
+              href="/dashboard/menus"
+              className="flex min-h-[52px] items-center gap-2 px-4 py-2.5 text-[13px] font-extrabold uppercase transition-colors"
+              style={{ letterSpacing: '0.06em', border: `2px solid ${OSCURO}`, color: OSCURO }}
+            >
+              <ArrowLeft size={18} />
+              Volver
+            </Link>
           </div>
 
           <MenusNav />
         </div>
-      </header>
+      </div>
 
       {/* Contenido principal */}
       <main className="max-w-6xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
@@ -442,7 +423,7 @@ const formatearFechaExcel = (valor: any): string => {
             <select
               value={sedeSeleccionada}
               onChange={(e) => setSedeSeleccionada(e.target.value)}
-              className="w-full sm:flex-1 sm:max-w-md rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
+              className="w-full sm:flex-1 sm:max-w-md  border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
               disabled={cargandoSedes}
             >
               {cargandoSedes ? (
@@ -456,7 +437,7 @@ const formatearFechaExcel = (valor: any): string => {
               )}
             </select>
             {sedeSeleccionada && (
-              <span className="text-xs text-[#8CC63F] bg-[#8CC63F]/10 px-3 py-1.5 rounded-full font-medium whitespace-nowrap">
+              <span className="text-xs text-[#8CC63F] bg-[#8CC63F]/10 px-3 py-1.5  font-medium whitespace-nowrap">
                 ✅ Sede seleccionada
               </span>
             )}
@@ -475,16 +456,16 @@ const formatearFechaExcel = (valor: any): string => {
             <span className="text-[#6B6B65]">Rol:</span>
             <span className="font-bold text-[#2B2B2B] capitalize">{rolUsuario}</span>
             {puedeImportar ? (
-              <span className="text-xs text-[#8CC63F] bg-[#8CC63F]/10 px-2 py-0.5 rounded-full">✅ Permisos completos</span>
+              <span className="text-xs text-[#8CC63F] bg-[#8CC63F]/10 px-2 py-0.5 ">✅ Permisos completos</span>
             ) : (
-              <span className="text-xs text-red-500 bg-red-50 px-2 py-0.5 rounded-full">⚠️ Solo lectura</span>
+              <span className="text-xs text-red-500 bg-red-50 px-2 py-0.5 ">⚠️ Solo lectura</span>
             )}
           </div>
         )}
 
         {/* Área de importación */}
         <div className={`
-          rounded-lg border-2 border-dashed p-8 sm:p-10 text-center transition-all
+           border-2 border-dashed p-8 sm:p-10 text-center transition-all
           ${puedeImportar && sedeSeleccionada
             ? 'border-[#8CC63F]/50 bg-[#F5FBF0] hover:bg-[#EAF5DE]' 
             : 'border-gray-300 bg-gray-50 opacity-60'}
@@ -503,7 +484,7 @@ const formatearFechaExcel = (valor: any): string => {
           {puedeImportar && sedeSeleccionada && (
             <div className="mt-4">
               <label className="cursor-pointer">
-                <span className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#8CC63F] text-[#1F3A0A] rounded-lg font-semibold hover:bg-[#7AB835] transition">
+                <span className="inline-flex items-center gap-2 px-6 py-2.5 bg-[#8CC63F] text-[#1F3A0A]  font-semibold hover:bg-[#7AB835] transition">
                   <Upload size={18} />
                   Seleccionar archivo
                 </span>
@@ -532,7 +513,7 @@ const formatearFechaExcel = (valor: any): string => {
 
         {/* Info de sede para importación */}
         {sedeSeleccionada && platosProgramados.length === 0 && (
-          <div className="mt-4 p-4 rounded-lg bg-blue-50 border border-blue-200 flex items-center gap-3">
+          <div className="mt-4 p-4  bg-blue-50 border border-blue-200 flex items-center gap-3">
             <Building className="w-5 h-5 text-blue-600" />
             <div>
               <p className="text-xs font-bold text-blue-600 uppercase">Importando para</p>
@@ -548,7 +529,7 @@ const formatearFechaExcel = (valor: any): string => {
           <button
             onClick={guardarProgramacion}
             disabled={cargando}
-            className="mt-4 w-full py-3 rounded-lg bg-[#2B2B2B] text-white font-bold hover:bg-[#3B3B3B] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            className="mt-4 w-full py-3  bg-[#2B2B2B] text-white font-bold hover:bg-[#3B3B3B] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {cargando ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -571,7 +552,7 @@ const formatearFechaExcel = (valor: any): string => {
         {/* Modal platos nuevos */}
         {mostrandoModalFaltantes && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+            <div className="bg-white  max-w-md w-full p-6 ">
               <div className="flex items-center gap-2 mb-4">
                 <AlertCircle className="w-6 h-6 text-[#F37F21]" />
                 <h3 className="text-lg font-bold text-[#2B2B2B]">Platos nuevos</h3>
@@ -579,7 +560,7 @@ const formatearFechaExcel = (valor: any): string => {
               <p className="text-sm text-[#6B6B65] mb-3">
                 Se encontraron {platosFaltantes.length} platos no registrados:
               </p>
-              <div className="max-h-40 overflow-y-auto mb-4 space-y-1 bg-[#F5F5F0] rounded-lg p-3">
+              <div className="max-h-40 overflow-y-auto mb-4 space-y-1 bg-[#F5F5F0]  p-3">
                 {platosFaltantes.map((p, i) => (
                   <div key={i} className="text-sm text-[#2B2B2B] flex items-center justify-between">
                     <span className="font-medium">{p.nombre}</span>
@@ -590,13 +571,13 @@ const formatearFechaExcel = (valor: any): string => {
               <div className="flex gap-3">
                 <button 
                   onClick={() => setMostrandoModalFaltantes(false)} 
-                  className="flex-1 py-2.5 rounded-lg border border-[#E7E7E2] text-[#6B6B65] font-medium hover:bg-gray-50 transition"
+                  className="flex-1 py-2.5  border border-[#E7E7E2] text-[#6B6B65] font-medium hover:bg-gray-50 transition"
                 >
                   Cancelar
                 </button>
                 <button 
                   onClick={registrarPlatosFaltantes} 
-                  className="flex-1 py-2.5 rounded-lg bg-[#F37F21] text-white font-medium hover:bg-[#C4600F] transition"
+                  className="flex-1 py-2.5  bg-[#F37F21] text-white font-medium hover:bg-[#C4600F] transition"
                 >
                   Registrar todo
                 </button>
@@ -607,25 +588,16 @@ const formatearFechaExcel = (valor: any): string => {
       </main>
 
       {/* Footer */}
-      <footer style={{ borderTop: '1.5px solid #EFEFE9' }} className="mt-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p style={{ fontSize: '0.8rem', color: '#9A9A93' }}>
-            © 2026 MegaFood · Importar programación
+      <footer className="mt-8" style={{ borderTop: `2px solid ${OSCURO}` }}>
+        <div className="max-w-7xl mx-auto flex flex-col items-center justify-between gap-2 px-4 py-4 sm:flex-row sm:px-8">
+          <p className="text-[13px]" style={{ color: PIEDRA }}>
+            Megafood Perú · Importar programación · v1.0
           </p>
-          <div className="flex items-center gap-2">
-            <span
-              style={{
-                width: '8px',
-                height: '8px',
-                borderRadius: '50%',
-                background: '#8CC63F',
-                display: 'inline-block',
-              }}
-            />
-            <span style={{ fontSize: '0.8rem', color: '#9A9A93', fontWeight: 600 }}>
-              v1.0
-            </span>
-          </div>
+          <span className="flex gap-2" aria-hidden="true">
+            <span style={{ width: 26, height: 6, background: PIEDRA }} />
+            <span style={{ width: 26, height: 6, background: VERDE }} />
+            <span style={{ width: 26, height: 6, background: NARANJA }} />
+          </span>
         </div>
       </footer>
     </div>

@@ -1,12 +1,16 @@
 // app/dashboard/components/EstacionesDrawer.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { IconPanel, IconCerrar } from './NucleoIcons'
-import { estacionesVisibles, P, TONOS, BLOBS } from './estaciones'
+import { estacionesVisibles, P, TONOS } from './estaciones'
+
+const ARCHIVO = 'var(--font-archivo), system-ui, sans-serif'
+const OSCURO = '#201E1D'
+const FONDO = '#E7E7E2'
 
 /**
  * Panel lateral de estaciones. Es controlado: quien lo usa decide cuándo
@@ -26,14 +30,20 @@ export default function EstacionesDrawer({
 }) {
   const pathname = usePathname()
 
-  // Cierra al navegar a otra ruta. Se ajusta durante el render (y no en un
-  // efecto) para que el drawer no llegue a pintarse abierto sobre la página
-  // nueva; cubre también la navegación con atrás/adelante del navegador.
-  const [pathnamePrevio, setPathnamePrevio] = useState(pathname)
-  if (pathname !== pathnamePrevio) {
-    setPathnamePrevio(pathname)
-    if (abierto) onCerrar()
-  }
+  // Cierra al navegar a otra ruta. Se usa un layout effect (no un cambio de
+  // estado durante el render) porque el disparador y el drawer pueden vivir
+  // en componentes distintos (SidebarNav vs. el rail del panel principal), y
+  // React no permite actualizar el estado de otro componente en render. El
+  // layout effect corre antes del pintado del navegador, así que el drawer
+  // no llega a pintarse abierto sobre la página nueva; cubre también la
+  // navegación con atrás/adelante del navegador.
+  const pathnameRef = useRef(pathname)
+  useLayoutEffect(() => {
+    if (pathname !== pathnameRef.current) {
+      pathnameRef.current = pathname
+      if (abierto) onCerrar()
+    }
+  }, [pathname, abierto, onCerrar])
 
   // Escape para cerrar + bloqueo del scroll de fondo.
   useEffect(() => {
@@ -62,10 +72,10 @@ export default function EstacionesDrawer({
       <div
         onClick={onCerrar}
         aria-hidden="true"
-        className={`fixed inset-0 z-[60] backdrop-blur-[2px] transition-opacity duration-300 ${
+        className={`fixed inset-0 z-[60] transition-opacity duration-300 ${
           abierto ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
-        style={{ background: 'rgba(44,44,36,0.42)' }}
+        style={{ background: 'rgba(32,30,29,0.55)' }}
       />
 
       <aside
@@ -76,74 +86,56 @@ export default function EstacionesDrawer({
         className={`fixed inset-y-0 left-0 z-[70] flex w-[300px] max-w-[86vw] flex-col shadow-2xl transition-transform duration-300 ease-out ${
           abierto ? 'translate-x-0' : '-translate-x-full'
         }`}
-        style={{
-          background: P.bg,
-          borderRadius: '0 2.5rem 2.5rem 0',
-          fontFamily: 'var(--font-nunito), system-ui, sans-serif',
-        }}
+        style={{ background: FONDO, fontFamily: ARCHIVO }}
       >
         {/* Cabecera */}
-        <div className="relative shrink-0 overflow-hidden" style={{ borderRadius: '0 2.5rem 0 0' }}>
-          {/* Halos orgánicos, en lugar del tramado del diseño anterior */}
-          <span
-            className="pointer-events-none absolute"
-            style={{ left: -80, top: -90, width: 260, height: 260, background: 'rgba(140,198,63,0.35)', filter: 'blur(50px)', borderRadius: BLOBS[0] }}
-            aria-hidden="true"
-          />
-          <span
-            className="pointer-events-none absolute"
-            style={{ right: -70, top: -40, width: 200, height: 200, background: 'rgba(243,127,33,0.28)', filter: 'blur(50px)', borderRadius: BLOBS[1] }}
-            aria-hidden="true"
-          />
-
-          <div className="relative flex items-start justify-between gap-3 px-5 pb-6 pt-5">
-            <div>
-              <Link
-                href="/dashboard"
-                aria-label="Ir al panel principal"
-                className="flex items-center gap-2.5 transition-transform hover:scale-[1.02] focus:outline-none focus:ring-2"
-              >
-                <span
-                  className="flex h-[42px] w-[42px] shrink-0 items-center justify-center overflow-hidden rounded-full"
-                  style={{ background: P.verde }}
-                >
-                  <Image
-                    src="/megafood3.png"
-                    alt=""
-                    width={34}
-                    height={34}
-                    className="object-contain"
-                    style={{ width: 34, height: 34 }}
-                  />
-                </span>
-                <span style={{ fontFamily: 'var(--font-fraunces), serif', fontWeight: 700, fontSize: 18, color: P.tinta }}>
-                  Megafood <span style={{ color: P.piedra }}>Perú</span>
-                </span>
-              </Link>
-              <p
-                className="mt-3 text-[10px] font-extrabold uppercase"
-                style={{ letterSpacing: '0.16em', color: '#4A5F2A' }}
-              >
-                Estaciones operativas
-              </p>
-              <p className="mt-1 text-xs" style={{ color: P.tintaSuave }}>
-                👋 {displayName}
-              </p>
-            </div>
-
-            <button
-              onClick={onCerrar}
-              aria-label="Cerrar menú"
-              className="shrink-0 rounded-full p-1.5 transition hover:bg-black/5 focus:outline-none focus:ring-2"
-              style={{ color: P.tintaSuave }}
+        <div className="flex shrink-0 items-start justify-between gap-3 px-5 py-5" style={{ background: OSCURO, color: '#fff' }}>
+          <div>
+            <Link
+              href="/dashboard"
+              aria-label="Ir al panel principal"
+              className="flex items-center gap-2.5"
             >
-              <IconCerrar style={{ width: 18, height: 18 }} />
-            </button>
+              <span
+                className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full"
+                style={{ background: P.verde }}
+              >
+                <Image
+                  src="/megafood3.png"
+                  alt=""
+                  width={26}
+                  height={26}
+                  className="object-contain"
+                  style={{ width: 26, height: 26 }}
+                />
+              </span>
+              <span style={{ fontWeight: 800, fontSize: 17, letterSpacing: '-0.01em' }}>
+                Megafood <span style={{ color: P.verde }}>Perú</span>
+              </span>
+            </Link>
+            <p
+              className="mt-3 text-[10px] font-extrabold"
+              style={{ letterSpacing: '0.16em', color: P.verde }}
+            >
+              ESTACIONES OPERATIVAS
+            </p>
+            <p className="mt-1 text-xs" style={{ color: 'rgba(255,255,255,0.65)' }}>
+              {displayName}
+            </p>
           </div>
+
+          <button
+            onClick={onCerrar}
+            aria-label="Cerrar menú"
+            className="flex h-8 w-8 shrink-0 items-center justify-center border transition-colors hover:border-transparent"
+            style={{ borderColor: 'rgba(255,255,255,0.35)', color: '#fff' }}
+          >
+            <IconCerrar style={{ width: 16, height: 16 }} />
+          </button>
         </div>
 
         {/* Estaciones */}
-        <nav className="flex-1 overflow-y-auto px-3 py-4">
+        <nav className="flex-1 overflow-y-auto px-3 py-3">
           {visibles.length === 0 ? (
             <p className="px-3 py-8 text-center text-sm" style={{ color: P.tintaSuave }}>
               No tienes estaciones asignadas.
@@ -151,10 +143,10 @@ export default function EstacionesDrawer({
               Contacta a un administrador.
             </p>
           ) : (
-            <ul className="space-y-1">
+            <ul className="space-y-1.5">
               {visibles.map((est, i) => {
                 const activa = esActiva(est.href)
-                const t = TONOS[est.tone]
+                const acento = TONOS[est.tone].solido
                 const Icon = est.icon
 
                 return (
@@ -174,42 +166,26 @@ export default function EstacionesDrawer({
                     <Link
                       href={est.href}
                       aria-current={activa ? 'page' : undefined}
-                      className="group relative flex items-center gap-3 overflow-hidden px-3 py-2.5 transition-all duration-200 hover:translate-x-0.5 focus:outline-none focus:ring-2"
-                      style={{ background: activa ? t.suave : 'transparent', borderRadius: 9999 }}
+                      className="flex items-center gap-3 px-3 py-2.5 transition-colors duration-150"
+                      style={{
+                        background: activa ? OSCURO : '#fff',
+                        color: activa ? '#fff' : OSCURO,
+                        borderLeft: `4px solid ${acento}`,
+                      }}
                     >
-                      <span
-                        className="flex h-10 w-10 shrink-0 items-center justify-center transition-transform duration-200 group-hover:scale-110"
-                        style={{
-                          // Cada estación toma una forma de blob distinta.
-                          borderRadius: BLOBS[i % BLOBS.length],
-                          background: activa ? t.solido : t.suave,
-                          color: activa ? t.sobreSolido : t.tinta,
-                        }}
-                      >
-                        <Icon filled={activa} style={{ width: 20, height: 20 }} strokeWidth={2} />
+                      <span className="w-6 shrink-0 text-[11px] font-extrabold" style={{ letterSpacing: '0.1em', color: activa ? acento : P.piedra }}>
+                        {est.n}
                       </span>
+
+                      <Icon filled={activa} style={{ width: 18, height: 18, flexShrink: 0 }} strokeWidth={2} />
 
                       <span className="min-w-0 flex-1">
-                        <span
-                          className="block truncate text-[15px] leading-tight"
-                          style={{
-                            fontFamily: 'var(--font-fraunces), serif',
-                            fontWeight: 700,
-                            color: activa ? t.tinta : P.tinta,
-                          }}
-                        >
+                        <span className="block truncate text-[14px] font-extrabold leading-tight">
                           {est.label}
                         </span>
-                        <span className="block truncate text-[11px] leading-tight" style={{ color: P.tintaSuave }}>
+                        <span className="block truncate text-[11px] leading-tight" style={{ opacity: 0.65 }}>
                           {est.hint}
                         </span>
-                      </span>
-
-                      <span
-                        className="shrink-0 text-[10px] font-extrabold"
-                        style={{ letterSpacing: '0.14em', color: activa ? t.tinta : P.tintaSuave }}
-                      >
-                        {est.n}
                       </span>
                     </Link>
                   </li>
@@ -220,19 +196,14 @@ export default function EstacionesDrawer({
         </nav>
 
         {/* Pie */}
-        <div className="shrink-0 px-3 py-3" style={{ borderTop: `1px solid ${P.borde}` }}>
+        <div className="shrink-0 px-3 py-3" style={{ borderTop: `2px solid ${OSCURO}` }}>
           <Link
             href="/dashboard"
-            className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-black/[0.03] focus:outline-none focus:ring-2"
-            style={{ color: P.tintaMedia, borderRadius: 9999 }}
+            className="flex items-center gap-3 px-3 py-2.5 transition-colors hover:bg-black/5"
+            style={{ color: OSCURO }}
           >
-            <span
-              className="flex h-10 w-10 shrink-0 items-center justify-center"
-              style={{ background: 'rgba(107,107,101,0.14)', borderRadius: BLOBS[3] }}
-            >
-              <IconPanel style={{ width: 18, height: 18 }} />
-            </span>
-            <span className="text-sm font-bold">Panel principal</span>
+            <IconPanel style={{ width: 18, height: 18 }} />
+            <span className="text-sm font-extrabold">Panel principal</span>
           </Link>
         </div>
       </aside>

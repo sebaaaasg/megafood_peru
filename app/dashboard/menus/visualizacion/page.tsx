@@ -18,6 +18,13 @@ import TablaProgramacionMenu, { DiaProgramado } from '@/components/TablaPrograma
 import CalendarioProgramacion from '@/components/CalendarioProgramacion'
 import MenusNav from '@/app/dashboard/menus/components/MenusNav'
 
+const ARCHIVO = 'var(--font-archivo), system-ui, sans-serif'
+const OSCURO = '#201E1D'
+const FONDO = '#E7E7E2'
+const PIEDRA = '#6B6B65'
+const VERDE = '#8CC63F'
+const NARANJA = '#F37F21'
+
 // Tipos
 interface Sede {
   id: string
@@ -178,58 +185,45 @@ export default function VisualizarProgramacion() {
   const sedeInfo = sedes.find(s => s.id === sedeSeleccionada)
 
   return (
-    <div className="min-h-screen w-full" style={{ background: '#FFFFFF' }}>
-      <header className="relative overflow-hidden" style={{ background: '#2B2B2B' }}>
-        <div
-          className="absolute inset-0 opacity-[0.06]"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(135deg, #FFFFFF 0px, #FFFFFF 1px, transparent 1px, transparent 14px)",
-          }}
-          aria-hidden="true"
-        />
-        <div className="absolute left-0 top-0 bottom-0" style={{ width: '6px', background: '#F37F21' }} aria-hidden="true" />
-        <div className="absolute left-[6px] top-0 bottom-0" style={{ width: '6px', background: '#8CC63F' }} aria-hidden="true" />
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 pt-20 pb-6 sm:pt-24 sm:pb-10">
-          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+    <div className="min-h-screen w-full" style={{ background: FONDO, color: OSCURO, fontFamily: ARCHIVO }}>
+      {/* ─── Encabezado ─── */}
+      <div className="flex border-b-2" style={{ borderColor: PIEDRA }}>
+        <div className="w-2 shrink-0" style={{ background: VERDE }} aria-hidden="true" />
+        <div className="flex-1 px-5 py-10 sm:px-8 sm:py-14">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3 mb-1 sm:mb-2">
-                <span
-                  className="uppercase font-mono text-[10px] sm:text-xs"
-                  style={{ fontWeight: 700, letterSpacing: '0.18em', color: '#8CC63F' }}
-                >
-                  Módulo de gestión
-                </span>
+              <div className="mb-4 text-[10px] font-extrabold" style={{ letterSpacing: '0.2em', color: PIEDRA }}>
+                PANEL DE LOGÍSTICA · MÓDULO DE GESTIÓN
               </div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight leading-tight">
-                <span style={{ color: '#FFFFFF' }}>Visualizar</span>
-                <span style={{ color: '#F37F21' }}> Programación</span>
+              <h1
+                className="text-[32px] sm:text-[44px]"
+                style={{ margin: 0, lineHeight: 0.95, letterSpacing: '-0.035em', fontWeight: 800 }}
+              >
+                Visualizar <span style={{ color: NARANJA }}>programación</span>
               </h1>
-              <p className="mt-1 sm:mt-2 text-sm sm:text-base" style={{ color: '#C9C9C3' }}>
+              <p className="mt-3 max-w-xl text-[15px]" style={{ color: PIEDRA }}>
                 Consulta los menús programados por sede y rango de fechas.
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-              <Link
-                href="/dashboard/menus"
-                className="flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition text-sm sm:text-base w-full sm:w-auto"
-              >
-                <ArrowLeft size={18} />
-                Volver
-              </Link>
-            </div>
+            <Link
+              href="/dashboard/menus"
+              className="flex min-h-[52px] items-center gap-2 px-4 py-2.5 text-[13px] font-extrabold uppercase transition-colors"
+              style={{ letterSpacing: '0.06em', border: `2px solid ${OSCURO}`, color: OSCURO }}
+            >
+              <ArrowLeft size={18} />
+              Volver
+            </Link>
           </div>
 
           <MenusNav />
         </div>
-      </header>
+      </div>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-8 py-6 sm:py-8">
         
         {/* ═══ PANEL DE FILTROS ═══ */}
         {/* overflow-visible en lugar de overflow-hidden para que el calendario no se corte */}
-        <div className="mb-6 rounded-lg border border-[#E7E7E2] bg-white shadow-sm overflow-visible">
+        <div className="mb-6  border border-[#E7E7E2] bg-white  overflow-visible">
           <button
             onClick={() => setMostrarFiltros(!mostrarFiltros)}
             className="w-full flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-[#F5F5F0] transition rounded-t-lg"
@@ -238,7 +232,7 @@ export default function VisualizarProgramacion() {
               <Calendar className="w-4 h-4 text-[#F37F21]" />
               <span className="font-bold text-[#2B2B2B] text-sm">Filtros de búsqueda</span>
               {(fechaDesde || fechaHasta || sedeSeleccionada) && (
-                <span className="text-xs bg-[#8CC63F]/10 text-[#8CC63F] px-2 py-0.5 rounded-full font-medium">
+                <span className="text-xs bg-[#8CC63F]/10 text-[#8CC63F] px-2 py-0.5  font-medium">
                   Activos
                 </span>
               )}
@@ -264,7 +258,7 @@ export default function VisualizarProgramacion() {
                       setProgramacion([])
                       setComensales([])
                     }}
-                    className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
+                    className="w-full  border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
                   >
                     <option value="">Seleccionar sede</option>
                     {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
@@ -288,7 +282,7 @@ export default function VisualizarProgramacion() {
                       fechaSeleccionada={fechaDesde}
                     />
                   ) : (
-                    <div className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#9A9A93] bg-gray-50">
+                    <div className="w-full  border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#9A9A93] bg-gray-50">
                       Selecciona una sede primero
                     </div>
                   )}
@@ -317,7 +311,7 @@ export default function VisualizarProgramacion() {
                       fechaSeleccionada={fechaHasta}
                     />
                   ) : (
-                    <div className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#9A9A93] bg-gray-50">
+                    <div className="w-full  border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#9A9A93] bg-gray-50">
                       {!sedeSeleccionada ? "Selecciona una sede primero" : "Selecciona fecha 'desde' primero"}
                     </div>
                   )}
@@ -330,8 +324,8 @@ export default function VisualizarProgramacion() {
               </div>
 
               {sedeSeleccionada && fechaDesde && fechaHasta && (
-                <div className="mt-4 p-3 bg-[#F5FBF0] rounded-lg border border-[#8CC63F]/20 flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-[#8CC63F]" />
+                <div className="mt-4 p-3 bg-[#F5FBF0]  border border-[#8CC63F]/20 flex items-center gap-3">
+                  <div className="w-2 h-2  bg-[#8CC63F]" />
                   <p className="text-sm text-[#2B2B2B]">
                     <span className="font-semibold">{sedeInfo?.nombre}</span>
                     <span className="text-[#6B6B65]"> · Del </span>
@@ -346,14 +340,14 @@ export default function VisualizarProgramacion() {
         </div>
 
         {!sedeSeleccionada && (
-          <div className="text-center py-12 bg-[#F5F5F0] rounded-lg border border-[#E7E7E2]">
+          <div className="text-center py-12 bg-[#F5F5F0]  border border-[#E7E7E2]">
             <Building className="w-12 h-12 text-[#9A9A93] mx-auto mb-3" />
             <p className="text-[#6B6B65]">Selecciona una sede para comenzar</p>
           </div>
         )}
 
         {sedeSeleccionada && (!fechaDesde || !fechaHasta) && (
-          <div className="text-center py-12 bg-[#F5F5F0] rounded-lg border border-[#E7E7E2]">
+          <div className="text-center py-12 bg-[#F5F5F0]  border border-[#E7E7E2]">
             <Calendar className="w-12 h-12 text-[#9A9A93] mx-auto mb-3" />
             <p className="text-[#6B6B65]">
               {!fechaDesde ? "Selecciona la fecha 'desde' en el calendario" : "Selecciona la fecha 'hasta' en el calendario"}
@@ -368,7 +362,7 @@ export default function VisualizarProgramacion() {
         )}
 
         {!cargando && sedeSeleccionada && fechaDesde && fechaHasta && programacion.length === 0 && (
-          <div className="text-center py-12 bg-[#F5F5F0] rounded-lg border border-[#E7E7E2]">
+          <div className="text-center py-12 bg-[#F5F5F0]  border border-[#E7E7E2]">
             <UtensilsCrossed className="w-12 h-12 text-[#9A9A93] mx-auto mb-3" />
             <p className="text-[#6B6B65]">No hay programación para este rango de fechas</p>
             <p className="text-xs text-[#9A9A93] mt-1">Intenta con otro rango o sede</p>
@@ -393,7 +387,7 @@ export default function VisualizarProgramacion() {
                   return (
                     <span
                       key={tipo}
-                      className="text-xs font-bold rounded-full px-3 py-1"
+                      className="text-xs font-bold  px-3 py-1"
                       style={{ background: tipoInfo?.bg || '#f5f5f5', color: tipoInfo?.color || '#555' }}
                     >
                       {tipoInfo?.icon} {tipoInfo?.label}
@@ -409,7 +403,7 @@ export default function VisualizarProgramacion() {
               titulo=""
             />
 
-            <div className="rounded-lg border border-[#E7E7E2] bg-white p-4 flex flex-wrap justify-between items-center gap-2">
+            <div className=" border border-[#E7E7E2] bg-white p-4 flex flex-wrap justify-between items-center gap-2">
               <p className="text-xs text-[#6B6B65] flex items-center gap-2">
                 <UtensilsCrossed className="w-3 h-3" />
                 Total: <strong className="text-[#2B2B2B]">{totalPlatos} platos</strong> en {totalDias} {totalDias === 1 ? 'día' : 'días'}
@@ -422,7 +416,7 @@ export default function VisualizarProgramacion() {
                     return (
                       <span
                         key={tipo}
-                        className="w-3 h-3 rounded-full inline-block"
+                        className="w-3 h-3  inline-block"
                         style={{ background: tipoInfo?.color || '#ccc' }}
                         title={tipoInfo?.label || tipo}
                       />
@@ -435,15 +429,14 @@ export default function VisualizarProgramacion() {
         )}
       </main>
 
-      <footer style={{ borderTop: '1.5px solid #EFEFE9' }} className="mt-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p style={{ fontSize: '0.8rem', color: '#9A9A93' }}>
-            © 2026 MegaFood · Visualizar programación
-          </p>
-          <div className="flex items-center gap-2">
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#8CC63F', display: 'inline-block' }} />
-            <span style={{ fontSize: '0.8rem', color: '#9A9A93', fontWeight: 600 }}>v2.0</span>
-          </div>
+      <footer className="mt-8" style={{ borderTop: `2px solid ${OSCURO}` }}>
+        <div className="max-w-7xl mx-auto flex flex-col items-center justify-between gap-2 px-4 py-4 sm:flex-row sm:px-8">
+          <p className="text-[13px]" style={{ color: PIEDRA }}>Megafood Perú · Visualizar programación · v2.0</p>
+          <span className="flex gap-2" aria-hidden="true">
+            <span style={{ width: 26, height: 6, background: PIEDRA }} />
+            <span style={{ width: 26, height: 6, background: VERDE }} />
+            <span style={{ width: 26, height: 6, background: NARANJA }} />
+          </span>
         </div>
       </footer>
     </div>

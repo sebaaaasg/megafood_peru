@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { Insumo } from '@/lib/supabase/insumos'
 import EstacionesDrawer from '@/app/dashboard/components/EstacionesDrawer'
+import BarraSuperior from '@/app/dashboard/components/BarraSuperior'
 import * as XLSX from 'xlsx'
 
 type Category = {
@@ -21,38 +21,25 @@ interface InsumosClientProps {
 }
 
 // ─────────────────────────────────────────────
-// Paleta del diseño "Orgánico"
+// Paleta del diseño "Panel de logística" (brutalista)
 // ─────────────────────────────────────────────
 const C = {
-  bg: '#FDFCF8',
-  card: '#FEFEFA',
-  tinta: '#2C2C24',
-  tintaSuave: '#78786C',
+  bg: '#E7E7E2',
+  card: '#FFFFFF',
+  tinta: '#201E1D',
+  tintaSuave: '#6B6B65',
   tintaMedia: '#4A4A40',
-  borde: '#DED8CF',
+  borde: '#6B6B65',
   verde: '#8CC63F',
   naranja: '#F37F21',
   piedra: '#6B6B65',
 } as const
 
-/** Radios orgánicos que se van alternando para que nada quede simétrico. */
-const RADIOS = [
-  '2rem 2rem 2rem 4rem',
-  '4rem 2rem 2rem 2rem',
-  '2rem 4rem 2rem 2rem',
-  '2rem 2rem 4rem 2rem',
-  '4rem 2rem 4rem 2rem',
-] as const
+const ARCHIVO = 'var(--font-archivo), system-ui, sans-serif'
 
-/** Formas de blob para los chips de icono. */
-const BLOBS = [
-  '60% 40% 30% 70% / 60% 30% 70% 40%',
-  '30% 70% 70% 30% / 30% 30% 70% 70%',
-  '70% 30% 50% 50% / 40% 60% 40% 60%',
-  '50% 50% 30% 70% / 60% 40% 60% 40%',
-  '40% 60% 60% 40% / 50% 50% 50% 50%',
-  '60% 40% 70% 30% / 40% 60% 40% 60%',
-] as const
+/** Acento alternado verde/naranja para bordes de tarjeta, sin radios ni blobs. */
+const ACENTOS = [C.naranja, C.verde] as const
+const acentoDe = (i: number) => ACENTOS[i % ACENTOS.length]
 
 interface TonoCategoria {
   solido: string
@@ -145,18 +132,6 @@ const IconExcel = ({ size = 26 }: SvgProps) => (
     <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
     <path d="M14 3v5h5" />
     <path d="m9 12 6 6M15 12l-6 6" />
-  </svg>
-)
-/** Icono de persona para el chip de sesión. */
-const IconPersona = ({ size = 18 }: SvgProps) => (
-  <svg {...svgBase(size)}>
-    <circle cx="12" cy="8" r="3.5" />
-    <path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6" />
-  </svg>
-)
-const IconHamburguesa = ({ size = 20 }: SvgProps) => (
-  <svg {...svgBase(size)}>
-    <path d="M4 7h16M4 12h16M4 17h16" />
   </svg>
 )
 const IconCerrar = ({ size = 20 }: SvgProps) => (
@@ -548,14 +523,9 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
 
   return (
     <div
-      className="mf-grain relative min-h-screen overflow-x-hidden"
-      style={{ background: C.bg, color: C.tinta, fontFamily: 'var(--font-nunito), system-ui, sans-serif' }}
+      className="relative min-h-screen"
+      style={{ background: C.bg, color: C.tinta, fontFamily: ARCHIVO }}
     >
-      {/* Blobs de fondo */}
-      <span className="pointer-events-none absolute" style={{ left: -160, top: -120, width: 520, height: 520, background: 'rgba(140,198,63,0.28)', filter: 'blur(90px)', borderRadius: BLOBS[0] }} aria-hidden="true" />
-      <span className="pointer-events-none absolute" style={{ right: -180, top: 220, width: 480, height: 480, background: 'rgba(243,127,33,0.22)', filter: 'blur(90px)', borderRadius: BLOBS[1] }} aria-hidden="true" />
-      <span className="pointer-events-none absolute" style={{ left: '30%', bottom: -200, width: 560, height: 460, background: 'rgba(107,107,101,0.18)', filter: 'blur(100px)', borderRadius: BLOBS[2] }} aria-hidden="true" />
-
       <EstacionesDrawer
         abierto={menuAbierto}
         onCerrar={cerrarMenu}
@@ -563,155 +533,86 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
         displayName={displayName}
       />
 
-      <div className="relative mx-auto max-w-[1200px] px-4 pb-20 pt-5 sm:px-7">
+      <BarraSuperior
+        displayName={displayName}
+        menuAbierto={menuAbierto}
+        onAbrirMenu={() => setMenuAbierto(true)}
+      />
 
-        {/* ─── Barra superior ─── */}
-        <nav
-          className="sticky top-4 z-20 flex flex-wrap items-center gap-3 sm:gap-[18px]"
-          style={{
-            background: 'rgba(255,255,255,0.72)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(222,216,207,0.6)',
-            borderRadius: 9999,
-            padding: '10px 14px 10px 12px',
-            boxShadow: '0 4px 20px -2px rgba(107,107,101,0.18)',
-          }}
-        >
-          {/* Menú desplegable de estaciones */}
-          <button
-            type="button"
-            onClick={() => setMenuAbierto(true)}
-            aria-label="Abrir menú de estaciones"
-            aria-controls="drawer-estaciones"
-            aria-expanded={menuAbierto}
-            className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-full text-white transition-transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2"
-            style={{
-              background: '#F4823A',
-              // @ts-expect-error -- variables CSS del anillo de foco
-              '--tw-ring-color': C.naranja,
-              '--tw-ring-offset-color': C.bg,
-            }}
-          >
-            <IconHamburguesa size={22} />
-          </button>
-
-          {/* Logo de la empresa */}
-          <Link
-            href="/dashboard"
-            aria-label="Ir al panel"
-            className="flex h-[42px] w-[42px] shrink-0 items-center justify-center overflow-hidden rounded-full transition-transform hover:scale-105"
-            style={{ background: C.verde }}
-          >
-            <Image
-              src="/megafood3.png"
-              alt="MegaFood"
-              width={34}
-              height={34}
-              className="object-contain"
-              style={{ width: 34, height: 34 }}
-              priority
-            />
-          </Link>
-
-          <span style={{ fontFamily: 'var(--font-fraunces), serif', fontWeight: 700, fontSize: 18 }}>
-            Megafood <span style={{ color: C.piedra }}>Perú</span>
-          </span>
-
-          {/* Chip de sesión */}
-          <span
-            className="ml-auto flex items-center gap-2.5"
-            style={{ padding: '5px 18px 5px 5px', borderRadius: 9999, border: '1px solid rgba(222,216,207,0.9)' }}
-          >
-            <span
-              className="flex h-8 w-8 items-center justify-center rounded-full text-white"
-              style={{ background: C.naranja }}
-              aria-hidden="true"
-            >
-              <IconPersona size={18} />
-            </span>
-            <span className="hidden text-[13px] font-bold sm:inline" style={{ color: C.tintaMedia }}>
-              {displayName}
-            </span>
-          </span>
-        </nav>
+      <div className="relative mx-auto max-w-[1200px] px-4 pb-20 sm:px-7">
 
         {/* ─── Encabezado ─── */}
-        <header className="pb-10 pt-12 sm:pb-14 sm:pt-16">
-          <span
-            className="inline-flex items-center gap-2.5 text-[13px] font-extrabold"
-            style={{ background: 'rgba(140,198,63,0.18)', color: '#4A5F2A', borderRadius: 9999, padding: '9px 20px' }}
-          >
-            <span className="h-2 w-2 rounded-full" style={{ background: C.verde }} />
-            Módulo de gestión
-          </span>
+        <div className="flex border-b-2" style={{ borderColor: C.piedra, marginTop: 0 }}>
+          <div className="w-2 shrink-0" style={{ background: C.naranja }} aria-hidden="true" />
+          <header className="flex-1 pb-10 pt-10 sm:pb-14 sm:pt-14 pl-5 sm:pl-7">
+            <div
+              className="text-[10px] font-extrabold"
+              style={{ letterSpacing: '0.2em', color: C.piedra }}
+            >
+              MÓDULO DE GESTIÓN
+            </div>
 
-          <h1
-            className="text-[38px] sm:text-[52px] lg:text-[62px]"
-            style={{
-              fontFamily: 'var(--font-fraunces), serif',
-              fontWeight: 800,
-              lineHeight: 1.04,
-              letterSpacing: '-0.02em',
-              margin: '22px 0 16px',
-            }}
-          >
-            Inventario de <span style={{ color: C.naranja }}>insumos</span>
-          </h1>
-
-          <div className="flex flex-wrap gap-3.5">
-            <button
-              type="button"
-              onClick={() => { resetForm(); setShowForm(true) }}
-              className="cursor-pointer border-0 transition-all duration-300 hover:scale-105 active:scale-95"
+            <h1
+              className="text-[38px] sm:text-[52px] lg:text-[62px]"
               style={{
-                borderRadius: 9999,
-                padding: '16px 34px',
-                background: C.verde,
-                color: '#24310F',
-                fontSize: 16,
                 fontWeight: 800,
-                boxShadow: '0 4px 20px -2px rgba(140,198,63,0.45)',
+                lineHeight: 0.98,
+                letterSpacing: '-0.03em',
+                margin: '14px 0 20px',
               }}
             >
-              + Nuevo insumo
-            </button>
-            <Link
-              href="/dashboard"
-              className="inline-block transition-all duration-300 hover:scale-105 active:scale-95"
-              style={{
-                border: `2px solid ${C.naranja}`,
-                borderRadius: 9999,
-                padding: '16px 34px',
-                background: 'transparent',
-                color: '#C25E0E',
-                fontSize: 16,
-                fontWeight: 800,
-              }}
-            >
-              ← Volver al panel
-            </Link>
-          </div>
-        </header>
+              Inventario de <span style={{ color: C.naranja }}>insumos</span>
+            </h1>
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => { resetForm(); setShowForm(true) }}
+                className="cursor-pointer border-0 text-[13px] font-extrabold uppercase transition-colors"
+                style={{
+                  padding: '15px 30px',
+                  letterSpacing: '0.08em',
+                  background: C.verde,
+                  color: C.tinta,
+                }}
+              >
+                + Nuevo insumo
+              </button>
+              <Link
+                href="/dashboard"
+                className="inline-block text-[13px] font-extrabold uppercase transition-colors"
+                style={{
+                  border: `2px solid ${C.naranja}`,
+                  padding: '13px 28px',
+                  letterSpacing: '0.08em',
+                  background: 'transparent',
+                  color: C.naranja,
+                }}
+              >
+                ← Volver al panel
+              </Link>
+            </div>
+          </header>
+        </div>
 
         {/* ─── Importar Excel ─── */}
         <section
-          className="flex flex-wrap items-center gap-6"
+          className="mt-8 flex flex-wrap items-center gap-6"
           style={{
-            background: 'rgba(240,235,229,0.7)',
-            border: '1px solid rgba(222,216,207,0.6)',
-            borderRadius: RADIOS[2],
-            padding: '30px 34px',
+            background: C.card,
+            borderTop: `6px solid ${C.verde}`,
+            padding: '28px 32px',
           }}
         >
           <span
             className="flex items-center justify-center"
-            style={{ width: 60, height: 60, flex: '0 0 60px', borderRadius: BLOBS[0], background: 'rgba(140,198,63,0.2)', color: '#5D7052' }}
+            style={{ width: 56, height: 56, flex: '0 0 56px', background: C.bg, color: C.tinta }}
             aria-hidden="true"
           >
             <IconExcel size={26} />
           </span>
           <div className="min-w-0 flex-[1_1_260px]">
-            <h3 style={{ fontFamily: 'var(--font-fraunces), serif', fontWeight: 700, fontSize: 22, margin: '0 0 4px' }}>
+            <h3 style={{ fontWeight: 800, fontSize: 20, margin: '0 0 4px' }}>
               Importar desde Excel
             </h3>
             <p className="text-sm" style={{ margin: 0, color: C.tintaSuave }}>
@@ -719,15 +620,13 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
             </p>
           </div>
           <label
-            className="cursor-pointer transition-all duration-300 hover:scale-[1.04] active:scale-95"
+            className="cursor-pointer text-[13px] font-extrabold uppercase transition-colors"
             style={{
-              border: `2px dashed ${C.verde}`,
-              borderRadius: 9999,
-              padding: '15px 32px',
-              background: 'rgba(140,198,63,0.08)',
-              color: '#4A5F2A',
-              fontSize: 15,
-              fontWeight: 800,
+              border: `2px solid ${C.tinta}`,
+              padding: '14px 30px',
+              letterSpacing: '0.08em',
+              background: 'transparent',
+              color: C.tinta,
             }}
           >
             {importing ? 'Importando…' : 'Subir archivo'}
@@ -742,8 +641,8 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
         </section>
 
         {/* ─── Categorías ─── */}
-        <section className="mt-14">
-          <h2 style={{ fontFamily: 'var(--font-fraunces), serif', fontWeight: 700, fontSize: 32, margin: '0 0 24px' }}>
+        <section className="mt-12">
+          <h2 style={{ fontWeight: 800, fontSize: 28, margin: '0 0 20px', letterSpacing: '-0.01em' }}>
             Categorías
           </h2>
           <div
@@ -760,36 +659,28 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
                   type="button"
                   onClick={() => setSelectedCategory(cat.name)}
                   aria-pressed={activa}
-                  className="flex w-[180px] shrink-0 cursor-pointer snap-start flex-col gap-4 text-left transition-all duration-300 hover:-translate-y-1 sm:w-auto"
+                  className="flex w-[180px] shrink-0 cursor-pointer snap-start flex-col gap-4 text-left transition-colors duration-150 sm:w-auto"
                   style={{
-                    border: `1px solid ${activa ? t.solido : 'rgba(222,216,207,0.7)'}`,
-                    borderRadius: RADIOS[i % RADIOS.length],
-                    padding: 24,
-                    background: activa ? t.solido : t.suave,
-                    color: activa ? '#FDFCF8' : t.tinta,
-                    boxShadow: activa ? `0 20px 40px -10px ${t.suave}` : 'none',
+                    borderTop: `6px solid ${t.solido}`,
+                    padding: 20,
+                    background: activa ? C.tinta : C.card,
+                    color: activa ? '#fff' : C.tinta,
                   }}
                 >
                   <span
                     className="flex items-center justify-center"
-                    style={{
-                      width: 52,
-                      height: 52,
-                      borderRadius: BLOBS[i % BLOBS.length],
-                      background: activa ? 'rgba(253,252,248,0.2)' : t.solido,
-                      color: '#fff',
-                    }}
+                    style={{ width: 44, height: 44, background: t.solido, color: '#fff' }}
                     aria-hidden="true"
                   >
-                    <Icon size={24} />
+                    <Icon size={22} />
                   </span>
                   <span>
-                    <span className="block" style={{ fontFamily: 'var(--font-fraunces), serif', fontWeight: 700, fontSize: 20 }}>
+                    <span className="block" style={{ fontWeight: 800, fontSize: 18 }}>
                       {cat.name}
                     </span>
                     <span
                       className="mt-1 block text-[13px]"
-                      style={{ color: activa ? 'rgba(253,252,248,0.85)' : t.tintaSuave }}
+                      style={{ color: activa ? 'rgba(255,255,255,0.7)' : C.tintaSuave }}
                     >
                       {cat.count} {cat.count === 1 ? 'insumo' : 'insumos'}
                     </span>
@@ -801,10 +692,10 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
         </section>
 
         {/* ─── Búsqueda y vista ─── */}
-        <section className="mt-12 flex flex-wrap items-center gap-4">
+        <section className="mt-10 flex flex-wrap items-center gap-4">
           <label
             className="flex flex-[1_1_320px] items-center gap-3"
-            style={{ background: 'rgba(255,255,255,0.6)', border: `1px solid ${C.borde}`, borderRadius: 9999, padding: '14px 26px' }}
+            style={{ background: C.card, border: `2px solid ${C.tinta}`, padding: '13px 22px' }}
           >
             <span style={{ color: C.tintaSuave }} aria-hidden="true"><IconBuscar size={18} /></span>
             <input
@@ -817,19 +708,19 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
             />
           </label>
 
-          <div className="flex gap-1.5" style={{ background: 'rgba(240,235,229,0.8)', borderRadius: 9999, padding: 6 }}>
+          <div className="flex" style={{ border: `2px solid ${C.tinta}` }}>
             {(['cuadricula', 'lista'] as const).map(v => (
               <button
                 key={v}
                 type="button"
                 onClick={() => setVista(v)}
                 aria-pressed={vista === v}
-                className="cursor-pointer border-0 text-sm font-extrabold transition-colors"
+                className="cursor-pointer border-0 text-[13px] font-extrabold uppercase transition-colors"
                 style={{
-                  borderRadius: 9999,
                   padding: '11px 22px',
-                  background: vista === v ? C.piedra : 'transparent',
-                  color: vista === v ? C.bg : C.tintaSuave,
+                  letterSpacing: '0.06em',
+                  background: vista === v ? C.tinta : 'transparent',
+                  color: vista === v ? '#fff' : C.tinta,
                 }}
               >
                 {v === 'cuadricula' ? 'Cuadrícula' : 'Lista'}
@@ -850,13 +741,13 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
         {filteredInsumos.length === 0 ? (
           <div
             className="px-6 py-16 text-center"
-            style={{ background: C.card, border: '1px solid rgba(222,216,207,0.6)', borderRadius: RADIOS[0], color: C.tintaSuave }}
+            style={{ background: C.card, color: C.tintaSuave }}
           >
             No hay insumos que coincidan con la búsqueda.
           </div>
         ) : (
           <section
-            className={vista === 'cuadricula' ? 'grid gap-6' : 'flex flex-col gap-3'}
+            className={vista === 'cuadricula' ? 'grid gap-5' : 'flex flex-col gap-3'}
             style={vista === 'cuadricula' ? { gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))' } : undefined}
           >
             {mostrados.map((insumo, i) => {
@@ -865,28 +756,24 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
               return (
                 <article
                   key={insumo.id}
-                  className={`transition-all duration-300 hover:-translate-y-1 ${vista === 'cuadricula' ? 'flex flex-col gap-4.5' : 'flex flex-wrap items-center gap-4'}`}
+                  className={`group transition-colors duration-150 ${vista === 'cuadricula' ? 'flex flex-col gap-4' : 'flex flex-wrap items-center gap-4'}`}
                   style={{
                     background: C.card,
-                    border: '1px solid rgba(222,216,207,0.6)',
-                    borderRadius: vista === 'cuadricula' ? RADIOS[i % RADIOS.length] : '9999px',
-                    padding: vista === 'cuadricula' ? 26 : '16px 26px',
-                    boxShadow: '0 4px 20px -2px rgba(107,107,101,0.15)',
+                    borderLeft: `4px solid ${t.solido}`,
+                    padding: vista === 'cuadricula' ? 22 : '14px 22px',
                   }}
                 >
                   <div className="flex flex-1 items-start gap-3.5">
                     <span
                       className="flex items-center justify-center"
                       style={{
-                        width: 46,
-                        height: 46,
-                        flex: '0 0 46px',
-                        borderRadius: BLOBS[i % BLOBS.length],
+                        width: 42,
+                        height: 42,
+                        flex: '0 0 42px',
                         background: t.suave,
                         color: t.tinta,
-                        fontFamily: 'var(--font-fraunces), serif',
-                        fontWeight: 700,
-                        fontSize: 18,
+                        fontWeight: 800,
+                        fontSize: 17,
                       }}
                       aria-hidden="true"
                     >
@@ -895,7 +782,7 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
 
                     <h3
                       className="min-w-0 flex-1"
-                      style={{ fontFamily: 'var(--font-fraunces), serif', fontWeight: 700, fontSize: 20, margin: 0 }}
+                      style={{ fontWeight: 800, fontSize: 18, margin: 0 }}
                     >
                       {insumo.nombre}
                     </h3>
@@ -906,8 +793,8 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
                         title="Editar"
                         aria-label={`Editar ${insumo.nombre}`}
                         onClick={() => handleEdit(insumo)}
-                        className="flex h-9 w-9 cursor-pointer items-center justify-center border-0 transition-all duration-300 hover:brightness-95"
-                        style={{ borderRadius: 9999, background: 'rgba(140,198,63,0.16)', color: '#4A5F2A' }}
+                        className="flex h-8 w-8 cursor-pointer items-center justify-center border-0 transition-colors"
+                        style={{ background: 'rgba(140,198,63,0.16)', color: '#4A5F2A' }}
                       >
                         <IconEditar size={16} />
                       </button>
@@ -917,8 +804,8 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
                         aria-label={`Eliminar ${insumo.nombre}`}
                         onClick={() => handleDelete(insumo.id)}
                         disabled={loading}
-                        className="flex h-9 w-9 cursor-pointer items-center justify-center border-0 transition-all duration-300 hover:brightness-95 disabled:opacity-50"
-                        style={{ borderRadius: 9999, background: 'rgba(168,84,72,0.14)', color: '#A85448' }}
+                        className="flex h-8 w-8 cursor-pointer items-center justify-center border-0 transition-colors disabled:opacity-50"
+                        style={{ background: 'rgba(168,84,72,0.14)', color: '#A85448' }}
                       >
                         <IconDescartables size={16} />
                       </button>
@@ -926,28 +813,28 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
                   </div>
 
                   <div
-                    className="flex flex-wrap items-center gap-2.5"
+                    className="flex flex-wrap items-center gap-2"
                     style={
                       vista === 'cuadricula'
-                        ? { borderTop: '1px solid rgba(222,216,207,0.8)', paddingTop: 16, marginTop: 'auto' }
+                        ? { borderTop: '1px solid rgba(107,107,101,0.25)', paddingTop: 14, marginTop: 'auto' }
                         : undefined
                     }
                   >
                     <span
-                      className="text-xs font-extrabold"
-                      style={{ borderRadius: 9999, padding: '6px 14px', background: t.suave, color: t.tinta }}
+                      className="text-[11px] font-extrabold uppercase"
+                      style={{ padding: '5px 12px', letterSpacing: '0.04em', background: t.suave, color: t.tinta }}
                     >
                       {insumo.categoria}
                     </span>
                     <span
-                      className="text-xs font-extrabold"
-                      style={{ borderRadius: 9999, padding: '6px 14px', background: 'rgba(107,107,101,0.12)', color: C.piedra }}
+                      className="text-[11px] font-extrabold uppercase"
+                      style={{ padding: '5px 12px', letterSpacing: '0.04em', background: 'rgba(107,107,101,0.12)', color: C.piedra }}
                     >
                       {insumo.unidad}
                     </span>
                     <span
                       className="ml-auto"
-                      style={{ fontFamily: 'var(--font-fraunces), serif', fontWeight: 700, fontSize: 19, color: C.naranja }}
+                      style={{ fontWeight: 800, fontSize: 18, color: C.naranja }}
                     >
                       {formatPrice(insumo.precio)}
                     </span>
@@ -963,15 +850,13 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
             <button
               type="button"
               onClick={() => setVisibles(v => v + PAGINA)}
-              className="cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95"
+              className="cursor-pointer text-[13px] font-extrabold uppercase transition-colors"
               style={{
                 border: `2px solid ${C.piedra}`,
-                borderRadius: 9999,
-                padding: '15px 36px',
+                padding: '14px 32px',
+                letterSpacing: '0.06em',
                 background: 'transparent',
                 color: C.tintaMedia,
-                fontSize: 15,
-                fontWeight: 800,
               }}
             >
               Cargar más insumos ({filteredInsumos.length - visibles} restantes)
@@ -982,16 +867,16 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
 
         {/* ─── Pie ─── */}
         <footer
-          className="mt-16 flex flex-wrap items-center justify-between gap-5 pt-6"
-          style={{ borderTop: '1px solid rgba(222,216,207,0.8)' }}
+          className="mt-16 flex flex-wrap items-center justify-between gap-5 border-t-2 pt-6"
+          style={{ borderColor: C.tinta }}
         >
           <span className="text-sm" style={{ color: C.tintaSuave }}>
             Megafood Perú · Inventario · v2.0
           </span>
           <span className="flex gap-2" aria-hidden="true">
-            <span style={{ width: 26, height: 10, borderRadius: 9999, background: C.piedra }} />
-            <span style={{ width: 26, height: 10, borderRadius: 9999, background: C.verde }} />
-            <span style={{ width: 26, height: 10, borderRadius: 9999, background: C.naranja }} />
+            <span style={{ width: 26, height: 8, background: C.piedra }} />
+            <span style={{ width: 26, height: 8, background: C.verde }} />
+            <span style={{ width: 26, height: 8, background: C.naranja }} />
           </span>
         </footer>
       </div>
@@ -1000,22 +885,17 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
       {showForm && (
         <div
           className="fixed inset-0 z-[80] flex items-center justify-center p-4"
-          style={{ background: 'rgba(44,44,36,0.45)', backdropFilter: 'blur(3px)' }}
+          style={{ background: 'rgba(32,30,29,0.6)' }}
           onClick={resetForm}
         >
           <form
             onSubmit={handleSubmit}
             onClick={(e) => e.stopPropagation()}
             className="w-full max-w-md"
-            style={{
-              background: C.card,
-              borderRadius: RADIOS[0],
-              padding: 30,
-              boxShadow: '0 20px 40px -10px rgba(107,107,101,0.35)',
-            }}
+            style={{ background: C.card, borderTop: `6px solid ${C.verde}`, padding: 30 }}
           >
             <div className="mb-6 flex items-start justify-between gap-4">
-              <h2 style={{ fontFamily: 'var(--font-fraunces), serif', fontWeight: 700, fontSize: 26, margin: 0 }}>
+              <h2 style={{ fontWeight: 800, fontSize: 24, margin: 0 }}>
                 {editingInsumo ? 'Editar insumo' : 'Nuevo insumo'}
               </h2>
               <button
@@ -1023,7 +903,7 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
                 onClick={resetForm}
                 aria-label="Cerrar"
                 className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center border-0"
-                style={{ borderRadius: 9999, background: 'rgba(107,107,101,0.12)', color: C.piedra }}
+                style={{ background: 'rgba(107,107,101,0.14)', color: C.piedra }}
               >
                 <IconCerrar size={18} />
               </button>
@@ -1042,7 +922,7 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
                   onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
                   placeholder="Ej: PECHUGA DE POLLO"
                   className="w-full text-[15px] outline-none"
-                  style={{ border: `1px solid ${C.borde}`, borderRadius: 9999, padding: '13px 20px', background: 'rgba(255,255,255,0.7)', color: C.tinta }}
+                  style={{ border: `2px solid ${C.borde}`, padding: '12px 16px', background: '#fff', color: C.tinta }}
                 />
               </div>
 
@@ -1055,7 +935,7 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
                   value={formData.categoria}
                   onChange={(e) => setFormData({ ...formData, categoria: e.target.value })}
                   className="w-full text-[15px] outline-none"
-                  style={{ border: `1px solid ${C.borde}`, borderRadius: 9999, padding: '13px 20px', background: 'rgba(255,255,255,0.7)', color: C.tinta }}
+                  style={{ border: `2px solid ${C.borde}`, padding: '12px 16px', background: '#fff', color: C.tinta }}
                 >
                   {ORDEN_CATEGORIAS.map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
@@ -1075,7 +955,7 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
                     onChange={(e) => setFormData({ ...formData, unidad: e.target.value })}
                     placeholder="kg, lt, gln…"
                     className="w-full text-[15px] outline-none"
-                    style={{ border: `1px solid ${C.borde}`, borderRadius: 9999, padding: '13px 20px', background: 'rgba(255,255,255,0.7)', color: C.tinta }}
+                    style={{ border: `2px solid ${C.borde}`, padding: '12px 16px', background: '#fff', color: C.tinta }}
                   />
                 </div>
                 <div className="flex-1">
@@ -1091,7 +971,7 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
                     onChange={(e) => setFormData({ ...formData, precio: e.target.value })}
                     placeholder="0.00"
                     className="w-full text-[15px] outline-none"
-                    style={{ border: `1px solid ${C.borde}`, borderRadius: 9999, padding: '13px 20px', background: 'rgba(255,255,255,0.7)', color: C.tinta }}
+                    style={{ border: `2px solid ${C.borde}`, padding: '12px 16px', background: '#fff', color: C.tinta }}
                   />
                 </div>
               </div>
@@ -1101,16 +981,16 @@ export default function InsumosClient({ initialInsumos, initialCategories }: Ins
               <button
                 type="button"
                 onClick={resetForm}
-                className="flex-1 cursor-pointer text-[15px] font-extrabold transition-all hover:scale-[1.03]"
-                style={{ border: `2px solid ${C.piedra}`, borderRadius: 9999, padding: '14px 20px', background: 'transparent', color: C.tintaMedia }}
+                className="flex-1 cursor-pointer text-[13px] font-extrabold uppercase transition-colors"
+                style={{ border: `2px solid ${C.piedra}`, padding: '13px 20px', letterSpacing: '0.06em', background: 'transparent', color: C.tintaMedia }}
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={loading}
-                className="flex flex-1 cursor-pointer items-center justify-center gap-2 border-0 text-[15px] font-extrabold transition-all hover:scale-[1.03] disabled:opacity-60"
-                style={{ borderRadius: 9999, padding: '14px 20px', background: C.verde, color: '#24310F' }}
+                className="flex flex-1 cursor-pointer items-center justify-center gap-2 border-0 text-[13px] font-extrabold uppercase transition-colors disabled:opacity-60"
+                style={{ padding: '13px 20px', letterSpacing: '0.06em', background: C.verde, color: C.tinta }}
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                 {editingInsumo ? 'Guardar cambios' : 'Crear insumo'}

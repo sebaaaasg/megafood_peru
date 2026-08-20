@@ -12,7 +12,7 @@ import UserChip from './UserChip'
  * usuario (el panel principal y su rail lateral, o la píldora superior del
  * diseño de Insumos); ahí duplicarían ambos controles.
  */
-const RUTAS_CON_CHROME_PROPIO = ['/dashboard', '/dashboard/insumos']
+const RUTAS_CON_CHROME_PROPIO = ['/dashboard', '/dashboard/insumos', '/dashboard/usuarios', '/dashboard/platos']
 export default function DashboardChrome({
   role,
   displayName,

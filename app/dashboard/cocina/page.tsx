@@ -58,6 +58,13 @@ interface Insumo {
   unidad: string
 }
 
+const ARCHIVO = 'var(--font-archivo), system-ui, sans-serif'
+const OSCURO = '#201E1D'
+const FONDO = '#E7E7E2'
+const VERDE = '#8CC63F'
+const NARANJA = '#F37F21'
+const PIEDRA = '#6B6B65'
+
 const TIPOS_MENU = [
   { value: "estandar", label: "Estándar", color: "#8CC63F", bg: "#EAF5DE", icon: "📋" },
   { value: "dieta", label: "Dieta", color: "#3B82F6", bg: "#EFF6FF", icon: "🥗" },
@@ -545,72 +552,46 @@ const exportarSoloInsumos = async () => {
   }
 
   return (
-    <div className="min-h-screen w-full" style={{ background: '#FFFFFF' }}>
-      {/* Header estilo MegaFood */}
-      <header className="relative overflow-hidden" style={{ background: '#2B2B2B' }}>
-        <div
-          className="absolute inset-0 opacity-[0.06]"
-          style={{
-            backgroundImage:
-              "repeating-linear-gradient(135deg, #FFFFFF 0px, #FFFFFF 1px, transparent 1px, transparent 14px)",
-          }}
-          aria-hidden="true"
-        />
-        <div
-          className="absolute left-0 top-0 bottom-0"
-          style={{ width: '6px', background: '#F37F21' }}
-          aria-hidden="true"
-        />
-        <div
-          className="absolute left-[6px] top-0 bottom-0"
-          style={{ width: '6px', background: '#8CC63F' }}
-          aria-hidden="true"
-        />
-
-        <div className="relative max-w-7xl mx-auto px-8 pt-24 pb-10">
-          <div className="flex items-start justify-between">
+    <div className="min-h-screen w-full" style={{ background: FONDO, color: OSCURO, fontFamily: ARCHIVO }}>
+      {/* Hero */}
+      <div className="flex border-b-2" style={{ borderColor: PIEDRA }}>
+        <div className="w-2 shrink-0" style={{ background: VERDE }} aria-hidden="true" />
+        <div className="flex-1 px-5 pt-20 pb-8 sm:px-8 sm:pt-24 sm:pb-10">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <span
-                  className="uppercase font-mono text-xs"
-                  style={{
-                    fontWeight: 700,
-                    letterSpacing: '0.18em',
-                    color: '#8CC63F',
-                  }}
-                >
-                  Módulo de gestión
-                </span>
+              <div
+                className="mb-3 text-[10px] font-extrabold"
+                style={{ letterSpacing: '0.2em', color: PIEDRA }}
+              >
+                MÓDULO DE GESTIÓN
               </div>
-              <h1 className="text-3xl font-black tracking-tight">
-                <span style={{ color: '#FFFFFF' }}>Requerimiento</span>
-                <span style={{ color: '#F37F21' }}> Cocina</span>
+              <h1 className="text-[34px] sm:text-[46px]" style={{ margin: 0, lineHeight: 0.98, letterSpacing: '-0.03em', fontWeight: 800 }}>
+                Requerimiento <span style={{ color: NARANJA }}>Cocina</span>
               </h1>
-              <p className="mt-2" style={{ color: '#C9C9C3', fontSize: '1rem' }}>
+              <p className="mt-2 text-[15px]" style={{ color: PIEDRA, margin: '10px 0 0' }}>
                 Calcula los insumos necesarios según la programación del día.
               </p>
             </div>
-            <div className="flex gap-3">
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-2 px-5 py-2.5 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 transition"
-              >
-                <ArrowLeft size={18} />
-                Panel
-              </Link>
-            </div>
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2 px-4 py-2.5 text-[13px] font-extrabold uppercase transition-colors"
+              style={{ letterSpacing: '0.08em', border: `2px solid ${OSCURO}`, color: OSCURO }}
+            >
+              <ArrowLeft size={16} />
+              Panel
+            </Link>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Contenido principal */}
-      <main className="max-w-7xl mx-auto px-8 py-8">
+      <main className="max-w-7xl mx-auto px-5 py-8 sm:px-8">
         {/* Filtros */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           {/* Selector de Sede */}
           <div>
-            <label className="block text-sm font-medium text-[#2B2B2B] mb-1">
-              <Building className="inline w-4 h-4 mr-2 text-[#8CC63F]" />
+            <label className="mb-1.5 flex items-center text-[13px] font-bold" style={{ color: OSCURO }}>
+              <Building className="inline w-4 h-4 mr-2" style={{ color: VERDE }} />
               Sede
             </label>
             <select
@@ -621,7 +602,8 @@ const exportarSoloInsumos = async () => {
                 setProgramacion([])
                 setInsumosRequeridos([])
               }}
-              className="w-full rounded-lg border border-[#E7E7E2] px-4 py-2.5 text-sm text-[#2B2B2B] outline-none focus:ring-2 focus:ring-[#8CC63F] focus:border-transparent"
+              className="w-full px-4 py-2.5 text-sm outline-none"
+              style={{ background: '#fff', border: `2px solid ${OSCURO}`, color: OSCURO }}
             >
               <option value="">Seleccionar sede</option>
               {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
@@ -630,8 +612,8 @@ const exportarSoloInsumos = async () => {
 
           {/* Fecha */}
           <div>
-            <label className="block text-sm font-medium text-[#2B2B2B] mb-1">
-              <Calendar className="inline w-4 h-4 mr-2 text-[#F37F21]" />
+            <label className="mb-1.5 flex items-center text-[13px] font-bold" style={{ color: OSCURO }}>
+              <Calendar className="inline w-4 h-4 mr-2" style={{ color: NARANJA }} />
               Fecha de programación
             </label>
             <CalendarioProgramacion
@@ -644,7 +626,7 @@ const exportarSoloInsumos = async () => {
               fechaSeleccionada={fechaSeleccionada}
             />
             {fechaSeleccionada && (
-              <p className="text-xs text-[#8CC63F] mt-1 capitalize">
+              <p className="mt-1 text-xs capitalize" style={{ color: VERDE, fontWeight: 700 }}>
                 ✓ {fechaLegible}
               </p>
             )}
@@ -652,18 +634,18 @@ const exportarSoloInsumos = async () => {
 
           {/* Comensales: ya no se escriben aquí, vienen de la programación */}
           <div>
-            <label className="block text-sm font-medium text-[#2B2B2B] mb-1">
-              <Users className="inline w-4 h-4 mr-2 text-[#8CC63F]" />
+            <label className="mb-1.5 flex items-center text-[13px] font-bold" style={{ color: OSCURO }}>
+              <Users className="inline w-4 h-4 mr-2" style={{ color: VERDE }} />
               Comensales programados
             </label>
-            <div className="w-full rounded-lg border border-[#E7E7E2] bg-[#FAFAF7] px-4 py-2.5">
+            <div className="w-full px-4 py-2.5" style={{ background: '#fff', border: `1px solid ${PIEDRA}` }}>
               {tiposPresentes.length === 0 ? (
-                <span className="text-sm text-[#9A9A93]">
+                <span className="text-sm" style={{ color: PIEDRA }}>
                   Selecciona una fecha con programación
                 </span>
               ) : (
                 <>
-                  <p className="text-sm font-bold text-[#2B2B2B]">
+                  <p className="text-sm font-bold" style={{ color: OSCURO }}>
                     {totalComensales} en total
                   </p>
                   <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">
@@ -674,7 +656,7 @@ const exportarSoloInsumos = async () => {
                         <span
                           key={t}
                           className="text-xs"
-                          style={{ color: n > 0 ? info?.color || '#6B6B65' : '#C4554D' }}
+                          style={{ color: n > 0 ? info?.color || PIEDRA : '#C4554D' }}
                         >
                           {info?.icon} {info?.label || t}: <strong>{n}</strong>
                         </span>
@@ -689,20 +671,21 @@ const exportarSoloInsumos = async () => {
 
         {/* Aviso cuando faltan comensales para algún tipo programado */}
         {tiposSinComensales.length > 0 && (
-          <div className="mb-6 flex items-start gap-3 rounded-lg border border-[#F37F21]/30 bg-[#FFF7ED] p-4">
-            <Users className="mt-0.5 h-5 w-5 flex-shrink-0 text-[#F37F21]" />
+          <div className="mb-6 flex items-start gap-3 p-4" style={{ background: '#fff', borderLeft: `4px solid ${NARANJA}` }}>
+            <Users className="mt-0.5 h-5 w-5 flex-shrink-0" style={{ color: NARANJA }} />
             <div className="text-sm">
-              <p className="font-bold text-[#2B2B2B]">
+              <p className="font-bold" style={{ color: OSCURO }}>
                 Faltan comensales para{' '}
                 {tiposSinComensales
                   .map(t => TIPOS_MENU.find(x => x.value === t)?.label || t)
                   .join(', ')}
               </p>
-              <p className="mt-0.5 text-[#6B6B65]">
+              <p className="mt-0.5" style={{ color: PIEDRA }}>
                 Esos tipos no sumarán al requerimiento. Regístralos en{' '}
                 <Link
                   href="/dashboard/menus/editar"
-                  className="font-semibold text-[#F37F21] underline"
+                  className="font-bold underline"
+                  style={{ color: NARANJA }}
                 >
                   Menús › Editar programación
                 </Link>
@@ -717,13 +700,14 @@ const exportarSoloInsumos = async () => {
           <div className="mb-6">
             {cargando ? (
               <div className="flex justify-center py-4">
-                <Loader2 className="w-8 h-8 animate-spin text-[#8CC63F]" />
+                <Loader2 className="w-8 h-8 animate-spin" style={{ color: VERDE }} />
               </div>
             ) : programacion.length > 0 ? (
               <button
                 onClick={calcularRequerimiento}
                 disabled={calculando}
-                className="w-full md:w-auto px-6 py-3 rounded-lg bg-[#2B2B2B] text-white font-medium hover:bg-[#3B3B3B] transition disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex w-full items-center justify-center gap-2 px-6 py-3 text-[13px] font-extrabold uppercase transition-colors disabled:opacity-50 md:w-auto"
+                style={{ letterSpacing: '0.08em', background: OSCURO, color: '#fff' }}
               >
                 {calculando ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -733,10 +717,10 @@ const exportarSoloInsumos = async () => {
                 {calculando ? "Calculando..." : `Calcular requerimiento para ${totalComensales} comensales`}
               </button>
             ) : (
-              <div className="text-center py-8 rounded-lg border border-[#F37F21]/20 bg-[#F37F21]/5">
-                <Calendar className="w-12 h-12 text-[#F37F21] mx-auto mb-2" />
-                <p className="text-[#6B6B65]">No hay programación para esta fecha</p>
-                <p className="text-xs text-[#9A9A93] mt-1">Selecciona otra fecha en el calendario</p>
+              <div className="py-8 text-center" style={{ background: '#fff', borderTop: `4px solid ${NARANJA}` }}>
+                <Calendar className="w-12 h-12 mx-auto mb-2" style={{ color: NARANJA }} />
+                <p style={{ color: PIEDRA }}>No hay programación para esta fecha</p>
+                <p className="mt-1 text-xs" style={{ color: PIEDRA }}>Selecciona otra fecha en el calendario</p>
               </div>
             )}
           </div>
@@ -746,9 +730,9 @@ const exportarSoloInsumos = async () => {
         {programacion.length > 0 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
             {/* Menú del día */}
-            <div className="rounded-lg border border-[#E7E7E2] bg-white overflow-hidden shadow-sm">
-              <div className="px-5 py-4" style={{ background: '#2B2B2B' }}>
-                <h2 className="text-white font-bold text-sm flex items-center gap-2">
+            <div style={{ background: '#fff', borderTop: `6px solid ${VERDE}` }}>
+              <div className="px-5 py-4" style={{ background: OSCURO }}>
+                <h2 className="text-white font-extrabold text-sm flex items-center gap-2">
                   <UtensilsCrossed className="w-4 h-4" />
                   <span className="capitalize">Menú del {fechaLegible}</span>
                 </h2>
@@ -760,22 +744,22 @@ const exportarSoloInsumos = async () => {
                     <div key={tipo} className="mb-4 last:mb-0">
                       <div className="flex items-center gap-2 mb-2">
                         <span
-                          className="text-xs font-bold rounded-full px-3 py-1"
+                          className="text-xs font-bold px-3 py-1"
                           style={{ background: tipoInfo?.bg, color: tipoInfo?.color }}
                         >
                           {tipoInfo?.icon} {tipoInfo?.label}
                         </span>
-                        <span className="text-xs text-[#9A9A93]">{items.length} platos</span>
+                        <span className="text-xs" style={{ color: PIEDRA }}>{items.length} platos</span>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
                         {items.map((item) => {
                           const catColor = CAT_COLORS[item.categoria] || { color: "#555", bg: "#f5f5f5" }
                           return (
-                            <div key={item.id} className="p-2 rounded-lg" style={{ background: catColor.bg }}>
+                            <div key={item.id} className="p-2" style={{ background: catColor.bg }}>
                               <span className="text-[10px] font-bold uppercase block" style={{ color: catColor.color }}>
                                 {item.categoria}
                               </span>
-                              <span className="text-sm font-medium text-[#2B2B2B]">{item.plato_nombre}</span>
+                              <span className="text-sm font-medium" style={{ color: OSCURO }}>{item.plato_nombre}</span>
                             </div>
                           )
                         })}
@@ -783,8 +767,8 @@ const exportarSoloInsumos = async () => {
                     </div>
                   )
                 })}
-                <div className="mt-4 pt-3 border-t border-[#E7E7E2]">
-                  <p className="text-xs text-[#6B6B65] flex items-center gap-2">
+                <div className="mt-4 pt-3" style={{ borderTop: `1px solid ${PIEDRA}` }}>
+                  <p className="text-xs flex items-center gap-2" style={{ color: PIEDRA }}>
                     <Users className="w-3 h-3" />
                     Total: {totalPlatos} platos · {totalComensales} comensales
                   </p>
@@ -793,24 +777,24 @@ const exportarSoloInsumos = async () => {
             </div>
 
             {/* Requerimiento de insumos */}
-            <div className="rounded-lg border border-[#E7E7E2] bg-white overflow-hidden shadow-sm">
-              <div className="px-5 py-4" style={{ background: '#2B2B2B' }}>
-                <h2 className="text-white font-bold text-sm flex items-center gap-2">
+            <div style={{ background: '#fff', borderTop: `6px solid ${NARANJA}` }}>
+              <div className="px-5 py-4" style={{ background: OSCURO }}>
+                <h2 className="text-white font-extrabold text-sm flex items-center gap-2">
                   <Package className="w-4 h-4" />
                   Requerimiento de Insumos
                 </h2>
               </div>
               <div className="p-5">
                 {insumosRequeridos.length === 0 ? (
-                  <div className="text-center py-8 text-[#6B6B65]">
-                    <Calculator className="w-12 h-12 mx-auto mb-2 text-[#9A9A93]" />
-                    <p>Haz clic en "Calcular requerimiento"</p>
+                  <div className="text-center py-8" style={{ color: PIEDRA }}>
+                    <Calculator className="w-12 h-12 mx-auto mb-2" style={{ color: PIEDRA, opacity: 0.6 }} />
+                    <p>Haz clic en &quot;Calcular requerimiento&quot;</p>
                   </div>
                 ) : (
                   <>
-                    <div className="flex justify-between items-center mb-3 pb-2 border-b border-[#E7E7E2]">
-                      <p className="text-xs font-bold text-[#6B6B65] uppercase">Insumo</p>
-                      <p className="text-xs font-bold text-[#6B6B65] uppercase">Cantidad total</p>
+                    <div className="flex justify-between items-center mb-3 pb-2" style={{ borderBottom: `1px solid ${PIEDRA}` }}>
+                      <p className="text-xs font-bold uppercase" style={{ color: PIEDRA }}>Insumo</p>
+                      <p className="text-xs font-bold uppercase" style={{ color: PIEDRA }}>Cantidad total</p>
                     </div>
                     <div className="max-h-96 overflow-y-auto space-y-2">
                       {insumosRequeridos.map((insumo) => {
@@ -819,26 +803,26 @@ const exportarSoloInsumos = async () => {
                           insumo.unidad
                         )
                         const cantidadRedondeada = redondearCantidad(cantidadFormateada)
-                        
+
                         return (
-                          <div key={insumo.insumo_id} className="flex justify-between items-center py-2 border-b border-[#F5F5F0]">
+                          <div key={insumo.insumo_id} className="flex justify-between items-center py-2" style={{ borderBottom: '1px solid #F0F0EA' }}>
                             <div>
-                              <p className="text-sm font-medium text-[#2B2B2B]">{insumo.insumo_nombre}</p>
-                              <p className="text-[10px] text-[#9A9A93]">
+                              <p className="text-sm font-medium" style={{ color: OSCURO }}>{insumo.insumo_nombre}</p>
+                              <p className="text-[10px]" style={{ color: PIEDRA }}>
                                 {insumo.cantidad_porcion.toFixed(3)} {insumo.unidad} por comensal
                               </p>
                             </div>
-                            <p className="text-sm font-bold text-[#F37F21]">
+                            <p className="text-sm font-bold" style={{ color: NARANJA }}>
                               {cantidadRedondeada} {unidadFormateada}
                             </p>
                           </div>
                         )
                       })}
                     </div>
-                    <div className="mt-4 pt-3 border-t border-[#E7E7E2]">
-                      <p className="text-xs text-[#6B6B65] flex justify-between">
+                    <div className="mt-4 pt-3" style={{ borderTop: `1px solid ${PIEDRA}` }}>
+                      <p className="text-xs flex justify-between" style={{ color: PIEDRA }}>
                         <span>Total insumos:</span>
-                        <span className="font-bold text-[#2B2B2B]">{insumosRequeridos.length} items</span>
+                        <span className="font-bold" style={{ color: OSCURO }}>{insumosRequeridos.length} items</span>
                       </p>
                     </div>
                   </>
@@ -853,7 +837,8 @@ const exportarSoloInsumos = async () => {
           <div className="flex flex-wrap gap-3 justify-end">
             <button
               onClick={copiarRequerimiento}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#E7E7E2] text-[#6B6B65] font-medium hover:bg-gray-50 transition"
+              className="flex items-center gap-2 px-4 py-2.5 text-[13px] font-extrabold uppercase transition-colors"
+              style={{ letterSpacing: '0.06em', border: `2px solid ${PIEDRA}`, color: PIEDRA }}
             >
               <Copy className="w-4 h-4" />
               Copiar lista
@@ -861,7 +846,8 @@ const exportarSoloInsumos = async () => {
             <button
               onClick={exportarSoloInsumos}
               disabled={exportandoSolo}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#3B82F6] text-white font-medium hover:bg-[#2563EB] transition disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2.5 text-[13px] font-extrabold uppercase transition-colors disabled:opacity-50"
+              style={{ letterSpacing: '0.06em', background: '#3B82F6', color: '#fff' }}
             >
               {exportandoSolo ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileSpreadsheet className="w-4 h-4" />}
               {exportandoSolo ? "Exportando..." : "Exportar solo insumos"}
@@ -869,7 +855,8 @@ const exportarSoloInsumos = async () => {
             <button
               onClick={exportarAExcel}
               disabled={exportando}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#8CC63F] text-[#1F3A0A] font-medium hover:bg-[#7AB835] transition disabled:opacity-50"
+              className="flex items-center gap-2 px-4 py-2.5 text-[13px] font-extrabold uppercase transition-colors disabled:opacity-50"
+              style={{ letterSpacing: '0.06em', background: VERDE, color: '#1F3A0A' }}
             >
               {exportando ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               {exportando ? "Exportando..." : "Exportar reporte completo"}
@@ -879,9 +866,9 @@ const exportarSoloInsumos = async () => {
       </main>
 
       {/* Footer */}
-      <footer style={{ borderTop: '1.5px solid #EFEFE9' }} className="mt-8">
-        <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between flex-wrap gap-2">
-          <p style={{ fontSize: '0.8rem', color: '#9A9A93' }}>
+      <footer style={{ borderTop: `2px solid ${OSCURO}` }} className="mt-8">
+        <div className="max-w-7xl mx-auto px-5 py-4 flex items-center justify-between flex-wrap gap-2 sm:px-8">
+          <p style={{ fontSize: '0.8rem', color: PIEDRA }}>
             © 2026 MegaFood · Requerimiento de cocina
           </p>
           <div className="flex items-center gap-2">
@@ -889,12 +876,11 @@ const exportarSoloInsumos = async () => {
               style={{
                 width: '8px',
                 height: '8px',
-                borderRadius: '50%',
-                background: '#8CC63F',
+                background: VERDE,
                 display: 'inline-block',
               }}
             />
-            <span style={{ fontSize: '0.8rem', color: '#9A9A93', fontWeight: 600 }}>
+            <span style={{ fontSize: '0.8rem', color: PIEDRA, fontWeight: 600 }}>
               v1.0
             </span>
           </div>

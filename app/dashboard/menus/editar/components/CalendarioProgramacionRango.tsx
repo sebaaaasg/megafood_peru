@@ -169,17 +169,17 @@ export default function CalendarioProgramacionRango({
       <div
         onClick={() => setAbierto(!abierto)}
         className={`
-          w-full rounded-full border px-4 py-2.5 text-sm cursor-pointer
+          w-full  border px-4 py-2.5 text-sm cursor-pointer
           flex justify-between items-center transition-all
           ${fechaSeleccionada?.inicio && fechaSeleccionada?.fin
-            ? 'border-[#8CC63F] bg-[#F5FBF0] text-[#2C2C24]' 
-            : 'border-[#DED8CF] bg-[#FEFEFA] text-[#78786C] hover:border-[#8CC63F]/50'
+            ? 'border-[#8CC63F] bg-[#F5FBF0] text-[#201E1D]' 
+            : 'border-[#E7E7E2] bg-[#FFFFFF] text-[#6B6B65] hover:border-[#8CC63F]/50'
           }
         `}
       >
         <div className="flex items-center gap-2">
           <CalendarRange className={`w-4 h-4 ${fechaSeleccionada?.inicio && fechaSeleccionada?.fin ? 'text-[#8CC63F]' : 'text-[#9A9A93]'}`} />
-          <span className={fechaSeleccionada?.inicio && fechaSeleccionada?.fin ? "text-[#2C2C24]" : "text-[#78786C]"}>
+          <span className={fechaSeleccionada?.inicio && fechaSeleccionada?.fin ? "text-[#201E1D]" : "text-[#6B6B65]"}>
             {obtenerTextoMostrado()}
           </span>
         </div>
@@ -190,13 +190,13 @@ export default function CalendarioProgramacionRango({
                 e.stopPropagation()
                 limpiarSeleccion()
               }}
-              className="p-0.5 text-[#78786C] hover:text-red-500 transition"
+              className="p-0.5 text-[#6B6B65] hover:text-red-500 transition"
             >
               <X className="w-4 h-4" />
             </button>
           )}
           <ChevronRight 
-            className={`w-4 h-4 text-[#78786C] transition-transform duration-200 ${abierto ? 'rotate-90' : ''}`} 
+            className={`w-4 h-4 text-[#6B6B65] transition-transform duration-200 ${abierto ? 'rotate-90' : ''}`} 
           />
         </div>
       </div>
@@ -204,10 +204,9 @@ export default function CalendarioProgramacionRango({
       {/* Calendario desplegable */}
       {abierto && (
         <div
-          className="absolute top-full left-0 mt-2 bg-[#FEFEFA] border border-[#DED8CF] shadow-xl z-50 w-72 overflow-hidden"
-          style={{ borderRadius: '1.5rem 1.5rem 1.5rem 2.5rem' }}
+          className="absolute top-full left-0 mt-2 bg-[#FFFFFF] border-t-4 border-[#8CC63F] z-50 w-72 overflow-hidden"
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#DED8CF]" style={{ background: '#2C2C24' }}>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#E7E7E2]" style={{ background: '#201E1D' }}>
             <button 
               onClick={() => setMesActual(new Date(mesActual.getFullYear(), mesActual.getMonth() - 1, 1))}
               className="p-1 text-white/60 hover:text-white transition"
@@ -227,7 +226,7 @@ export default function CalendarioProgramacionRango({
 
           {cargando && (
             <div className="flex justify-center py-4">
-              <div className="w-5 h-5 border-2 border-[#8CC63F] border-t-transparent rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-[#8CC63F] border-t-transparent  animate-spin" />
             </div>
           )}
 
@@ -258,20 +257,20 @@ export default function CalendarioProgramacionRango({
                   }}
                   disabled={!esValida || !tieneProg}
                   className={`
-                    h-9 text-sm rounded-lg transition-all relative
+                    h-9 text-sm  transition-all relative
                     ${!esValida ? 'invisible' : ''}
                     ${tieneProg && !estaEnRangoSeleccionado && !esInicioRango && !esFinRango
-                      ? 'hover:bg-[#8CC63F]/10 text-[#2C2C24] hover:scale-[1.05]' 
+                      ? 'hover:bg-[#8CC63F]/10 text-[#201E1D] hover:scale-[1.05]' 
                       : ''
                     }
-                    ${estaEnRangoSeleccionado ? 'bg-[#8CC63F]/20 text-[#2C2C24]' : ''}
-                    ${esInicioRango || esFinRango ? 'bg-[#8CC63F] text-white shadow-md' : ''}
+                    ${estaEnRangoSeleccionado ? 'bg-[#8CC63F]/20 text-[#201E1D]' : ''}
+                    ${esInicioRango || esFinRango ? 'bg-[#8CC63F] text-white ' : ''}
                     ${!tieneProg && esValida ? 'text-[#D1D5DB] cursor-not-allowed' : ''}
                   `}
                 >
                   {esValida ? fecha.getDate() : ''}
                   {tieneProg && !estaEnRangoSeleccionado && !esInicioRango && !esFinRango && (
-                    <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-[#8CC63F]" />
+                    <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1  bg-[#8CC63F]" />
                   )}
                   {esInicioRango && <span className="absolute -top-1 -left-1 text-[8px] font-bold text-white">I</span>}
                   {esFinRango && <span className="absolute -top-1 -right-1 text-[8px] font-bold text-white">F</span>}
@@ -280,15 +279,15 @@ export default function CalendarioProgramacionRango({
             })}
           </div>
 
-          <div className="border-t border-[#DED8CF] px-3 py-2 flex justify-between items-center text-xs">
+          <div className="border-t border-[#E7E7E2] px-3 py-2 flex justify-between items-center text-xs">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-[#8CC63F]" />
-                <span className="text-[#78786C]">Programado</span>
+                <span className="w-2 h-2  bg-[#8CC63F]" />
+                <span className="text-[#6B6B65]">Programado</span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-[#8CC63F]/20" />
-                <span className="text-[#78786C]">Rango</span>
+                <span className="w-2 h-2  bg-[#8CC63F]/20" />
+                <span className="text-[#6B6B65]">Rango</span>
               </div>
             </div>
             <div className="flex items-center gap-2">

@@ -120,7 +120,7 @@ export default function TablaProgramacionMenu({
     <div className={className}>
       {titulo && <h3 className="font-bold text-[#2B2B2B] mb-3">{titulo}</h3>}
       
-      <div className="bg-white rounded-lg border border-[#E7E7E2] shadow-sm overflow-hidden">
+      <div className="bg-white  border border-[#E7E7E2]  overflow-hidden">
         <div className="overflow-x-auto max-h-[70vh] overflow-y-auto">
           <table className="border-collapse text-xs w-full">
             <thead>

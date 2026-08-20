@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Figtree, Caprasimo, Fraunces, Nunito } from "next/font/google";
+import { Geist, Geist_Mono, Figtree, Caprasimo, Fraunces, Nunito, Archivo } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -38,6 +38,13 @@ const nunito = Nunito({
   weight: ["400", "600", "700", "800"],
 });
 
+// Tipografía del diseño "Panel de logística" (dashboard principal).
+const archivo = Archivo({
+  variable: "--font-archivo",
+  subsets: ["latin"],
+  weight: ["400", "600", "700", "800"],
+});
+
 export const metadata: Metadata = {
   title: "MEGA FOOD - Sistema de Gestión",
   description: "Sistema de gestión agroindustrial para cocinas industriales",
@@ -51,7 +58,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${geistSans.variable} ${geistMono.variable} ${figtree.variable} ${caprasimo.variable} ${fraunces.variable} ${nunito.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${figtree.variable} ${caprasimo.variable} ${fraunces.variable} ${nunito.variable} ${archivo.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
